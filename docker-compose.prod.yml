@@ -1,0 +1,101 @@
+# Production stack for a single VPS.
+# - `volunteerfleet` and `minio` join the external network where Zoraxy lives
+#   (configure routing/TLS in Zoraxy manually). Host ports are NOT published.
+# - `postgres` stays on a private internal network — isolated from other stacks.
+# - Persistent state lives in ./data/* bind mounts and survives image updates.
+#
+# Configure everything via .env (see .env.prod.example).
+
+services:
+  volunteerfleet:
+    image: ${VF_IMAGE:-ghcr.io/your-org/volunteerfleet:latest}
+    container_name: volunteerfleet
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      volunteerfleet-postgres:
+        condition: service_healthy
+      volunteerfleet-minio:
+        condition: service_healthy
+    networks:
+      - internal
+      - shared
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  volunteerfleet-postgres:
+    image: postgres:16-alpine
+    container_name: volunteerfleet-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - internal
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  volunteerfleet-minio:
+    image: minio/minio:latest
+    container_name: volunteerfleet-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./data/minio:/data
+    networks:
+      - internal
+      - shared
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  volunteerfleet-minio-init:
+    image: minio/mc:latest
+    container_name: volunteerfleet-minio-init
+    restart: 'no'
+    depends_on:
+      volunteerfleet-minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+    networks:
+      - internal
+    entrypoint: >
+      sh -c "
+        mc alias set local http://volunteerfleet-minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
+        mc mb --ignore-existing local/$${S3_BUCKET} &&
+        mc anonymous set none local/$${S3_BUCKET}
+      "
+
+networks:
+  # Shared network where Zoraxy runs (created outside this stack).
+  shared:
+    external: true
+    name: ${SHARED_NETWORK:-n8n_default}
+  # Private network for app ↔ db ↔ object storage.
+  internal:
+    driver: bridge

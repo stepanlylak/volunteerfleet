@@ -23,6 +23,11 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
+!.env.prod.example
+
+# Production runtime data / backups (created in the deploy directory)
+/data/
+/backups/
 
 # Node / package managers
 node_modules/
