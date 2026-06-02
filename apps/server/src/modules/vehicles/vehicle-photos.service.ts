@@ -21,6 +21,7 @@ import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
 import { vehiclePhotos, vehicles } from '../../db/schema/index.js';
 import { StorageService } from '../../storage/storage.service.js';
+import { decodeUploadFileName } from '../../common/utils/decode-upload-filename.js';
 
 const MAX_VEHICLE_PHOTOS = 10;
 const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'] as const;
@@ -87,7 +88,7 @@ export class VehiclePhotosService {
       }
 
       const id = randomUUID();
-      const key = `vehicle-photos/${vehicleId}/${id}/${this.sanitizeFileName(file.originalname)}`;
+      const key = `vehicle-photos/${vehicleId}/${id}/${this.sanitizeFileName(decodeUploadFileName(file.originalname))}`;
       await this.storage.putObject(Readable.from(file.buffer), {
         key,
         mime,

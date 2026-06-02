@@ -25,6 +25,7 @@ import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
 import { documents, expenses, users, vehicles } from '../../db/schema/index.js';
 import { StorageService } from '../../storage/storage.service.js';
+import { decodeUploadFileName } from '../../common/utils/decode-upload-filename.js';
 
 export const ALLOWED_MIME_TYPES = [
   'application/pdf',
@@ -151,7 +152,7 @@ export class DocumentsService {
     }
 
     const id = randomUUID();
-    const key = `documents/${id}/${this.sanitizeFileName(file.originalname || input.name)}`;
+    const key = `documents/${id}/${this.sanitizeFileName(decodeUploadFileName(file.originalname) || input.name)}`;
 
     await this.storage.putObject(Readable.from(file.buffer), {
       key,
@@ -205,7 +206,7 @@ export class DocumentsService {
       throw new UnsupportedMediaTypeException('UNSUPPORTED_MEDIA_TYPE');
     }
 
-    const key = `documents/${id}/${this.sanitizeFileName(file.originalname || input.name)}`;
+    const key = `documents/${id}/${this.sanitizeFileName(decodeUploadFileName(file.originalname) || input.name)}`;
     await this.storage.putObject(Readable.from(file.buffer), {
       key,
       mime,
@@ -251,9 +252,7 @@ export class DocumentsService {
     return this.findById(row.id);
   }
 
-  async getDownload(
-    id: string,
-  ): Promise<
+  async getDownload(id: string): Promise<
     | { kind: 'link'; url: string }
     | {
         kind: 'file';
