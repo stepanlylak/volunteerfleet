@@ -1,0 +1,51 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+
+# Local assistant / machine-specific files
+.claude/settings.local.json
+.claude/worktrees
+.mise.local.toml
+mise.local.toml
+.mise.*.local.toml
+mise.*.local.toml
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node / package managers
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+coverage/
+.turbo/
+.cache/
+
+# Vite / TypeScript
+*.tsbuildinfo
+.vite/
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Temporary files
+tmp/
+temp/
+
+# Local dev workspace (worktrees, scratch, etc.)
+.dev/
