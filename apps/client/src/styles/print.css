@@ -1,0 +1,121 @@
+.print-area {
+  color: #111;
+}
+
+.report-section {
+  margin-top: 24px;
+}
+
+.report-section .ant-typography {
+  margin-bottom: 12px;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 18mm 12mm;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: auto !important;
+    background: #fff !important;
+  }
+
+  body {
+    color: #000 !important;
+    font-size: 12pt;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+  }
+
+  .no-print,
+  .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .ant-layout,
+  .ant-layout-content,
+  .ant-card,
+  .ant-descriptions,
+  .ant-list,
+  .ant-timeline,
+  .ant-table-wrapper {
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .ant-card {
+    border: 0 !important;
+  }
+
+  .ant-card-body {
+    padding: 0 !important;
+  }
+
+  .ant-typography {
+    color: #000 !important;
+  }
+
+  .ant-table {
+    font-size: 12pt;
+  }
+
+  .ant-table table {
+    border-collapse: collapse !important;
+  }
+
+  .ant-table-cell,
+  .ant-descriptions-item-label,
+  .ant-descriptions-item-content {
+    border: 1px solid #000 !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .ant-table-thead > tr > th {
+    font-weight: 700 !important;
+  }
+
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 5px 6px !important;
+  }
+
+  .ant-tag {
+    border: 1px solid #000 !important;
+    background: transparent !important;
+    color: #000 !important;
+  }
+
+  .ant-progress-bg {
+    background: #777 !important;
+  }
+
+  .ant-progress-inner {
+    border: 1px solid #000 !important;
+    background: #fff !important;
+  }
+
+  .report-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-top: 16pt;
+  }
+}

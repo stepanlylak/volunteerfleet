@@ -1,0 +1,325 @@
+import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { and, asc, desc, eq, gte, inArray, isNull, lte, or, SQL, sql } from 'drizzle-orm';
+import { BASE_CURRENCY, type Currency } from '@volunteerfleet/shared';
+import type {
+  ExpenseCreate,
+  ExpenseListQuery,
+  ExpenseListResponse,
+  ExpenseResponse,
+  ExpenseUpdate,
+  ExpenseUserInfo,
+} from '@volunteerfleet/shared';
+import type { Database } from '../../db/client.js';
+import { DB } from '../../db/db.module.js';
+import {
+  expenseCategories,
+  expenses,
+  fundingSources,
+  users,
+  vehicles,
+} from '../../db/schema/index.js';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service.js';
+
+const EXPENSE_SORT_WHITELIST = [
+  'expenseDate',
+  'amount',
+  'currency',
+  'createdAt',
+  'updatedAt',
+] as const;
+type ExpenseSortField = (typeof EXPENSE_SORT_WHITELIST)[number];
+
+interface SortItem {
+  field: ExpenseSortField;
+  dir: 'asc' | 'desc';
+}
+
+type ExpenseRow = typeof expenses.$inferSelect & {
+  vehicle?: Pick<typeof vehicles.$inferSelect, 'id' | 'identifier' | 'brand' | 'model'> | null;
+  category?: typeof expenseCategories.$inferSelect;
+  fundingSource?: typeof fundingSources.$inferSelect;
+  createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
+  updatedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
+  deletedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'> | null;
+};
+
+@Injectable()
+export class ExpensesService {
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    private readonly exchangeRates: ExchangeRatesService,
+  ) {}
+
+  async list(query: ExpenseListQuery, userRole: string): Promise<ExpenseListResponse> {
+    const {
+      page,
+      pageSize,
+      sort,
+      vehicleId,
+      categoryId,
+      fundingSourceId,
+      dateFrom,
+      dateTo,
+      currency,
+      includeDeleted,
+    } = query;
+
+    if (includeDeleted && userRole !== 'admin') {
+      throw new ForbiddenException('Only admin can view deleted expenses');
+    }
+
+    const conditions: SQL<unknown>[] = [];
+    if (!includeDeleted) {
+      conditions.push(isNull(expenses.deletedAt), this.hasJoinedActiveVehicle());
+    }
+    if (vehicleId) conditions.push(eq(expenses.vehicleId, vehicleId));
+    if (categoryId) conditions.push(eq(expenses.categoryId, categoryId));
+    if (fundingSourceId) conditions.push(eq(expenses.fundingSourceId, fundingSourceId));
+    if (dateFrom) conditions.push(gte(expenses.expenseDate, dateFrom));
+    if (dateTo) conditions.push(lte(expenses.expenseDate, dateTo));
+    if (currency) conditions.push(eq(expenses.currency, currency));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(expenses)
+      .leftJoin(vehicles, eq(vehicles.id, expenses.vehicleId))
+      .where(whereClause);
+    const total = countResult[0]?.count ?? 0;
+
+    const orderBy = this.parseSort(sort).map((s) =>
+      s.dir === 'asc' ? asc(expenses[s.field]) : desc(expenses[s.field]),
+    );
+    if (orderBy.length === 0) orderBy.push(desc(expenses.expenseDate));
+
+    const pageRows = await this.db
+      .select({ id: expenses.id })
+      .from(expenses)
+      .leftJoin(vehicles, eq(vehicles.id, expenses.vehicleId))
+      .where(whereClause)
+      .orderBy(...orderBy)
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
+    const ids = pageRows.map((row) => row.id);
+
+    const rows =
+      ids.length > 0
+        ? await this.db.query.expenses.findMany({
+            where: inArray(expenses.id, ids),
+            with: this.responseRelations(),
+          })
+        : [];
+    const rowsById = new Map(rows.map((row) => [row.id, row]));
+
+    return {
+      items: ids.flatMap((id) => {
+        const row = rowsById.get(id);
+        return row ? [this.toResponse(row)] : [];
+      }),
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async findById(id: string, includeDeleted = false): Promise<ExpenseResponse> {
+    if (!includeDeleted) {
+      const visibleRows = await this.db
+        .select({ id: expenses.id })
+        .from(expenses)
+        .leftJoin(vehicles, eq(vehicles.id, expenses.vehicleId))
+        .where(and(eq(expenses.id, id), isNull(expenses.deletedAt), this.hasJoinedActiveVehicle()))
+        .limit(1);
+      if (!visibleRows[0]) throw new NotFoundException(`Expense ${id} not found`);
+    }
+
+    const row = await this.db.query.expenses.findFirst({
+      where: eq(expenses.id, id),
+      with: this.responseRelations(),
+    });
+
+    if (!row) throw new NotFoundException(`Expense ${id} not found`);
+    return this.toResponse(row);
+  }
+
+  async create(input: ExpenseCreate, userId: string): Promise<ExpenseResponse> {
+    const rateInfo = this.resolveCreateRate(input);
+
+    const inserted = await this.db
+      .insert(expenses)
+      .values({
+        vehicleId: input.vehicleId ?? null,
+        expenseDate: input.expenseDate,
+        amount: input.amount.toFixed(2),
+        currency: input.currency,
+        rate: rateInfo.rate.toFixed(6),
+        rateSource: rateInfo.rateSource,
+        categoryId: input.categoryId,
+        fundingSourceId: input.fundingSourceId,
+        description: input.description ?? null,
+        createdBy: userId,
+        updatedBy: userId,
+      })
+      .returning({ id: expenses.id });
+
+    const row = inserted[0];
+    if (!row) throw new Error('Insert returned no rows');
+    return this.findById(row.id);
+  }
+
+  async update(id: string, input: ExpenseUpdate, userId: string): Promise<ExpenseResponse> {
+    const existing = await this.db.query.expenses.findFirst({
+      where: and(eq(expenses.id, id), isNull(expenses.deletedAt)),
+    });
+    if (!existing) throw new NotFoundException(`Expense ${id} not found`);
+
+    const updateValues: Record<string, unknown> = {
+      updatedBy: userId,
+      updatedAt: new Date(),
+    };
+
+    if (input.vehicleId !== undefined) updateValues.vehicleId = input.vehicleId;
+    if (input.expenseDate !== undefined) updateValues.expenseDate = input.expenseDate;
+    if (input.amount !== undefined) updateValues.amount = input.amount.toFixed(2);
+    if (input.currency !== undefined) updateValues.currency = input.currency;
+    if (input.categoryId !== undefined) updateValues.categoryId = input.categoryId;
+    if (input.fundingSourceId !== undefined) {
+      updateValues.fundingSourceId = input.fundingSourceId;
+    }
+    if (input.description !== undefined) updateValues.description = input.description;
+
+    if (input.currency === BASE_CURRENCY) {
+      updateValues.rate = '1.000000';
+      updateValues.rateSource = 'default';
+    } else if (input.rate !== undefined) {
+      updateValues.rate = input.rate.toFixed(6);
+      updateValues.rateSource = 'manual';
+    }
+
+    const updated = await this.db
+      .update(expenses)
+      .set(updateValues)
+      .where(eq(expenses.id, id))
+      .returning({ id: expenses.id });
+
+    if (!updated[0]) throw new NotFoundException(`Expense ${id} not found`);
+    return this.findById(id);
+  }
+
+  async softDelete(id: string, userId: string): Promise<void> {
+    const existing = await this.db.query.expenses.findFirst({
+      where: and(eq(expenses.id, id), isNull(expenses.deletedAt)),
+    });
+    if (!existing) throw new NotFoundException(`Expense ${id} not found`);
+
+    await this.db
+      .update(expenses)
+      .set({ deletedAt: new Date(), deletedBy: userId, updatedBy: userId, updatedAt: new Date() })
+      .where(eq(expenses.id, id));
+  }
+
+  async restore(id: string, userId: string): Promise<ExpenseResponse> {
+    const existing = await this.db.query.expenses.findFirst({
+      where: and(eq(expenses.id, id), sql`${expenses.deletedAt} IS NOT NULL`),
+    });
+    if (!existing) throw new NotFoundException(`Deleted expense ${id} not found`);
+
+    await this.db
+      .update(expenses)
+      .set({ deletedAt: null, deletedBy: null, updatedBy: userId, updatedAt: new Date() })
+      .where(eq(expenses.id, id));
+
+    return this.findById(id, true);
+  }
+
+  private resolveCreateRate(input: ExpenseCreate): {
+    rate: number;
+    rateSource: 'default' | 'manual';
+  } {
+    if (input.currency === BASE_CURRENCY) {
+      return { rate: 1, rateSource: 'default' };
+    }
+    if (input.rate !== undefined) {
+      return { rate: input.rate, rateSource: 'manual' };
+    }
+    return {
+      rate: this.exchangeRates.getRate(new Date(input.expenseDate), input.currency as Currency),
+      rateSource: 'default',
+    };
+  }
+
+  private parseSort(sort: string | undefined): SortItem[] {
+    if (!sort) return [];
+    return sort.split(',').flatMap((part) => {
+      const [field, dir] = part.split(':') as [string, string | undefined];
+      if (!EXPENSE_SORT_WHITELIST.includes(field as ExpenseSortField)) return [];
+      if (dir !== 'asc' && dir !== 'desc') return [];
+      return [{ field: field as ExpenseSortField, dir }];
+    });
+  }
+
+  private hasJoinedActiveVehicle(): SQL<unknown> {
+    return or(isNull(expenses.vehicleId), isNull(vehicles.deletedAt))!;
+  }
+
+  private responseRelations() {
+    return {
+      vehicle: { columns: { id: true, identifier: true, brand: true, model: true } },
+      category: true,
+      fundingSource: true,
+      createdByUser: { columns: { id: true, fullName: true } },
+      updatedByUser: { columns: { id: true, fullName: true } },
+      deletedByUser: { columns: { id: true, fullName: true } },
+    } as const;
+  }
+
+  private toUserInfo(row: { id: string; fullName: string } | null | undefined): ExpenseUserInfo {
+    return { id: row?.id ?? '', fullName: row?.fullName ?? '' };
+  }
+
+  private toResponse(row: ExpenseRow): ExpenseResponse {
+    return {
+      id: row.id,
+      vehicleId: row.vehicleId,
+      vehicle: row.vehicle
+        ? {
+            id: row.vehicle.id,
+            identifier: row.vehicle.identifier,
+            brand: row.vehicle.brand,
+            model: row.vehicle.model,
+          }
+        : null,
+      expenseDate: row.expenseDate,
+      amount: Number(row.amount),
+      currency: row.currency,
+      rate: Number(row.rate),
+      rateSource: row.rateSource,
+      categoryId: row.categoryId,
+      category: {
+        id: row.category?.id ?? '',
+        name: row.category?.name ?? '',
+        sortOrder: row.category?.sortOrder ?? 0,
+        createdAt: row.category?.createdAt.toISOString() ?? '',
+        updatedAt: row.category?.updatedAt.toISOString() ?? '',
+      },
+      fundingSourceId: row.fundingSourceId,
+      fundingSource: {
+        id: row.fundingSource?.id ?? '',
+        name: row.fundingSource?.name ?? '',
+        type: row.fundingSource?.type ?? 'other',
+        description: row.fundingSource?.description ?? null,
+        createdAt: row.fundingSource?.createdAt.toISOString() ?? '',
+        updatedAt: row.fundingSource?.updatedAt.toISOString() ?? '',
+      },
+      description: row.description,
+      createdBy: this.toUserInfo(row.createdByUser),
+      updatedBy: this.toUserInfo(row.updatedByUser),
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+      deletedAt: row.deletedAt?.toISOString() ?? null,
+      deletedBy: row.deletedByUser ? this.toUserInfo(row.deletedByUser) : null,
+    };
+  }
+}
