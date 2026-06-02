@@ -116,7 +116,10 @@ export class AuthController {
     return {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      // Lax (not Strict): the access cookie authenticates native top-level loads
+      // (opening a photo/document URL directly or in a new tab). Strict withholds
+      // cookies on top-level navigations. Safe GET-only — state changes use Bearer.
+      sameSite: 'lax',
       path: '/api/v1',
       maxAge: maxAgeMs ?? ttlToMs(this.cfg.get('JWT_ACCESS_TTL', { infer: true })),
     };
