@@ -23,6 +23,7 @@ export default [
   {
     rules: {
       'no-console': 'warn',
+      "object-curly-spacing": ["warn", "always"]
     },
   },
 ];
