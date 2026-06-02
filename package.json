@@ -1,0 +1,47 @@
+{
+  "name": "volunteerfleet-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @volunteerfleet/shared build && pnpm -r --parallel --filter='./apps/*' --filter @volunteerfleet/shared dev",
+    "build": "pnpm -r build",
+    "infra:up": "docker compose up -d postgres minio && pnpm --filter @volunteerfleet/server db:ensure && docker compose up -d --force-recreate minio-init",
+    "infra:down": "docker compose down",
+    "infra:reset": "docker compose down -v && docker compose up -d",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @volunteerfleet/server db:generate",
+    "db:migrate": "pnpm --filter @volunteerfleet/server db:migrate",
+    "db:seed": "pnpm --filter @volunteerfleet/server db:seed",
+    "db:seed:demo": "pnpm --filter @volunteerfleet/server db:seed:demo",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.12.2"
+  }
+}
