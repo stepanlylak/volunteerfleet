@@ -1,0 +1,17 @@
+**/node_modules
+**/dist
+.git
+.github
+.idea
+.dev
+docs
+docs-old
+outputs
+tasks
+**/*.log
+.env
+.env.*
+!.env.example
+.pnpm-store
+backups
+data

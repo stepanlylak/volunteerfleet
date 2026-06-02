@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
-import { eq, or, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { createDb, createPool } from '../db/client.js';
 import { expenseCategories, fundingSources, users, vehicleStatuses } from '../db/schema/index.js';
 import {
@@ -130,91 +130,22 @@ async function seedAdmin(db: ReturnType<typeof createDb>): Promise<void> {
   console.log(`[seed] created admin: ${email}`);
 }
 
+// Reference data is insert-only by id: missing rows are created, existing rows are
+// left untouched. This keeps the seed safe to run on every container start without
+// resetting admin edits (renamed/recoloured statuses, sort order, default flag).
 async function seedVehicleStatuses(db: ReturnType<typeof createDb>): Promise<void> {
-  for (const status of VEHICLE_STATUSES) {
-    if (status.isDefault) {
-      await db
-        .update(vehicleStatuses)
-        .set({ isDefault: false })
-        .where(eq(vehicleStatuses.isDefault, true));
-    }
-
-    const existing = await db
-      .select({ id: vehicleStatuses.id })
-      .from(vehicleStatuses)
-      .where(
-        or(
-          eq(vehicleStatuses.id, status.id),
-          sql`lower(${vehicleStatuses.name}) = lower(${status.name})`,
-        ),
-      )
-      .limit(1);
-    const row = existing[0];
-    if (!row) {
-      await db.insert(vehicleStatuses).values(status);
-      console.log(`[seed] vehicle_status: ${status.name}`);
-    } else {
-      await db
-        .update(vehicleStatuses)
-        .set({
-          sortOrder: status.sortOrder,
-          isDefault: status.isDefault,
-          kind: status.kind,
-          color: status.color,
-        })
-        .where(eq(vehicleStatuses.id, row.id));
-    }
-  }
+  await db.insert(vehicleStatuses).values(VEHICLE_STATUSES).onConflictDoNothing();
+  console.log('[seed] vehicle_statuses ensured');
 }
 
 async function seedExpenseCategories(db: ReturnType<typeof createDb>): Promise<void> {
-  for (const category of EXPENSE_CATEGORIES) {
-    const existing = await db
-      .select({ id: expenseCategories.id })
-      .from(expenseCategories)
-      .where(
-        or(
-          eq(expenseCategories.id, category.id),
-          sql`lower(${expenseCategories.name}) = lower(${category.name})`,
-        ),
-      )
-      .limit(1);
-    const row = existing[0];
-    if (!row) {
-      await db.insert(expenseCategories).values(category);
-      console.log(`[seed] expense_category: ${category.name}`);
-    } else {
-      await db
-        .update(expenseCategories)
-        .set({ sortOrder: category.sortOrder })
-        .where(eq(expenseCategories.id, row.id));
-    }
-  }
+  await db.insert(expenseCategories).values(EXPENSE_CATEGORIES).onConflictDoNothing();
+  console.log('[seed] expense_categories ensured');
 }
 
 async function seedFundingSources(db: ReturnType<typeof createDb>): Promise<void> {
-  for (const source of FUNDING_SOURCES) {
-    const existing = await db
-      .select({ id: fundingSources.id })
-      .from(fundingSources)
-      .where(
-        or(
-          eq(fundingSources.id, source.id),
-          sql`lower(${fundingSources.name}) = lower(${source.name})`,
-        ),
-      )
-      .limit(1);
-    const row = existing[0];
-    if (!row) {
-      await db.insert(fundingSources).values(source);
-      console.log(`[seed] funding_source: ${source.name}`);
-    } else {
-      await db
-        .update(fundingSources)
-        .set({ type: source.type, description: source.description })
-        .where(eq(fundingSources.id, row.id));
-    }
-  }
+  await db.insert(fundingSources).values(FUNDING_SOURCES).onConflictDoNothing();
+  console.log('[seed] funding_sources ensured');
 }
 
 async function main(): Promise<void> {

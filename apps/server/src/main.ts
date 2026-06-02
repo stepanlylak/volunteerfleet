@@ -1,21 +1,29 @@
 import 'reflect-metadata';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import type { Env } from './config/env.schema.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService<Env, true>);
 
   app.setGlobalPrefix('api/v1');
 
-  app.use(helmet());
+  // CSP is disabled: the bundled SPA (Ant Design CSS-in-JS) and cross-origin
+  // document/photo URLs from object storage would otherwise be blocked. Other
+  // helmet protections (HSTS, noSniff, frameguard, …) stay enabled.
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cookieParser());
 
   app.enableCors({
@@ -26,6 +34,25 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ZodValidationPipe());
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // In production the server also serves the built client (single-container
+  // deploy → frontend and API share one origin, so auth cookies stay first-party).
+  if (config.get('NODE_ENV', { infer: true }) === 'production') {
+    const clientDir =
+      process.env.CLIENT_DIST_PATH ??
+      join(fileURLToPath(new URL('.', import.meta.url)), '../client');
+    if (existsSync(clientDir)) {
+      app.useStaticAssets(clientDir, { index: false });
+      const indexHtml = join(clientDir, 'index.html');
+      app.use((req: Request, res: Response, next: NextFunction) => {
+        if (req.method !== 'GET' || req.path.startsWith('/api')) {
+          next();
+          return;
+        }
+        res.sendFile(indexHtml);
+      });
+    }
+  }
 
   if (config.get('NODE_ENV', { infer: true }) !== 'production') {
     const swaggerConfig = new DocumentBuilder()
