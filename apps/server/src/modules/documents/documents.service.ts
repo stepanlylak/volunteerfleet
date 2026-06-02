@@ -251,17 +251,35 @@ export class DocumentsService {
     return this.findById(row.id);
   }
 
-  async getDownloadUrl(id: string): Promise<string> {
+  async getDownload(
+    id: string,
+  ): Promise<
+    | { kind: 'link'; url: string }
+    | {
+        kind: 'file';
+        body: Readable;
+        contentType: string;
+        contentLength?: number;
+        fileName: string;
+      }
+  > {
     const doc = await this.db.query.documents.findFirst({
       where: and(eq(documents.id, id), isNull(documents.deletedAt)),
     });
     if (!doc) throw new NotFoundException(`Document ${id} not found`);
     if (doc.kind === 'link') {
       if (!doc.url) throw new NotFoundException(`Document ${id} has no URL`);
-      return doc.url;
+      return { kind: 'link', url: doc.url };
     }
     if (!doc.fileKey) throw new NotFoundException(`Document ${id} has no file`);
-    return this.storage.getPresignedDownloadUrl(doc.fileKey, 300);
+    const object = await this.storage.getObjectStream(doc.fileKey);
+    return {
+      kind: 'file',
+      body: object.body,
+      contentType: doc.mimeType ?? object.contentType,
+      contentLength: object.contentLength,
+      fileName: doc.name,
+    };
   }
 
   async update(id: string, input: DocumentUpdate, user: JwtPayload): Promise<DocumentResponse> {

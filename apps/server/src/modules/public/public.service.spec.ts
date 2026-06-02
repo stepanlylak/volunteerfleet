@@ -19,7 +19,7 @@ describe('PublicService', () => {
     getPublicFundingSourceReport: ReturnType<typeof vi.fn>;
   };
   let photos: {
-    getDownloadUrl: ReturnType<typeof vi.fn>;
+    getDownloadStream: ReturnType<typeof vi.fn>;
   };
   let service: PublicService;
 
@@ -38,7 +38,7 @@ describe('PublicService', () => {
       getPublicFundingSourceReport: vi.fn(),
     };
     photos = {
-      getDownloadUrl: vi.fn(),
+      getDownloadStream: vi.fn(),
     };
     service = new PublicService(db as never, reports as never, photos as never);
   });

@@ -9,13 +9,15 @@ import {
   Patch,
   Post,
   Query,
-  Redirect,
+  Res,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { memoryStorage } from 'multer';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type {
@@ -214,14 +216,18 @@ export class VehiclesController {
 
   @Get(':id/photos/:photoId/download')
   @Roles('admin', 'volunteer')
-  @Redirect('', HttpStatus.FOUND)
   async downloadPhoto(
     @Param('photoId') photoId: string,
-  ): Promise<{ url: string; statusCode: number }> {
-    return {
-      url: await this.photosService.getDownloadUrl(photoId),
-      statusCode: HttpStatus.FOUND,
-    };
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { body, contentType, contentLength } =
+      await this.photosService.getDownloadStream(photoId);
+    res.set({
+      'Content-Type': contentType,
+      'Cache-Control': 'private, max-age=300',
+      ...(contentLength != null ? { 'Content-Length': String(contentLength) } : {}),
+    });
+    return new StreamableFile(body);
   }
 
   @Delete(':id/photos/:photoId')

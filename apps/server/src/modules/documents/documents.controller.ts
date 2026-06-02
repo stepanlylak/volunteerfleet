@@ -9,13 +9,15 @@ import {
   Patch,
   Post,
   Query,
-  Redirect,
+  Res,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { memoryStorage } from 'multer';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type {
@@ -131,11 +133,21 @@ export class DocumentsController {
 
   @Get(':id/download')
   @Roles('admin', 'volunteer')
-  @Redirect('', HttpStatus.FOUND)
   async download(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
-  ): Promise<{ url: string; statusCode: number }> {
-    return { url: await this.service.getDownloadUrl(params.id), statusCode: HttpStatus.FOUND };
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile | undefined> {
+    const result = await this.service.getDownload(params.id);
+    if (result.kind === 'link') {
+      res.redirect(HttpStatus.FOUND, result.url);
+      return undefined;
+    }
+    res.set({
+      'Content-Type': result.contentType,
+      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(result.fileName)}`,
+      ...(result.contentLength != null ? { 'Content-Length': String(result.contentLength) } : {}),
+    });
+    return new StreamableFile(result.body);
   }
 
   @Patch(':id')
