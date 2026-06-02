@@ -135,40 +135,64 @@ VITE_PROXY_TARGET=http://localhost:3000
 
 ### Реліз: від `main` до образу в GHCR
 
-Версія = git-тег `vX.Y.Z`. Пуш тегу запускає workflow
-[`release.yml`](../.github/workflows/release.yml), який збирає образ і пушить у GHCR.
+Модель — **trunk-based із реліз-зрізами** (не класичний GitFlow):
+
+- **`main` — завжди актуальне джерело правди**; розробка в ньому не блокується.
+- Реліз-гілку відколюємо лише як **зріз історії** для конкретного релізу.
+- У реліз-гілку **нічого не вливається, крім хотфіксів**; **merge-back у `main` роблять лише якщо
+  на реліз-гілку лягли хотфікси** (без хотфіксів реліз-гілка — чистий зріз `main`, вливати нічого).
+- `main` завжди несе **версію майбутнього релізу** (її виставляє bump після попереднього релізу).
+
+Версія = git-тег `vX.Y.Z`; пуш тегу запускає [`release.yml`](../.github/workflows/release.yml).
 
 ```bash
-# 0. Актуальний main
-git checkout main
-git fetch origin
-git pull --ff-only origin main
+# 0. main актуальний
+git checkout main && git fetch origin && git pull --ff-only origin main
 
-# 1. Реліз-гілка від main (стабілізація, бамп версій, CHANGELOG, фінальні фікси)
+# 1. ПЕРЕД релізом — у main: release notes / CHANGELOG для цієї версії (1.2.0)
+#    (правки CHANGELOG.md тощо → коміт у main, напр. через PR)
+
+# 2. Відколоти реліз-гілку від main (зріз історії)
 git checkout -b release/1.2.0
 git push -u origin release/1.2.0
 
-# 2. Анотований тег на готовому коміті + пуш тегу — це і є тригер CI
+# 3. Анотований тег на реліз-гілці — це і є тригер CI
 git tag -a v1.2.0 -m "Release 1.2.0"
 git push origin v1.2.0
+
+# 4. ПІСЛЯ релізу — повернутись у main і збампити версію на наступну
+#    (стане версією наступного релізу), напр. 1.2.0 → 1.3.0:
+git checkout main
+#    підняти version у package.json → коміт → git push origin main
 ```
 
 Тег `v1.2.0` → GitHub Actions збирає й пушить три теги одного образу:
 `ghcr.io/<owner>/volunteerfleet:1.2.0`, `:1.2`, `:latest`.
 
 ```bash
-# 3. Слідкувати за збіркою
+# Слідкувати за збіркою
 gh run watch                       # або: gh run list --workflow=release.yml
 
-# 4. (ПЕРШИЙ РАЗ) дати доступ до пакета:
-#    GitHub → сторінка пакета volunteerfleet → Package settings → Visibility → Public;
-#    або лишити Private і залогінити VPS PAT-ом із правом read:packages:
-#    echo <PAT> | docker login ghcr.io -u <owner> --password-stdin
+# (ПЕРШИЙ РАЗ) дати доступ до пакета:
+#   GitHub → пакет volunteerfleet → Package settings → Visibility → Public;
+#   або лишити Private і залогінити VPS PAT-ом із read:packages:
+#   echo <PAT> | docker login ghcr.io -u <owner> --password-stdin
 
-# 5. Переконатися, що образ доступний
+# Перевірити, що образ доступний
 docker pull ghcr.io/<owner>/volunteerfleet:1.2.0
+```
 
-# 6. Влити реліз-гілку назад у main (через PR або локально)
+**Хотфікс на випущений реліз:** виправлення вносять прямо в реліз-гілку, ставлять новий патч-тег і
+деплоять. Оскільки на реліз-гілці з'явилися коміти, яких немає в `main`, **після цього реліз-гілку
+вливають назад у `main`** (merge-back) — щоб `main` отримав хотфікси:
+
+```bash
+git checkout release/1.2.0
+# внести фікс → коміт у release/1.2.0
+git tag -a v1.2.1 -m "Release 1.2.1"
+git push origin release/1.2.0 v1.2.1
+
+# merge-back у main (бо були хотфікси)
 git checkout main && git merge --no-ff release/1.2.0 && git push origin main
 ```
 
