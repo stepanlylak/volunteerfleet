@@ -20,10 +20,21 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
-  // CSP is disabled: the bundled SPA (Ant Design CSS-in-JS) and cross-origin
-  // document/photo URLs from object storage would otherwise be blocked. Other
-  // helmet protections (HSTS, noSniff, frameguard, …) stay enabled.
-  app.use(helmet({ contentSecurityPolicy: false }));
+  // CSP is configured to allow Ant Design inline styles and Vite inline scripts.
+  // Document/photo URLs from object storage are now proxied through the app.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          connectSrc: ["'self'"],
+        },
+      },
+    }),
+  );
   app.use(cookieParser());
 
   app.enableCors({
