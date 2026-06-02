@@ -7,7 +7,6 @@ import {
   PutObjectCommand,
   type S3Client,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Readable } from 'stream';
 import type { Env } from '../config/env.schema.js';
 import { S3_CLIENT } from './storage.tokens.js';
@@ -38,15 +37,20 @@ export class StorageService {
     );
   }
 
-  async getPresignedDownloadUrl(key: string, ttlSeconds = 300): Promise<string> {
-    return getSignedUrl(
-      this.s3,
+  async getObjectStream(
+    key: string,
+  ): Promise<{ body: Readable; contentType: string; contentLength?: number }> {
+    const result = await this.s3.send(
       new GetObjectCommand({
         Bucket: this.bucket,
         Key: key,
       }),
-      { expiresIn: ttlSeconds },
     );
+    return {
+      body: result.Body as Readable,
+      contentType: result.ContentType ?? 'application/octet-stream',
+      contentLength: result.ContentLength,
+    };
   }
 
   async headObject(key: string): Promise<{ size: number; mime: string } | null> {

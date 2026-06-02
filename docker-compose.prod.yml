@@ -60,11 +60,14 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      # Console (optional): to expose the MinIO web console, route a subdomain in
+      # Zoraxy → volunteerfleet-minio:9001 and uncomment the line below with that URL.
+      # MINIO_BROWSER_REDIRECT_URL: ${MINIO_CONSOLE_URL}
     volumes:
       - ./data/minio:/data
     networks:
       - internal
-      - shared
+      # Add `- shared` only if you expose the MinIO web console via Zoraxy.
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 10s

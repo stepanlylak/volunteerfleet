@@ -166,7 +166,12 @@ export class VehiclePhotosService {
       .where(eq(vehiclePhotos.id, photoId));
   }
 
-  assertAllowedPhotoForTest(mime: string, size: number, currentCount: number, maxUploadBytes: number) {
+  assertAllowedPhotoForTest(
+    mime: string,
+    size: number,
+    currentCount: number,
+    maxUploadBytes: number,
+  ) {
     if (currentCount >= MAX_VEHICLE_PHOTOS) {
       throw new BadRequestException('VEHICLE_PHOTO_LIMIT_EXCEEDED');
     }
@@ -178,7 +183,10 @@ export class VehiclePhotosService {
     }
   }
 
-  async getDownloadUrl(photoId: string, publicOnly = false): Promise<string> {
+  async getDownloadStream(
+    photoId: string,
+    publicOnly = false,
+  ): Promise<{ body: Readable; contentType: string; contentLength?: number }> {
     const row = await this.db.query.vehiclePhotos.findFirst({
       where: and(eq(vehiclePhotos.id, photoId), isNull(vehiclePhotos.deletedAt)),
       with: { vehicle: true },
@@ -189,7 +197,12 @@ export class VehiclePhotosService {
     if (publicOnly && !row.vehicle.isPublic) {
       throw new NotFoundException(`Vehicle photo ${photoId} not found`);
     }
-    return this.storage.getPresignedDownloadUrl(row.fileKey, 300);
+    const object = await this.storage.getObjectStream(row.fileKey);
+    return {
+      body: object.body,
+      contentType: row.mimeType ?? object.contentType,
+      contentLength: object.contentLength,
+    };
   }
 
   private async assertVehicleExists(vehicleId: string): Promise<void> {

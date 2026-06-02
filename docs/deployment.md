@@ -125,10 +125,12 @@ VITE_PROXY_TARGET=http://localhost:3000
   (`useStaticAssets`); CSP у helmet вимкнено (інакше AntD inline-стилі й cross-origin URL з MinIO блокуються).
 - **`volunteerfleet-postgres`** — лише у приватній мережі `internal`, назовні не публікується (ізольований
   від інших стеків на сервері).
-- **`volunteerfleet-minio`** — об'єктне сховище документів/фото.
-- **Мережі:** `volunteerfleet` і `minio` додатково під'єднані до зовнішньої `n8n_default` (де працює Zoraxy)
-  — Zoraxy маршрутизує за іменем контейнера, **host-порти не публікуються** (нуль колізій із дефолтними
-  портами інших апок).
+- **`volunteerfleet-minio`** — об'єктне сховище. **Приватне:** файли (документи/фото) віддаються **потоком
+  через застосунок**, тож `S3_ENDPOINT` — внутрішній `http://volunteerfleet-minio:9000`, а S3-API назовні не
+  виставляється (ні окремого домену, ні presigned-URL, ні Host-preserve).
+- **Мережі:** `volunteerfleet` під'єднаний до зовнішньої `n8n_default` (де працює Zoraxy) — Zoraxy
+  маршрутизує за іменем контейнера, **host-порти не публікуються** (нуль колізій). `minio` лишається в
+  приватній `internal`; до `n8n_default` його додають **лише якщо** виставляють веб-консоль.
 - **Стан:** лише `./data/postgres` і `./data/minio` (bind-mounts на сервері) — переживають оновлення образу.
 
 ### Реліз: від `main` до образу в GHCR
@@ -193,10 +195,12 @@ Entrypoint образу на старті сам **накатує міграці
 
 ### Налаштування Zoraxy
 
-- Основний домен (= `CORS_ORIGIN`) → `volunteerfleet:3000`.
-- Files-домен (= `S3_ENDPOINT`) → `volunteerfleet-minio:9000`, **з передачею оригінального `Host`** — інакше
-  підпис presigned-URL не зійдеться і завантаження документів/фото не працюватимуть.
-- TLS на обох доменах — у Zoraxy.
+- Основний домен (= `CORS_ORIGIN`) → `volunteerfleet:3000`, TLS у Zoraxy. **Це все, що потрібно** — фото й
+  документи віддаються через цей самий домен (стрім через застосунок). Окремого домену для MinIO не треба.
+- (Опційно) Веб-консоль MinIO на окремому сабдомені → upstream `volunteerfleet-minio:9001` по **HTTP** (без
+  TLS до upstream, без схеми в полі адреси). Тоді: додай `minio` у мережу `n8n_default`, у
+  `docker-compose.prod.yml` розкоментуй `MINIO_BROWSER_REDIRECT_URL`, а в `.env` постав `MINIO_CONSOLE_URL` =
+  цей публічний URL. Консоль — адмінка: тримай за сильним паролем / Access-rule.
 
 ### Оновлення на новий реліз
 

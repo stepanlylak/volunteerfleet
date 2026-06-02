@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { VehiclePhotosService } from './vehicle-photos.service.js';
 
 describe('VehiclePhotosService', () => {
-  const svc = new VehiclePhotosService({} as never, { getPresignedDownloadUrl: vi.fn() } as never);
+  const svc = new VehiclePhotosService({} as never, { getObjectStream: vi.fn() } as never);
 
   it('accepts allowed image MIME types below the limit', () => {
     expect(() => svc.assertAllowedPhotoForTest('image/jpeg', 1024, 0, 26214400)).not.toThrow();

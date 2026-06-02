@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { Readable } from 'stream';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import type {
   FundingSourceReportQuery,
@@ -49,8 +50,10 @@ export class PublicService {
     };
   }
 
-  async getPhotoDownloadUrl(photoId: string): Promise<string> {
-    return this.photos.getDownloadUrl(photoId, true);
+  async getPhotoDownloadStream(
+    photoId: string,
+  ): Promise<{ body: Readable; contentType: string; contentLength?: number }> {
+    return this.photos.getDownloadStream(photoId, true);
   }
 
   async getFundingReport(

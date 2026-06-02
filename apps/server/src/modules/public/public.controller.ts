@@ -1,5 +1,6 @@
-import { Controller, Get, Header, HttpStatus, Param, Query, Redirect } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query, Res, StreamableFile } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { ZodValidationPipe } from 'nestjs-zod';
 import type {
   FundingSourceReportQuery,
@@ -42,10 +43,18 @@ export class PublicController {
 
   @Get('vehicle-photos/:id/download')
   @Header('Access-Control-Allow-Origin', '*')
-  @Redirect('', HttpStatus.FOUND)
   async vehiclePhoto(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
-  ): Promise<{ url: string; statusCode: number }> {
-    return { url: await this.service.getPhotoDownloadUrl(params.id), statusCode: HttpStatus.FOUND };
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { body, contentType, contentLength } = await this.service.getPhotoDownloadStream(
+      params.id,
+    );
+    res.set({
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=300',
+      ...(contentLength != null ? { 'Content-Length': String(contentLength) } : {}),
+    });
+    return new StreamableFile(body);
   }
 }

@@ -20,7 +20,7 @@ describe('DocumentsService', () => {
       };
     };
   };
-  let storage: { getPresignedDownloadUrl: ReturnType<typeof vi.fn> };
+  let storage: { getObjectStream: ReturnType<typeof vi.fn> };
   let svc: DocumentsService;
 
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe('DocumentsService', () => {
       },
     };
     storage = {
-      getPresignedDownloadUrl: vi.fn(),
+      getObjectStream: vi.fn(),
     };
     svc = new DocumentsService(db as never, storage as never);
   });
