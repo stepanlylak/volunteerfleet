@@ -3,7 +3,7 @@ id: ORG-2
 epic: organizations-multitenancy
 phase: 0
 type: feat
-status: todo
+status: ready
 depends_on: [ORG-1]
 parallelizable: true
 branch:
