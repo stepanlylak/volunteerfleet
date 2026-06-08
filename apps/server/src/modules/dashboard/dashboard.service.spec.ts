@@ -3,14 +3,16 @@ import { DashboardService } from './dashboard.service.js';
 
 const NOW = new Date('2026-05-15T12:00:00.000Z');
 
-function makeStatusRow(overrides: {
-  statusId?: string;
-  statusName?: string;
-  kind?: 'in_work' | 'final' | 'other';
-  color?: string;
-  sortOrder?: number;
-  count?: number;
-} = {}) {
+function makeStatusRow(
+  overrides: {
+    statusId?: string;
+    statusName?: string;
+    kind?: 'in_work' | 'final' | 'other';
+    color?: string;
+    sortOrder?: number;
+    count?: number;
+  } = {},
+) {
   return {
     statusId: '11111111-1111-1111-1111-111111111111',
     statusName: 'тест',
@@ -38,7 +40,11 @@ describe('DashboardService', () => {
   it('returns correct inWorkVehicles when multiple in_work statuses', async () => {
     const statusRows = [
       makeStatusRow({ kind: 'in_work', count: 3 }),
-      makeStatusRow({ statusId: '22222222-2222-2222-2222-222222222222', kind: 'in_work', count: 2 }),
+      makeStatusRow({
+        statusId: '22222222-2222-2222-2222-222222222222',
+        kind: 'in_work',
+        count: 2,
+      }),
       makeStatusRow({ statusId: '33333333-3333-3333-3333-333333333333', kind: 'final', count: 5 }),
     ];
 
@@ -46,7 +52,9 @@ describe('DashboardService', () => {
     db.select.mockImplementation(() => {
       callIndex++;
       if (callIndex === 1) {
-        return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 10 }]) }) };
+        return {
+          from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 10 }]) }),
+        };
       }
       if (callIndex === 2) {
         return {
@@ -61,15 +69,23 @@ describe('DashboardService', () => {
         };
       }
       if (callIndex === 3) {
-        return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUah: '15000' }]) }) };
+        return {
+          from: vi
+            .fn()
+            .mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUah: '15000' }]) }),
+        };
       }
       if (callIndex === 4) {
-        return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 7 }]) }) };
+        return {
+          from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 7 }]) }),
+        };
       }
-      return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 2 }]) }) };
+      return {
+        from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 2 }]) }),
+      };
     });
 
-    const result = await svc.getStats();
+    const result = await svc.getStats('66666666-6666-6666-6666-666666666666');
     expect(result.inWorkVehicles).toBe(5);
     expect(result.transferredVehicles).toBe(5);
     expect(result.totalVehicles).toBe(10);
@@ -80,7 +96,9 @@ describe('DashboardService', () => {
     db.select.mockImplementation(() => {
       callIndex++;
       if (callIndex === 1) {
-        return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 0 }]) }) };
+        return {
+          from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 0 }]) }),
+        };
       }
       if (callIndex === 2) {
         return {
@@ -94,12 +112,16 @@ describe('DashboardService', () => {
         };
       }
       if (callIndex === 3) {
-        return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUah: '0' }]) }) };
+        return {
+          from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUah: '0' }]) }),
+        };
       }
-      return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 0 }]) }) };
+      return {
+        from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 0 }]) }),
+      };
     });
 
-    const result = await svc.getStats();
+    const result = await svc.getStats('66666666-6666-6666-6666-666666666666');
     expect(result.inWorkVehicles).toBe(0);
     expect(result.transferredVehicles).toBe(0);
     expect(result.documentsTotal).toBe(0);
@@ -115,7 +137,9 @@ describe('DashboardService', () => {
     db.select.mockImplementation(() => {
       callIndex++;
       if (callIndex === 1) {
-        return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 3 }]) }) };
+        return {
+          from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 3 }]) }),
+        };
       }
       if (callIndex === 2) {
         return {
@@ -129,12 +153,16 @@ describe('DashboardService', () => {
         };
       }
       if (callIndex === 3) {
-        return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUah: '0' }]) }) };
+        return {
+          from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUah: '0' }]) }),
+        };
       }
-      return { from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 0 }]) }) };
+      return {
+        from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ count: 0 }]) }),
+      };
     });
 
-    const result = await svc.getStats();
+    const result = await svc.getStats('66666666-6666-6666-6666-666666666666');
     const sc = result.statusCounts[0]!;
     expect(sc.kind).toBe('final');
     expect(sc.color).toBe('#52c41a');
