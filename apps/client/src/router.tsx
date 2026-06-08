@@ -60,8 +60,8 @@ export const router = createBrowserRouter([
     path: '/public',
     element: <PublicLayout />,
     children: [
-      { path: 'vehicles/:slug', element: <PublicVehiclePage /> },
-      { path: 'reports/funding/:id', element: <PublicFundingReportPage /> },
+      { path: ':orgId/vehicles/:vehicleId', element: <PublicVehiclePage /> },
+      { path: ':orgId/reports/funding/:id', element: <PublicFundingReportPage /> },
     ],
   },
   // Error pages

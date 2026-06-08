@@ -6,16 +6,17 @@ import type {
 import { http } from './client';
 
 export const publicApi = {
-  async getVehicle(slug: string): Promise<PublicVehicleResponse> {
-    const res = await http.get<PublicVehicleResponse>(`/public/vehicles/${slug}`);
+  async getVehicle(orgId: string, vehicleId: string): Promise<PublicVehicleResponse> {
+    const res = await http.get<PublicVehicleResponse>(`/public/${orgId}/vehicles/${vehicleId}`);
     return res.data;
   },
 
   async getFundingReport(
+    orgId: string,
     id: string,
     params: FundingSourceReportQuery,
   ): Promise<PublicFundingReportResponse> {
-    const res = await http.get<PublicFundingReportResponse>(`/public/reports/funding/${id}`, {
+    const res = await http.get<PublicFundingReportResponse>(`/public/${orgId}/reports/funding/${id}`, {
       params,
     });
     return res.data;

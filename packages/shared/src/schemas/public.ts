@@ -4,10 +4,17 @@ import { expenseCategoryBreakdownSchema, vehicleExpenseBreakdownSchema } from '.
 import { uuidSchema } from './common.js';
 import { publicVehiclePhotoSchema } from './vehicle-photo.js';
 
-export const publicSlugParamSchema = z.object({
-  slug: z.string().trim().min(1).max(96),
+export const publicVehicleParamsSchema = z.object({
+  orgId: uuidSchema,
+  vehicleId: uuidSchema,
 });
-export type PublicSlugParam = z.infer<typeof publicSlugParamSchema>;
+export type PublicVehicleParams = z.infer<typeof publicVehicleParamsSchema>;
+
+export const publicReportParamsSchema = z.object({
+  orgId: uuidSchema,
+  id: uuidSchema,
+});
+export type PublicReportParams = z.infer<typeof publicReportParamsSchema>;
 
 export const publicVehicleResponseSchema = z.object({
   identifier: z.string(),

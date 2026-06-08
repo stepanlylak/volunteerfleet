@@ -46,12 +46,18 @@ describe('PublicService', () => {
   it('returns 404 for non-public or missing vehicles', async () => {
     db.query.vehicles.findFirst.mockResolvedValue(undefined);
 
-    await expect(service.getVehicleBySlug('hidden-car')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.getVehicleById(
+        '00000000-0000-0000-0000-000000000000',
+        '11111111-1111-1111-1111-111111111111',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('returns sanitized vehicle response without private fields', async () => {
     db.query.vehicles.findFirst.mockResolvedValue({
       id: '11111111-1111-1111-1111-111111111111',
+      organizationId: '00000000-0000-0000-0000-000000000000',
       identifier: 'VHC-001',
       brand: 'Toyota',
       model: 'Hilux',
@@ -61,7 +67,6 @@ describe('PublicService', () => {
       status: { name: 'в ремонті' },
       description: 'private description',
       isPublic: true,
-      publicSlug: 'toyota-hilux',
       publicSummary: 'Публічний опис без приватних деталей',
       publicCollectedAmountUah: '10000.00',
       publicGoalAmountUah: '25000.00',
@@ -73,7 +78,10 @@ describe('PublicService', () => {
       deletedBy: null,
     });
 
-    const result = await service.getVehicleBySlug('toyota-hilux');
+    const result = await service.getVehicleById(
+      '00000000-0000-0000-0000-000000000000',
+      '11111111-1111-1111-1111-111111111111',
+    );
 
     expect(result).toEqual({
       identifier: 'VHC-001',
@@ -97,6 +105,7 @@ describe('PublicService', () => {
     reports.getPublicFundingSourceReport.mockResolvedValue({
       fundingSource: {
         id: '44444444-4444-4444-4444-444444444444',
+        organizationId: '00000000-0000-0000-0000-000000000000',
         name: 'Фонд',
         type: 'fundraiser',
         description: null,
@@ -114,7 +123,6 @@ describe('PublicService', () => {
             identifier: 'VHC-001',
             brand: 'Toyota',
             model: 'Hilux',
-            publicSlug: 'toyota-hilux',
           },
           totalUah: 4123,
         },
@@ -122,10 +130,14 @@ describe('PublicService', () => {
       expenses: [{ id: 'private-expense' }],
     });
 
-    const result = await service.getFundingReport('44444444-4444-4444-4444-444444444444', {
-      dateFrom: '2026-05-01',
-      dateTo: '2026-05-31',
-    });
+    const result = await service.getFundingReport(
+      '00000000-0000-0000-0000-000000000000',
+      '44444444-4444-4444-4444-444444444444',
+      {
+        dateFrom: '2026-05-01',
+        dateTo: '2026-05-31',
+      },
+    );
 
     expect(result).toEqual({
       fundingSource: {
@@ -145,12 +157,40 @@ describe('PublicService', () => {
             identifier: 'VHC-001',
             brand: 'Toyota',
             model: 'Hilux',
-            publicSlug: 'toyota-hilux',
           },
           totalUah: 4123,
         },
       ],
     });
     expect(result).not.toHaveProperty('expenses');
+  });
+  it('throws NotFoundException if organizationId does not match', async () => {
+    reports.getPublicFundingSourceReport.mockResolvedValue({
+      fundingSource: {
+        id: '44444444-4444-4444-4444-444444444444',
+        organizationId: 'another-org-id',
+        name: 'Фонд',
+        type: 'fundraiser',
+        description: null,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      dateFrom: '2026-05-01',
+      dateTo: '2026-05-31',
+      totalUah: 0,
+      byCategory: [],
+      byVehicle: [],
+    });
+
+    await expect(
+      service.getFundingReport(
+        'org-1-id',
+        '44444444-4444-4444-4444-444444444444',
+        {
+          dateFrom: '2026-05-01',
+          dateTo: '2026-05-31',
+        },
+      ),
+    ).rejects.toThrow(NotFoundException);
   });
 });

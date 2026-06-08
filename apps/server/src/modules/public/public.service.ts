@@ -20,9 +20,14 @@ export class PublicService {
     private readonly photos: VehiclePhotosService,
   ) {}
 
-  async getVehicleBySlug(slug: string): Promise<PublicVehicleResponse> {
+  async getVehicleById(orgId: string, vehicleId: string): Promise<PublicVehicleResponse> {
     const row = await this.db.query.vehicles.findFirst({
-      where: and(eq(vehicles.id, slug), eq(vehicles.isPublic, true), isNull(vehicles.deletedAt)),
+      where: and(
+        eq(vehicles.id, vehicleId),
+        eq(vehicles.organizationId, orgId),
+        eq(vehicles.isPublic, true),
+        isNull(vehicles.deletedAt),
+      ),
       with: {
         status: true,
       },
@@ -53,10 +58,15 @@ export class PublicService {
   }
 
   async getFundingReport(
+    orgId: string,
     fundingSourceId: string,
     query: FundingSourceReportQuery,
   ): Promise<PublicFundingReportResponse> {
     const report = await this.reports.getPublicFundingSourceReport(fundingSourceId, query);
+
+    if (report.fundingSource.organizationId !== orgId) {
+      throw new NotFoundException('PUBLIC_REPORT_NOT_FOUND');
+    }
 
     return {
       fundingSource: {

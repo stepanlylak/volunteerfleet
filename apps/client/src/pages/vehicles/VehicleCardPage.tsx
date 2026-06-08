@@ -223,7 +223,7 @@ export function VehicleCardPage() {
     Boolean(vehicle.publicSummary?.trim()) &&
     vehicle.publicCollectedAmountUah !== null &&
     vehicle.publicGoalAmountUah !== null;
-  const publicVehicleUrl = vehicle?.isPublic ? `/public/vehicles/${vehicle.id}` : null;
+  const publicVehicleUrl = vehicle?.isPublic ? `/public/${vehicle.organizationId}/vehicles/${vehicle.id}` : null;
 
   useEffect(() => {
     if (!vehicle) return;
