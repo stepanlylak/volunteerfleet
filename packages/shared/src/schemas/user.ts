@@ -18,7 +18,7 @@ export type UserResponse = z.infer<typeof userResponseSchema>;
 export const userCreateSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   fullName: nonEmptyString.max(255),
-  role: roleSchema.default('volunteer'),
+  role: roleSchema.default('user'),
   password: z.string().min(8).max(128).optional(),
   isActive: z.boolean().default(true),
 });

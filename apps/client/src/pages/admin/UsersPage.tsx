@@ -46,7 +46,7 @@ export function UsersPage() {
       {
         title: 'Роль',
         dataIndex: 'role',
-        render: (value: Role) => <Tag color={value === 'admin' ? 'red' : 'blue'}>{value}</Tag>,
+        render: (value: Role) => <Tag color={value === 'superuser' ? 'red' : 'blue'}>{value}</Tag>,
       },
       {
         title: 'Активний',
@@ -150,9 +150,8 @@ export function UsersPage() {
             setRole(value);
           }}
           options={[
-            { value: 'admin', label: 'Адміністратор' },
-            { value: 'volunteer', label: 'Волонтер' },
-            { value: 'guest', label: 'Гість' },
+            { value: 'superuser', label: 'Суперкористувач' },
+            { value: 'user', label: 'Користувач' },
           ]}
         />
         <Select

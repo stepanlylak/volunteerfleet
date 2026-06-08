@@ -211,7 +211,7 @@ describe('ExpensesService', () => {
         currency: 'USD',
         includeDeleted: false,
       },
-      'admin',
+      'coordinator',
     );
 
     expect(limitMock).toHaveBeenCalledWith(10);

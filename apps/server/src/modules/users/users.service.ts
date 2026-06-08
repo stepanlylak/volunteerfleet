@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { and, desc, eq, ilike, isNull, or, SQL, sql } from 'drizzle-orm';
 import type {
   ResetPasswordResponse,
+  Role,
   UserCreate,
   UserCreateResponse,
   UserListQuery,
@@ -20,7 +21,7 @@ export interface UserRecord {
   email: string;
   passwordHash: string;
   fullName: string;
-  role: 'admin' | 'volunteer' | 'guest';
+  role: Role;
   isActive: boolean;
 }
 

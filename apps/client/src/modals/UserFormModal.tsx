@@ -35,7 +35,7 @@ export function UserFormModal({ open, user, onClose, onGeneratedPassword }: User
         isActive: user.isActive,
       });
     } else {
-      form.setFieldsValue({ role: 'volunteer', isActive: true });
+      form.setFieldsValue({ role: 'user', isActive: true });
     }
   }, [form, open, user]);
 
@@ -92,9 +92,8 @@ export function UserFormModal({ open, user, onClose, onGeneratedPassword }: User
         >
           <Select
             options={[
-              { value: 'admin', label: 'Адміністратор' },
-              { value: 'volunteer', label: 'Волонтер' },
-              { value: 'guest', label: 'Гість' },
+              { value: 'superuser', label: 'Суперкористувач' },
+              { value: 'user', label: 'Користувач' },
             ]}
           />
         </Form.Item>

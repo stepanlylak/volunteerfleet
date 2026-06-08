@@ -29,7 +29,7 @@ import {
   type IdParam,
 } from '@volunteerfleet/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { Roles } from '../../common/decorators/roles.decorator.js';
+import { OrgRoles } from '../../common/decorators/org-roles.decorator.js';
 import { ExpensesService } from './expenses.service.js';
 
 @ApiTags('expenses')
@@ -38,16 +38,16 @@ export class ExpensesController {
   constructor(private readonly service: ExpensesService) {}
 
   @Get()
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   list(
     @Query(new ZodValidationPipe(expenseListQuerySchema)) query: ExpenseListQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<ExpenseListResponse> {
-    return this.service.list(query, user?.role ?? 'volunteer');
+    return this.service.list(query, user?.orgRole);
   }
 
   @Post()
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   create(
     @Body(new ZodValidationPipe(expenseCreateSchema)) dto: ExpenseCreate,
     @CurrentUser() user: JwtPayload | undefined,
@@ -58,18 +58,18 @@ export class ExpensesController {
   }
 
   @Get(':id')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   findOne(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Query('includeDeleted') includeDeleted: string | undefined,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<ExpenseResponse> {
-    const canIncludeDeleted = user?.role === 'admin' && includeDeleted === 'true';
+    const canIncludeDeleted = user?.orgRole === 'coordinator' && includeDeleted === 'true';
     return this.service.findById(params.id, canIncludeDeleted);
   }
 
   @Patch(':id')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   update(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Body(new ZodValidationPipe(expenseUpdateSchema)) dto: ExpenseUpdate,
@@ -80,7 +80,7 @@ export class ExpensesController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @OrgRoles('coordinator')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
@@ -91,7 +91,7 @@ export class ExpensesController {
   }
 
   @Post(':id/restore')
-  @Roles('admin')
+  @OrgRoles('coordinator')
   restore(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @CurrentUser() user: JwtPayload | undefined,

@@ -1,4 +1,10 @@
-import { CarOutlined, DollarOutlined, LogoutOutlined, TeamOutlined, ToolOutlined } from '@ant-design/icons';
+import {
+  CarOutlined,
+  DollarOutlined,
+  LogoutOutlined,
+  TeamOutlined,
+  ToolOutlined,
+} from '@ant-design/icons';
 import { Button, Dropdown, Layout, Menu, Space, Typography } from 'antd';
 import { useLocation, useNavigate, Link, Outlet } from 'react-router-dom';
 import { useAuth } from '@/stores/auth.store.ts';
@@ -66,7 +72,7 @@ export function AppLayout() {
       icon: <ToolOutlined />,
       label: <Link to="/reports">Звіти</Link>,
     },
-    ...(user?.role === 'admin'
+    ...(user?.role === 'superuser'
       ? [
           {
             key: '/admin',

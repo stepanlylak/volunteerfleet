@@ -31,7 +31,7 @@ import { UsersService } from './users.service.js';
 
 @ApiTags('users')
 @Controller('users')
-@Roles('admin')
+@Roles('superuser')
 export class UsersController {
   constructor(private readonly service: UsersService) {}
 

@@ -29,13 +29,12 @@ export class VehicleStatusesController {
   constructor(private readonly service: VehicleStatusesService) {}
 
   @Get()
-  @Roles('admin', 'volunteer', 'guest')
   list(): Promise<VehicleStatus[]> {
     return this.service.list();
   }
 
   @Post()
-  @Roles('admin')
+  @Roles('superuser')
   create(
     @Body(new ZodValidationPipe(vehicleStatusCreateSchema)) dto: VehicleStatusCreate,
   ): Promise<VehicleStatus> {
@@ -43,7 +42,7 @@ export class VehicleStatusesController {
   }
 
   @Patch(':id')
-  @Roles('admin')
+  @Roles('superuser')
   update(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Body(new ZodValidationPipe(vehicleStatusUpdateSchema)) dto: VehicleStatusUpdate,
@@ -52,7 +51,7 @@ export class VehicleStatusesController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles('superuser')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param(new ZodValidationPipe(idParamSchema)) params: IdParam): Promise<void> {
     await this.service.remove(params.id);

@@ -20,6 +20,7 @@ import type {
   DocumentUploadReplaceMetadata,
   DocumentUserInfo,
   JwtPayload,
+  OrgRole,
 } from '@volunteerfleet/shared';
 import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
@@ -68,11 +69,14 @@ export class DocumentsService {
     private readonly storage: StorageService,
   ) {}
 
-  async list(query: DocumentListQuery, userRole: string): Promise<DocumentListResponse> {
+  async list(
+    query: DocumentListQuery,
+    orgRole: OrgRole | null | undefined,
+  ): Promise<DocumentListResponse> {
     const { page, pageSize, sort, vehicleId, expenseId, kind, includeDeleted } = query;
 
-    if (includeDeleted && userRole !== 'admin') {
-      throw new ForbiddenException('Only admin can view deleted documents');
+    if (includeDeleted && orgRole !== 'coordinator') {
+      throw new ForbiddenException('Only coordinator can view deleted documents');
     }
 
     const conditions: SQL<unknown>[] = [];
@@ -373,7 +377,7 @@ export class DocumentsService {
   }
 
   private assertOwner(createdBy: string, user: JwtPayload): void {
-    if (user.role !== 'admin' && createdBy !== user.sub) {
+    if (user.orgRole !== 'coordinator' && createdBy !== user.sub) {
       throw new ForbiddenException('NOT_OWNER');
     }
   }

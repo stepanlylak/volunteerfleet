@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { and, asc, desc, eq, ilike, isNull, not, or, SQL, sql } from 'drizzle-orm';
 import type {
+  OrgRole,
   VehicleCreate,
   VehicleListQuery,
   VehicleListResponse,
@@ -32,12 +33,15 @@ interface SortItem {
 export class VehiclesService {
   constructor(@Inject(DB) private readonly db: Database) {}
 
-  async list(query: VehicleListQuery, userRole: string): Promise<VehicleListResponse> {
+  async list(
+    query: VehicleListQuery,
+    orgRole: OrgRole | null | undefined,
+  ): Promise<VehicleListResponse> {
     const { page, pageSize, sort, search, statusId, includeDeleted } = query;
 
-    // Only admin can see deleted vehicles
-    if (includeDeleted && userRole !== 'admin') {
-      throw new ForbiddenException('Only admin can view deleted vehicles');
+    // Only coordinator can see deleted vehicles
+    if (includeDeleted && orgRole !== 'coordinator') {
+      throw new ForbiddenException('Only coordinator can view deleted vehicles');
     }
 
     const conditions: SQL<unknown>[] = [];

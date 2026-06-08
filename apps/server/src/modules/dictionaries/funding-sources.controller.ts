@@ -29,13 +29,12 @@ export class FundingSourcesController {
   constructor(private readonly service: FundingSourcesService) {}
 
   @Get()
-  @Roles('admin', 'volunteer', 'guest')
   list(): Promise<FundingSource[]> {
     return this.service.list();
   }
 
   @Post()
-  @Roles('admin')
+  @Roles('superuser')
   create(
     @Body(new ZodValidationPipe(fundingSourceCreateSchema)) dto: FundingSourceCreate,
   ): Promise<FundingSource> {
@@ -43,7 +42,7 @@ export class FundingSourcesController {
   }
 
   @Patch(':id')
-  @Roles('admin')
+  @Roles('superuser')
   update(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Body(new ZodValidationPipe(fundingSourceUpdateSchema)) dto: FundingSourceUpdate,
@@ -52,7 +51,7 @@ export class FundingSourcesController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles('superuser')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param(new ZodValidationPipe(idParamSchema)) params: IdParam): Promise<void> {
     await this.service.remove(params.id);

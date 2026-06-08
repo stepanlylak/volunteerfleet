@@ -153,7 +153,7 @@ export class VehiclePhotosService {
       ),
     });
     if (!existing) throw new NotFoundException(`Vehicle photo ${photoId} not found`);
-    if (user.role !== 'admin' && existing.createdBy !== user.sub) {
+    if (user.orgRole !== 'coordinator' && existing.createdBy !== user.sub) {
       throw new ForbiddenException('NOT_OWNER');
     }
 
