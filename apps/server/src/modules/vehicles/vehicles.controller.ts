@@ -74,7 +74,8 @@ export class VehiclesController {
     @Query(new ZodValidationPipe(vehicleListQuerySchema)) query: VehicleListQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehicleListResponse> {
-    return this.service.list(query, user?.orgRole);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.list(query, user.orgRole, user.activeOrgId);
   }
 
   @Post()
@@ -95,8 +96,9 @@ export class VehiclesController {
     @Query('includeDeleted') includeDeleted: string | undefined,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehicleResponse> {
-    const canIncludeDeleted = user?.orgRole === 'coordinator' && includeDeleted === 'true';
-    return this.service.findById(params.id, canIncludeDeleted);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    const canIncludeDeleted = user.orgRole === 'coordinator' && includeDeleted === 'true';
+    return this.service.findById(params.id, user.activeOrgId, canIncludeDeleted);
   }
 
   @Patch(':id')
@@ -106,18 +108,17 @@ export class VehiclesController {
     @Body(new ZodValidationPipe(vehicleUpdateSchema)) dto: VehicleUpdate,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehicleResponse> {
-    if (!user) throw new Error('User required');
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
 
     // Coordinator can edit public fields, volunteer cannot
     if (user.orgRole !== 'coordinator') {
       delete (dto as Partial<VehicleUpdate>).isPublic;
-      delete (dto as Partial<VehicleUpdate>).publicSlug;
       delete (dto as Partial<VehicleUpdate>).publicSummary;
       delete (dto as Partial<VehicleUpdate>).publicCollectedAmountUah;
       delete (dto as Partial<VehicleUpdate>).publicGoalAmountUah;
     }
 
-    return this.service.update(params.id, dto, user.sub);
+    return this.service.update(params.id, dto, user.sub, user.activeOrgId);
   }
 
   @Delete(':id')
@@ -127,24 +128,28 @@ export class VehiclesController {
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<void> {
-    if (!user) throw new Error('User required');
-    await this.service.softDelete(params.id, user.sub);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.service.softDelete(params.id, user.sub, user.activeOrgId);
   }
 
   @Post(':id/restore')
   @OrgRoles('coordinator')
   async restore(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehicleResponse> {
-    return this.service.restore(params.id);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.restore(params.id, user.activeOrgId);
   }
 
   @Get(':id/status-history')
   @OrgRoles('coordinator', 'volunteer', 'viewer')
   async getStatusHistory(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehicleStatusHistoryListResponse> {
-    return this.service.getStatusHistory(params.id);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.getStatusHistory(params.id, user.activeOrgId);
   }
 
   @Get(':id/expenses')
@@ -154,8 +159,9 @@ export class VehiclesController {
     @Query(new ZodValidationPipe(vehicleExpensesQuerySchema)) query: VehicleExpensesQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<ExpenseListResponse> {
-    await this.service.findById(params.id);
-    return this.expensesService.list({ ...query, vehicleId: params.id }, user?.orgRole);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.service.findById(params.id, user.activeOrgId);
+    return this.expensesService.list({ ...query, vehicleId: params.id }, user.orgRole);
   }
 
   @Get(':id/documents')
@@ -165,16 +171,19 @@ export class VehiclesController {
     @Query(new ZodValidationPipe(vehicleDocumentsQuerySchema)) query: VehicleDocumentsQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentListResponse> {
-    await this.service.findById(params.id);
-    return this.documentsService.list({ ...query, vehicleId: params.id }, user?.orgRole);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.service.findById(params.id, user.activeOrgId);
+    return this.documentsService.list({ ...query, vehicleId: params.id }, user.orgRole);
   }
 
   @Get(':id/photos')
   @OrgRoles('coordinator', 'volunteer', 'viewer')
   async getPhotos(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehiclePhotoListResponse> {
-    return this.photosService.list(params.id);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.photosService.list(params.id, user.activeOrgId);
   }
 
   @Post(':id/photos')
@@ -192,13 +201,14 @@ export class VehiclesController {
     @Body(new ZodValidationPipe(vehiclePhotoUploadMetadataSchema)) dto: VehiclePhotoUploadMetadata,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehiclePhotoResponse> {
-    if (!user) throw new Error('User required');
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     return this.photosService.upload(
       params.id,
       file,
       dto,
       user.sub,
       this.cfg.get('MAX_UPLOAD_BYTES', { infer: true }),
+      user.activeOrgId,
     );
   }
 
@@ -209,8 +219,8 @@ export class VehiclesController {
     @Body(new ZodValidationPipe(vehiclePhotoOrderUpdateSchema)) dto: VehiclePhotoOrderUpdate,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehiclePhotoListResponse> {
-    if (!user) throw new Error('User required');
-    return this.photosService.reorder(params.id, dto, user.sub);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.photosService.reorder(params.id, dto, user.sub, user.activeOrgId);
   }
 
   @Get(':id/photos/:photoId/download')
@@ -237,7 +247,7 @@ export class VehiclesController {
     @Param('photoId') photoId: string,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<void> {
-    if (!user) throw new Error('User required');
-    await this.photosService.remove(params.id, photoId, user);
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.photosService.remove(params.id, photoId, user, user.activeOrgId);
   }
 }

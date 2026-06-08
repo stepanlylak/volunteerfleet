@@ -51,7 +51,7 @@ export function PublicFundingReportPage() {
       key: 'vehicle',
       render: (_, row) =>
         row.vehicle ? (
-          <Link to={`/public/vehicles/${row.vehicle.publicSlug}`}>
+          <Link to={`/public/vehicles/${row.vehicle.id}`}>
             {row.vehicle.identifier} · {row.vehicle.brand} {row.vehicle.model}
           </Link>
         ) : (

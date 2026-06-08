@@ -3,10 +3,10 @@ id: ORG-7
 epic: organizations-multitenancy
 phase: 2
 type: feat
-status: ready
+status: done
 depends_on: [ORG-6]
 parallelizable: true
-branch:
+branch: feat/org-7-vehicles-scope
 pr:
 ---
 

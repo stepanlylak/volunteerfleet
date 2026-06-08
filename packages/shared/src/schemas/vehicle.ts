@@ -14,7 +14,6 @@ const borderCrossingDateSchema = z
   .nullable();
 
 // Public fields
-const publicSlugSchema = z.string().trim().min(1).max(96).optional().nullable();
 const publicSummarySchema = z.string().trim().max(5000).optional().nullable();
 const publicAmountSchema = z.number().positive().optional().nullable();
 
@@ -43,7 +42,6 @@ export const vehicleUpdateSchema = z.object({
   description: vehicleDescriptionSchema,
   // Public fields (admin only in controller)
   isPublic: z.boolean().optional(),
-  publicSlug: publicSlugSchema,
   publicSummary: publicSummarySchema,
   publicCollectedAmountUah: publicAmountSchema,
   publicGoalAmountUah: publicAmountSchema,
@@ -70,7 +68,6 @@ export const vehicleResponseSchema = z.object({
   status: vehicleStatusSchema.optional(),
   description: z.string().nullable(),
   isPublic: z.boolean(),
-  publicSlug: z.string().nullable(),
   publicSummary: z.string().nullable(),
   publicCollectedAmountUah: z.number().nullable(),
   publicGoalAmountUah: z.number().nullable(),
