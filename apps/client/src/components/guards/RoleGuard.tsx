@@ -9,7 +9,7 @@ export function RoleGuard({ children, roles }: { children: React.ReactNode; role
     return <Navigate to="/login" replace />;
   }
 
-  if (!roles.includes(user.role)) {
+  if (!roles.includes(user.userRole)) {
     return <Navigate to="/403" replace />;
   }
 

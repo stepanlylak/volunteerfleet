@@ -29,7 +29,6 @@ function AppBootstrap() {
   const [isLoading, setIsLoading] = useState(true);
   const hasSessionHint = useAuth((s) => s.hasSessionHint);
   const setAuth = useAuth((s) => s.setAuth);
-  const setToken = useAuth((s) => s.setToken);
   const clearAuth = useAuth((s) => s.clear);
 
   useEffect(() => {
@@ -40,10 +39,9 @@ function AppBootstrap() {
 
     authApi
       .refresh()
-      .then(async (data) => {
-        setToken(data.accessToken);
+      .then(async () => {
         const user = await authApi.me();
-        setAuth({ user, accessToken: data.accessToken });
+        setAuth({ user });
       })
       .catch(() => {
         clearAuth();
@@ -51,7 +49,7 @@ function AppBootstrap() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [hasSessionHint, setAuth, setToken, clearAuth]);
+  }, [hasSessionHint, setAuth, clearAuth]);
 
   if (isLoading) {
     return null; // Or a minimal loading spinner

@@ -26,16 +26,16 @@
 | [ORG-2](ORG-2.md)   | Схема tenant-таблиць: org_id, drop slug, last_active |  0   | ORG-1               | done   |
 | [ORG-3](ORG-3.md)   | Reset міграцій і сіди (greenfield)                   |  0   | ORG-1, ORG-2, ORG-4 | done   |
 | [ORG-4](ORG-4.md)   | Рефактор ролей і гарди                               |  0   | ORG-1               | done   |
-| [ORG-5](ORG-5.md)   | JWT активної org + cookie-only + switch-org          |  1   | ORG-1, ORG-3, ORG-4 | ready  |
-| [ORG-6](ORG-6.md)   | Контекст тенанта: orgScope + same-org валідація      |  1   | ORG-5               | todo   |
+| [ORG-5](ORG-5.md)   | JWT активної org + cookie-only + switch-org          |  1   | ORG-1, ORG-3, ORG-4 | done   |
+| [ORG-6](ORG-6.md)   | Контекст тенанта: orgScope + same-org валідація      |  1   | ORG-5               | ready  |
 | [ORG-7](ORG-7.md)   | Скоуп vehicles (+ photos, status history)            |  2   | ORG-6               | todo   |
 | [ORG-8](ORG-8.md)   | Скоуп expenses + same-org валідація                  |  2   | ORG-6               | todo   |
 | [ORG-9](ORG-9.md)   | Скоуп documents + same-org валідація                 |  2   | ORG-6               | todo   |
 | [ORG-10](ORG-10.md) | Скоуп dashboard і reports                            |  2   | ORG-6               | todo   |
 | [ORG-11](ORG-11.md) | Публічні сторінки /public/:orgId/\*                  |  2   | ORG-6, ORG-10       | todo   |
-| [ORG-12](ORG-12.md) | API організацій (платформний superuser)              |  3   | ORG-4, ORG-5        | todo   |
-| [ORG-13](ORG-13.md) | API учасників (coordinator)                          |  3   | ORG-4, ORG-5        | todo   |
-| [ORG-14](ORG-14.md) | Auth-стор (cookie-only) + перемикач org              |  4   | ORG-5               | todo   |
+| [ORG-12](ORG-12.md) | API організацій (платформний superuser)              |  3   | ORG-4, ORG-5        | ready  |
+| [ORG-13](ORG-13.md) | API учасників (coordinator)                          |  3   | ORG-4, ORG-5        | ready  |
+| [ORG-14](ORG-14.md) | Auth-стор (cookie-only) + перемикач org              |  4   | ORG-5               | ready  |
 | [ORG-15](ORG-15.md) | Платформні сторінки організацій                      |  4   | ORG-12, ORG-14      | todo   |
 | [ORG-16](ORG-16.md) | Налаштування організації (coordinator)               |  4   | ORG-13, ORG-14      | todo   |
 | [ORG-17](ORG-17.md) | Активна org на сторінках даних + empty-states        |  4   | ORG-14              | todo   |
