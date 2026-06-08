@@ -37,8 +37,8 @@ export class VehiclePhotosService {
     private readonly storage: StorageService,
   ) {}
 
-  async list(vehicleId: string): Promise<VehiclePhotoListResponse> {
-    await this.assertVehicleExists(vehicleId);
+  async list(vehicleId: string, activeOrgId: string): Promise<VehiclePhotoListResponse> {
+    await this.assertVehicleExists(vehicleId, activeOrgId);
     const rows = await this.db.query.vehiclePhotos.findMany({
       where: and(eq(vehiclePhotos.vehicleId, vehicleId), isNull(vehiclePhotos.deletedAt)),
       orderBy: [asc(vehiclePhotos.sortOrder), asc(vehiclePhotos.createdAt)],
@@ -57,6 +57,7 @@ export class VehiclePhotosService {
     input: VehiclePhotoUploadMetadata,
     userId: string,
     maxUploadBytes: number,
+    activeOrgId: string,
   ): Promise<VehiclePhotoResponse> {
     if (!file) throw new BadRequestException('FILE_REQUIRED');
     if (file.size > maxUploadBytes) {
@@ -74,7 +75,11 @@ export class VehiclePhotosService {
       );
 
       const existingVehicle = await tx.query.vehicles.findFirst({
-        where: and(eq(vehicles.id, vehicleId), isNull(vehicles.deletedAt)),
+        where: and(
+          eq(vehicles.id, vehicleId),
+          eq(vehicles.organizationId, activeOrgId),
+          isNull(vehicles.deletedAt),
+        ),
       });
       if (!existingVehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`);
 
@@ -121,8 +126,9 @@ export class VehiclePhotosService {
     vehicleId: string,
     input: VehiclePhotoOrderUpdate,
     userId: string,
+    activeOrgId: string,
   ): Promise<VehiclePhotoListResponse> {
-    await this.assertVehicleExists(vehicleId);
+    await this.assertVehicleExists(vehicleId, activeOrgId);
     const rows = await this.db.query.vehiclePhotos.findMany({
       where: and(eq(vehiclePhotos.vehicleId, vehicleId), isNull(vehiclePhotos.deletedAt)),
     });
@@ -141,14 +147,20 @@ export class VehiclePhotosService {
       }
     });
 
-    return this.list(vehicleId);
+    return this.list(vehicleId, activeOrgId);
   }
 
-  async remove(vehicleId: string, photoId: string, user: JwtPayload): Promise<void> {
+  async remove(
+    vehicleId: string,
+    photoId: string,
+    user: JwtPayload,
+    activeOrgId: string,
+  ): Promise<void> {
     const existing = await this.db.query.vehiclePhotos.findFirst({
       where: and(
         eq(vehiclePhotos.id, photoId),
         eq(vehiclePhotos.vehicleId, vehicleId),
+        eq(vehiclePhotos.organizationId, activeOrgId),
         isNull(vehiclePhotos.deletedAt),
       ),
     });
@@ -207,9 +219,13 @@ export class VehiclePhotosService {
     };
   }
 
-  private async assertVehicleExists(vehicleId: string): Promise<void> {
+  private async assertVehicleExists(vehicleId: string, activeOrgId: string): Promise<void> {
     const vehicle = await this.db.query.vehicles.findFirst({
-      where: and(eq(vehicles.id, vehicleId), isNull(vehicles.deletedAt)),
+      where: and(
+        eq(vehicles.id, vehicleId),
+        eq(vehicles.organizationId, activeOrgId),
+        isNull(vehicles.deletedAt),
+      ),
     });
     if (!vehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`);
   }

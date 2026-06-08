@@ -36,6 +36,7 @@ export class VehiclesService {
   async list(
     query: VehicleListQuery,
     orgRole: OrgRole | null | undefined,
+    activeOrgId: string,
   ): Promise<VehicleListResponse> {
     const { page, pageSize, sort, search, statusId, includeDeleted } = query;
 
@@ -44,7 +45,7 @@ export class VehiclesService {
       throw new ForbiddenException('Only coordinator can view deleted vehicles');
     }
 
-    const conditions: SQL<unknown>[] = [];
+    const conditions: SQL<unknown>[] = [eq(vehicles.organizationId, activeOrgId)];
 
     if (!includeDeleted) {
       conditions.push(isNull(vehicles.deletedAt));
@@ -104,10 +105,19 @@ export class VehiclesService {
     return { items, page, pageSize, total, totalPages };
   }
 
-  async findById(id: string, includeDeleted = false): Promise<VehicleResponse> {
-    const where = includeDeleted
-      ? eq(vehicles.id, id)
-      : and(eq(vehicles.id, id), isNull(vehicles.deletedAt));
+  async findById(
+    id: string,
+    activeOrgId: string,
+    includeDeleted = false,
+  ): Promise<VehicleResponse> {
+    const conditions: SQL<unknown>[] = [
+      eq(vehicles.id, id),
+      eq(vehicles.organizationId, activeOrgId),
+    ];
+    if (!includeDeleted) {
+      conditions.push(isNull(vehicles.deletedAt));
+    }
+    const where = and(...conditions);
 
     const row = await this.db.query.vehicles.findFirst({
       where,
@@ -160,12 +170,21 @@ export class VehiclesService {
     });
 
     // Fetch full response with relations
-    return this.findById(result.id);
+    return this.findById(result.id, organizationId);
   }
 
-  async update(id: string, input: VehicleUpdate, userId: string): Promise<VehicleResponse> {
+  async update(
+    id: string,
+    input: VehicleUpdate,
+    userId: string,
+    activeOrgId: string,
+  ): Promise<VehicleResponse> {
     const vehicle = await this.db.query.vehicles.findFirst({
-      where: and(eq(vehicles.id, id), isNull(vehicles.deletedAt)),
+      where: and(
+        eq(vehicles.id, id),
+        eq(vehicles.organizationId, activeOrgId),
+        isNull(vehicles.deletedAt),
+      ),
     });
 
     if (!vehicle) {
@@ -227,12 +246,16 @@ export class VehiclesService {
       return updatedVehicle;
     });
 
-    return this.findById(result.id);
+    return this.findById(result.id, activeOrgId);
   }
 
-  async softDelete(id: string, userId: string): Promise<void> {
+  async softDelete(id: string, userId: string, activeOrgId: string): Promise<void> {
     const vehicle = await this.db.query.vehicles.findFirst({
-      where: and(eq(vehicles.id, id), isNull(vehicles.deletedAt)),
+      where: and(
+        eq(vehicles.id, id),
+        eq(vehicles.organizationId, activeOrgId),
+        isNull(vehicles.deletedAt),
+      ),
     });
 
     if (!vehicle) {
@@ -248,9 +271,13 @@ export class VehiclesService {
       .where(eq(vehicles.id, id));
   }
 
-  async restore(id: string): Promise<VehicleResponse> {
+  async restore(id: string, activeOrgId: string): Promise<VehicleResponse> {
     const vehicle = await this.db.query.vehicles.findFirst({
-      where: and(eq(vehicles.id, id), not(isNull(vehicles.deletedAt))),
+      where: and(
+        eq(vehicles.id, id),
+        eq(vehicles.organizationId, activeOrgId),
+        not(isNull(vehicles.deletedAt)),
+      ),
     });
 
     if (!vehicle) {
@@ -265,13 +292,16 @@ export class VehiclesService {
       })
       .where(eq(vehicles.id, id));
 
-    return this.findById(id, true);
+    return this.findById(id, activeOrgId, true);
   }
 
-  async getStatusHistory(vehicleId: string): Promise<VehicleStatusHistoryListResponse> {
+  async getStatusHistory(
+    vehicleId: string,
+    activeOrgId: string,
+  ): Promise<VehicleStatusHistoryListResponse> {
     // Verify vehicle exists
     const vehicle = await this.db.query.vehicles.findFirst({
-      where: eq(vehicles.id, vehicleId),
+      where: and(eq(vehicles.id, vehicleId), eq(vehicles.organizationId, activeOrgId)),
     });
 
     if (!vehicle) {
@@ -381,7 +411,6 @@ export class VehiclesService {
         : undefined,
       description: row.description,
       isPublic: row.isPublic,
-      publicSlug: null,
       publicSummary: row.publicSummary,
       publicCollectedAmountUah: row.publicCollectedAmountUah
         ? Number(row.publicCollectedAmountUah)

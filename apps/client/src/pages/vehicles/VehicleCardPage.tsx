@@ -69,7 +69,6 @@ import { formatCurrency, formatDate } from '../../utils/format';
 
 interface PublicFormValues {
   isPublic: boolean;
-  publicSlug?: string | null;
   publicSummary?: string | null;
   publicCollectedAmountUah?: number | null;
   publicGoalAmountUah?: number | null;
@@ -101,67 +100,6 @@ function renderDescription(value: string | null) {
     </span>
   );
 }
-
-function buildVehiclePublicSlug(vehicle: {
-  brand: string;
-  model: string;
-  year: number | null;
-  vin: string | null;
-}) {
-  const vinSuffix = vehicle.vin?.replace(/[^a-zA-Z0-9]/g, '').slice(-5);
-  return slugify([vehicle.brand, vehicle.model, vehicle.year, vinSuffix].filter(Boolean).join(' '));
-}
-
-function slugify(value: string) {
-  const transliterated = value
-    .toLowerCase()
-    .split('')
-    .map((char) => UKRAINIAN_TRANSLITERATION[char] ?? char)
-    .join('');
-
-  return transliterated
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 96);
-}
-
-const UKRAINIAN_TRANSLITERATION: Record<string, string> = {
-  а: 'a',
-  б: 'b',
-  в: 'v',
-  г: 'h',
-  ґ: 'g',
-  д: 'd',
-  е: 'e',
-  є: 'ie',
-  ж: 'zh',
-  з: 'z',
-  и: 'y',
-  і: 'i',
-  ї: 'i',
-  й: 'i',
-  к: 'k',
-  л: 'l',
-  м: 'm',
-  н: 'n',
-  о: 'o',
-  п: 'p',
-  р: 'r',
-  с: 's',
-  т: 't',
-  у: 'u',
-  ф: 'f',
-  х: 'kh',
-  ц: 'ts',
-  ч: 'ch',
-  ш: 'sh',
-  щ: 'shch',
-  ь: '',
-  ю: 'iu',
-  я: 'ia',
-};
 
 function confirmAction({
   title,
@@ -282,17 +220,15 @@ export function VehicleCardPage() {
   );
   const hasCompletePublicPage =
     vehicle?.isPublic &&
-    Boolean(vehicle.publicSlug?.trim()) &&
     Boolean(vehicle.publicSummary?.trim()) &&
     vehicle.publicCollectedAmountUah !== null &&
     vehicle.publicGoalAmountUah !== null;
-  const publicVehicleUrl = vehicle?.publicSlug ? `/public/vehicles/${vehicle.publicSlug}` : null;
+  const publicVehicleUrl = vehicle?.isPublic ? `/public/vehicles/${vehicle.id}` : null;
 
   useEffect(() => {
     if (!vehicle) return;
     form.setFieldsValue({
       isPublic: vehicle.isPublic,
-      publicSlug: vehicle.publicSlug,
       publicSummary: vehicle.publicSummary,
       publicCollectedAmountUah: vehicle.publicCollectedAmountUah,
       publicGoalAmountUah: vehicle.publicGoalAmountUah,
@@ -306,7 +242,6 @@ export function VehicleCardPage() {
   const handlePublicSave = async (values: PublicFormValues) => {
     const payload = {
       ...values,
-      publicSlug: values.publicSlug?.trim() ? values.publicSlug.trim() : null,
       publicSummary: values.publicSummary?.trim() ? values.publicSummary.trim() : null,
       publicCollectedAmountUah: values.publicCollectedAmountUah ?? null,
       publicGoalAmountUah: values.publicGoalAmountUah ?? null,
@@ -318,11 +253,6 @@ export function VehicleCardPage() {
     }
     await updateVehicle.mutateAsync({ id: vehicle.id, payload: parsed.data });
     message.success('Публічні поля оновлено');
-  };
-
-  const generatedPublicSlug = buildVehiclePublicSlug(vehicle);
-  const applyGeneratedPublicSlug = () => {
-    form.setFieldValue('publicSlug', generatedPublicSlug);
   };
 
   const savedDescription = vehicle.description ?? '';
@@ -891,13 +821,7 @@ export function VehicleCardPage() {
                       <Form.Item label="Публічне авто">
                         <Space wrap>
                           <Form.Item name="isPublic" valuePropName="checked" noStyle>
-                            <Switch
-                              onChange={(checked) => {
-                                if (checked && !form.getFieldValue('publicSlug')) {
-                                  applyGeneratedPublicSlug();
-                                }
-                              }}
-                            />
+                            <Switch />
                           </Form.Item>
                           {hasCompletePublicPage && publicVehicleUrl ? (
                             <Button
@@ -914,14 +838,6 @@ export function VehicleCardPage() {
                             </Typography.Text>
                           )}
                         </Space>
-                      </Form.Item>
-                      <Form.Item label="Публічний slug">
-                        <Space.Compact style={{ width: '100%' }}>
-                          <Form.Item name="publicSlug" noStyle>
-                            <Input />
-                          </Form.Item>
-                          <Button onClick={applyGeneratedPublicSlug}>Згенерувати</Button>
-                        </Space.Compact>
                       </Form.Item>
                       <Form.Item name="publicSummary" label="Публічний опис">
                         <Input.TextArea rows={3} />

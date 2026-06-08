@@ -427,7 +427,6 @@ export class ReportsService {
         : undefined,
       description: row.description,
       isPublic: row.isPublic,
-      publicSlug: null,
       publicSummary: row.publicSummary,
       publicCollectedAmountUah: row.publicCollectedAmountUah
         ? Number(row.publicCollectedAmountUah)

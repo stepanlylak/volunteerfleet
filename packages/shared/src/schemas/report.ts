@@ -27,7 +27,6 @@ export const vehicleExpenseBreakdownSchema = z.object({
       identifier: z.string(),
       brand: z.string(),
       model: z.string(),
-      publicSlug: z.string().nullable().optional(),
     })
     .nullable(),
   totalUah: z.number(),
