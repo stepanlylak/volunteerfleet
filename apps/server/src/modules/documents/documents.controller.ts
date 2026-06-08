@@ -59,7 +59,9 @@ export class DocumentsController {
     @Query(new ZodValidationPipe(documentListQuerySchema)) query: DocumentListQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentListResponse> {
-    return this.service.list(query, user?.orgRole);
+    if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.list(query, user.orgRole, user.activeOrgId);
   }
 
   @Post('upload')
@@ -104,12 +106,14 @@ export class DocumentsController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentResponse> {
     if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     return this.service.replaceUpload(
       params.id,
       file,
       dto,
       user,
       this.cfg.get('MAX_UPLOAD_BYTES', { infer: true }),
+      user.activeOrgId,
     );
   }
 
@@ -131,8 +135,10 @@ export class DocumentsController {
     @Query('includeDeleted') includeDeleted: string | undefined,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentResponse> {
-    const canIncludeDeleted = user?.orgRole === 'coordinator' && includeDeleted === 'true';
-    return this.service.findById(params.id, canIncludeDeleted);
+    if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    const canIncludeDeleted = user.orgRole === 'coordinator' && includeDeleted === 'true';
+    return this.service.findById(params.id, user.activeOrgId, canIncludeDeleted);
   }
 
   @Get(':id/download')
@@ -140,8 +146,11 @@ export class DocumentsController {
   async download(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Res({ passthrough: true }) res: Response,
+    @CurrentUser() user: JwtPayload | undefined,
   ): Promise<StreamableFile | undefined> {
-    const result = await this.service.getDownload(params.id);
+    if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    const result = await this.service.getDownload(params.id, user.activeOrgId);
     if (result.kind === 'link') {
       res.redirect(HttpStatus.FOUND, result.url);
       return undefined;
@@ -162,7 +171,8 @@ export class DocumentsController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentResponse> {
     if (!user) throw new Error('User required');
-    return this.service.update(params.id, dto, user);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.update(params.id, dto, user, user.activeOrgId);
   }
 
   @Delete(':id')
@@ -173,7 +183,8 @@ export class DocumentsController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<void> {
     if (!user) throw new Error('User required');
-    await this.service.softDelete(params.id, user);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.service.softDelete(params.id, user, user.activeOrgId);
   }
 
   @Post(':id/restore')
@@ -183,6 +194,7 @@ export class DocumentsController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentResponse> {
     if (!user) throw new Error('User required');
-    return this.service.restore(params.id, user.sub);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.restore(params.id, user.sub, user.activeOrgId);
   }
 }

@@ -54,6 +54,7 @@ export class ExpensesService {
   async list(
     query: ExpenseListQuery,
     orgRole: OrgRole | null | undefined,
+    organizationId: string,
   ): Promise<ExpenseListResponse> {
     const {
       page,
@@ -72,7 +73,7 @@ export class ExpensesService {
       throw new ForbiddenException('Only coordinator can view deleted expenses');
     }
 
-    const conditions: SQL<unknown>[] = [];
+    const conditions: SQL<unknown>[] = [eq(expenses.organizationId, organizationId)];
     if (!includeDeleted) {
       conditions.push(isNull(expenses.deletedAt), this.hasJoinedActiveVehicle());
     }
@@ -128,19 +129,30 @@ export class ExpensesService {
     };
   }
 
-  async findById(id: string, includeDeleted = false): Promise<ExpenseResponse> {
+  async findById(
+    id: string,
+    organizationId: string,
+    includeDeleted = false,
+  ): Promise<ExpenseResponse> {
     if (!includeDeleted) {
       const visibleRows = await this.db
         .select({ id: expenses.id })
         .from(expenses)
         .leftJoin(vehicles, eq(vehicles.id, expenses.vehicleId))
-        .where(and(eq(expenses.id, id), isNull(expenses.deletedAt), this.hasJoinedActiveVehicle()))
+        .where(
+          and(
+            eq(expenses.id, id),
+            eq(expenses.organizationId, organizationId),
+            isNull(expenses.deletedAt),
+            this.hasJoinedActiveVehicle(),
+          ),
+        )
         .limit(1);
       if (!visibleRows[0]) throw new NotFoundException(`Expense ${id} not found`);
     }
 
     const row = await this.db.query.expenses.findFirst({
-      where: eq(expenses.id, id),
+      where: and(eq(expenses.id, id), eq(expenses.organizationId, organizationId)),
       with: this.responseRelations(),
     });
 
@@ -153,6 +165,15 @@ export class ExpensesService {
     userId: string,
     organizationId: string,
   ): Promise<ExpenseResponse> {
+    if (input.vehicleId) {
+      const vehicle = await this.db.query.vehicles.findFirst({
+        where: and(eq(vehicles.id, input.vehicleId), eq(vehicles.organizationId, organizationId)),
+      });
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle ${input.vehicleId} not found in this organization`);
+      }
+    }
+
     const rateInfo = this.resolveCreateRate(input);
 
     const inserted = await this.db
@@ -175,14 +196,32 @@ export class ExpensesService {
 
     const row = inserted[0];
     if (!row) throw new Error('Insert returned no rows');
-    return this.findById(row.id);
+    return this.findById(row.id, organizationId);
   }
 
-  async update(id: string, input: ExpenseUpdate, userId: string): Promise<ExpenseResponse> {
+  async update(
+    id: string,
+    input: ExpenseUpdate,
+    userId: string,
+    organizationId: string,
+  ): Promise<ExpenseResponse> {
     const existing = await this.db.query.expenses.findFirst({
-      where: and(eq(expenses.id, id), isNull(expenses.deletedAt)),
+      where: and(
+        eq(expenses.id, id),
+        eq(expenses.organizationId, organizationId),
+        isNull(expenses.deletedAt),
+      ),
     });
     if (!existing) throw new NotFoundException(`Expense ${id} not found`);
+
+    if (input.vehicleId !== undefined && input.vehicleId !== null) {
+      const vehicle = await this.db.query.vehicles.findFirst({
+        where: and(eq(vehicles.id, input.vehicleId), eq(vehicles.organizationId, organizationId)),
+      });
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle ${input.vehicleId} not found in this organization`);
+      }
+    }
 
     const updateValues: Record<string, unknown> = {
       updatedBy: userId,
@@ -210,37 +249,45 @@ export class ExpensesService {
     const updated = await this.db
       .update(expenses)
       .set(updateValues)
-      .where(eq(expenses.id, id))
+      .where(and(eq(expenses.id, id), eq(expenses.organizationId, organizationId)))
       .returning({ id: expenses.id });
 
     if (!updated[0]) throw new NotFoundException(`Expense ${id} not found`);
-    return this.findById(id);
+    return this.findById(id, organizationId);
   }
 
-  async softDelete(id: string, userId: string): Promise<void> {
+  async softDelete(id: string, userId: string, organizationId: string): Promise<void> {
     const existing = await this.db.query.expenses.findFirst({
-      where: and(eq(expenses.id, id), isNull(expenses.deletedAt)),
+      where: and(
+        eq(expenses.id, id),
+        eq(expenses.organizationId, organizationId),
+        isNull(expenses.deletedAt),
+      ),
     });
     if (!existing) throw new NotFoundException(`Expense ${id} not found`);
 
     await this.db
       .update(expenses)
       .set({ deletedAt: new Date(), deletedBy: userId, updatedBy: userId, updatedAt: new Date() })
-      .where(eq(expenses.id, id));
+      .where(and(eq(expenses.id, id), eq(expenses.organizationId, organizationId)));
   }
 
-  async restore(id: string, userId: string): Promise<ExpenseResponse> {
+  async restore(id: string, userId: string, organizationId: string): Promise<ExpenseResponse> {
     const existing = await this.db.query.expenses.findFirst({
-      where: and(eq(expenses.id, id), sql`${expenses.deletedAt} IS NOT NULL`),
+      where: and(
+        eq(expenses.id, id),
+        eq(expenses.organizationId, organizationId),
+        sql`${expenses.deletedAt} IS NOT NULL`,
+      ),
     });
     if (!existing) throw new NotFoundException(`Deleted expense ${id} not found`);
 
     await this.db
       .update(expenses)
       .set({ deletedAt: null, deletedBy: null, updatedBy: userId, updatedAt: new Date() })
-      .where(eq(expenses.id, id));
+      .where(and(eq(expenses.id, id), eq(expenses.organizationId, organizationId)));
 
-    return this.findById(id, true);
+    return this.findById(id, organizationId, true);
   }
 
   private resolveCreateRate(input: ExpenseCreate): {

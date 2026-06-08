@@ -43,7 +43,9 @@ export class ExpensesController {
     @Query(new ZodValidationPipe(expenseListQuerySchema)) query: ExpenseListQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<ExpenseListResponse> {
-    return this.service.list(query, user?.orgRole);
+    if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.list(query, user.orgRole, user.activeOrgId);
   }
 
   @Post()
@@ -64,8 +66,10 @@ export class ExpensesController {
     @Query('includeDeleted') includeDeleted: string | undefined,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<ExpenseResponse> {
-    const canIncludeDeleted = user?.orgRole === 'coordinator' && includeDeleted === 'true';
-    return this.service.findById(params.id, canIncludeDeleted);
+    if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    const canIncludeDeleted = user.orgRole === 'coordinator' && includeDeleted === 'true';
+    return this.service.findById(params.id, user.activeOrgId, canIncludeDeleted);
   }
 
   @Patch(':id')
@@ -76,7 +80,8 @@ export class ExpensesController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<ExpenseResponse> {
     if (!user) throw new Error('User required');
-    return this.service.update(params.id, dto, user.sub);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.update(params.id, dto, user.sub, user.activeOrgId);
   }
 
   @Delete(':id')
@@ -87,7 +92,8 @@ export class ExpensesController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<void> {
     if (!user) throw new Error('User required');
-    await this.service.softDelete(params.id, user.sub);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.service.softDelete(params.id, user.sub, user.activeOrgId);
   }
 
   @Post(':id/restore')
@@ -97,6 +103,7 @@ export class ExpensesController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<ExpenseResponse> {
     if (!user) throw new Error('User required');
-    return this.service.restore(params.id, user.sub);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.restore(params.id, user.sub, user.activeOrgId);
   }
 }

@@ -59,6 +59,9 @@ describe('ExpensesService', () => {
         findFirst: ReturnType<typeof vi.fn>;
         findMany: ReturnType<typeof vi.fn>;
       };
+      vehicles: {
+        findFirst: ReturnType<typeof vi.fn>;
+      };
     };
   };
   let exchangeRates: { getRate: ReturnType<typeof vi.fn> };
@@ -74,6 +77,9 @@ describe('ExpensesService', () => {
         expenses: {
           findFirst: vi.fn(),
           findMany: vi.fn(),
+        },
+        vehicles: {
+          findFirst: vi.fn().mockResolvedValue({ id: '33333333-3333-3333-3333-333333333333' }),
         },
       },
     };
@@ -161,18 +167,20 @@ describe('ExpensesService', () => {
       }),
     });
 
-    await expect(svc.softDelete('expense-id', userId)).resolves.toBeUndefined();
+    await expect(svc.softDelete('expense-id', userId, orgId)).resolves.toBeUndefined();
     expect(db.update).toHaveBeenCalled();
   });
 
   it('throws on soft delete when expense is missing', async () => {
     db.query.expenses.findFirst.mockResolvedValue(undefined);
-    await expect(svc.softDelete('missing', userId)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.softDelete('missing', userId, orgId)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('rejects includeDeleted for non-admin list and supports filtered list for admin', async () => {
     await expect(
-      svc.list({ page: 1, pageSize: 20, includeDeleted: true }, 'volunteer'),
+      svc.list({ page: 1, pageSize: 20, includeDeleted: true }, 'volunteer', orgId),
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     const limitMock = vi.fn().mockReturnValue({
@@ -212,6 +220,7 @@ describe('ExpensesService', () => {
         includeDeleted: false,
       },
       'coordinator',
+      orgId,
     );
 
     expect(limitMock).toHaveBeenCalledWith(10);

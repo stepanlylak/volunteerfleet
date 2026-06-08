@@ -3,10 +3,10 @@ id: ORG-8
 epic: organizations-multitenancy
 phase: 2
 type: feat
-status: ready
+status: done
 depends_on: [ORG-6]
 parallelizable: true
-branch:
+branch: feat/org-8-expenses-scope
 pr:
 ---
 

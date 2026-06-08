@@ -154,9 +154,16 @@ export class ReportsService {
     private readonly exchangeRates: ExchangeRatesService,
   ) {}
 
-  async getVehicleReport(vehicleId: string): Promise<VehicleReportResponse> {
+  async getVehicleReport(
+    vehicleId: string,
+    organizationId: string,
+  ): Promise<VehicleReportResponse> {
     const vehicle = await this.db.query.vehicles.findFirst({
-      where: and(eq(vehicles.id, vehicleId), isNull(vehicles.deletedAt)),
+      where: and(
+        eq(vehicles.id, vehicleId),
+        eq(vehicles.organizationId, organizationId),
+        isNull(vehicles.deletedAt),
+      ),
       with: {
         status: true,
         createdByUser: { columns: { id: true, fullName: true } },
@@ -167,7 +174,11 @@ export class ReportsService {
     if (!vehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`);
 
     const expenseRows = await this.db.query.expenses.findMany({
-      where: and(eq(expenses.vehicleId, vehicleId), isNull(expenses.deletedAt)),
+      where: and(
+        eq(expenses.vehicleId, vehicleId),
+        eq(expenses.organizationId, organizationId),
+        isNull(expenses.deletedAt),
+      ),
       orderBy: [desc(expenses.expenseDate), desc(expenses.createdAt)],
       with: this.expenseRelations(),
     });
@@ -178,6 +189,7 @@ export class ReportsService {
       .where(
         and(
           this.documentBelongsToVehicleScope(vehicleId),
+          eq(documents.organizationId, organizationId),
           isNull(documents.deletedAt),
           this.documentHasActiveExpense(),
         ),
@@ -224,6 +236,7 @@ export class ReportsService {
   async getFundingSourceReport(
     fundingSourceId: string,
     query: FundingSourceReportQuery,
+    organizationId: string,
   ): Promise<FundingSourceReportResponse> {
     const fundingSource = await this.db.query.fundingSources.findFirst({
       where: eq(fundingSources.id, fundingSourceId),
@@ -234,6 +247,7 @@ export class ReportsService {
 
     const conditions: SQL<unknown>[] = [
       eq(expenses.fundingSourceId, fundingSourceId),
+      eq(expenses.organizationId, organizationId),
       isNull(expenses.deletedAt),
     ];
     if (query.dateFrom) conditions.push(gte(expenses.expenseDate, query.dateFrom));

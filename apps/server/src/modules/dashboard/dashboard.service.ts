@@ -9,11 +9,11 @@ import { documents, expenses, vehicles, vehicleStatuses } from '../../db/schema/
 export class DashboardService {
   constructor(@Inject(DB) private readonly db: Database) {}
 
-  async getStats(): Promise<DashboardStats> {
+  async getStats(organizationId: string): Promise<DashboardStats> {
     const totalResult = await this.db
       .select({ count: sql<number>`count(*)::int` })
       .from(vehicles)
-      .where(isNull(vehicles.deletedAt));
+      .where(and(isNull(vehicles.deletedAt), eq(vehicles.organizationId, organizationId)));
     const totalVehicles = totalResult[0]?.count ?? 0;
 
     const statusRows = await this.db
@@ -28,7 +28,11 @@ export class DashboardService {
       .from(vehicleStatuses)
       .leftJoin(
         vehicles,
-        and(eq(vehicles.statusId, vehicleStatuses.id), isNull(vehicles.deletedAt)),
+        and(
+          eq(vehicles.statusId, vehicleStatuses.id),
+          isNull(vehicles.deletedAt),
+          eq(vehicles.organizationId, organizationId),
+        ),
       )
       .groupBy(
         vehicleStatuses.id,
@@ -56,6 +60,7 @@ export class DashboardService {
       .where(
         and(
           isNull(expenses.deletedAt),
+          eq(expenses.organizationId, organizationId),
           this.expenseHasActiveVehicle(),
           gte(expenses.expenseDate, dateFrom),
           lte(expenses.expenseDate, dateTo),
@@ -69,6 +74,7 @@ export class DashboardService {
       .where(
         and(
           isNull(documents.deletedAt),
+          eq(documents.organizationId, organizationId),
           this.documentHasActiveVehicle(),
           this.documentHasActiveExpense(),
         ),
@@ -81,6 +87,7 @@ export class DashboardService {
       .where(
         and(
           isNull(documents.deletedAt),
+          eq(documents.organizationId, organizationId),
           this.documentHasActiveVehicle(),
           this.documentHasActiveExpense(),
           gte(sql`${documents.createdAt}::date`, dateFrom),

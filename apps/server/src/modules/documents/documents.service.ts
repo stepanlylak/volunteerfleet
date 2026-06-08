@@ -72,6 +72,7 @@ export class DocumentsService {
   async list(
     query: DocumentListQuery,
     orgRole: OrgRole | null | undefined,
+    organizationId: string,
   ): Promise<DocumentListResponse> {
     const { page, pageSize, sort, vehicleId, expenseId, kind, includeDeleted } = query;
 
@@ -79,7 +80,7 @@ export class DocumentsService {
       throw new ForbiddenException('Only coordinator can view deleted documents');
     }
 
-    const conditions: SQL<unknown>[] = [];
+    const conditions: SQL<unknown>[] = [eq(documents.organizationId, organizationId)];
     if (!includeDeleted) {
       conditions.push(
         isNull(documents.deletedAt),
@@ -134,8 +135,12 @@ export class DocumentsService {
     };
   }
 
-  async findById(id: string, includeDeleted = false): Promise<DocumentResponse> {
-    const row = await this.findRowById(id, includeDeleted);
+  async findById(
+    id: string,
+    organizationId: string,
+    includeDeleted = false,
+  ): Promise<DocumentResponse> {
+    const row = await this.findRowById(id, organizationId, includeDeleted);
     return this.toResponse(row);
   }
 
@@ -154,6 +159,23 @@ export class DocumentsService {
     const mime = await this.detectMime(file);
     if (!this.isAllowedMime(mime)) {
       throw new UnsupportedMediaTypeException('UNSUPPORTED_MEDIA_TYPE');
+    }
+
+    if (input.vehicleId) {
+      const vehicle = await this.db.query.vehicles.findFirst({
+        where: and(eq(vehicles.id, input.vehicleId), eq(vehicles.organizationId, organizationId)),
+      });
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle ${input.vehicleId} not found in this organization`);
+      }
+    }
+    if (input.expenseId) {
+      const expense = await this.db.query.expenses.findFirst({
+        where: and(eq(expenses.id, input.expenseId), eq(expenses.organizationId, organizationId)),
+      });
+      if (!expense) {
+        throw new NotFoundException(`Expense ${input.expenseId} not found in this organization`);
+      }
     }
 
     const id = randomUUID();
@@ -185,7 +207,7 @@ export class DocumentsService {
 
     const row = inserted[0];
     if (!row) throw new Error('Insert returned no rows');
-    return this.findById(row.id);
+    return this.findById(row.id, organizationId);
   }
 
   async replaceUpload(
@@ -194,9 +216,14 @@ export class DocumentsService {
     input: DocumentUploadReplaceMetadata,
     user: JwtPayload,
     maxUploadBytes: number,
+    organizationId: string,
   ): Promise<DocumentResponse> {
     const existing = await this.db.query.documents.findFirst({
-      where: and(eq(documents.id, id), isNull(documents.deletedAt)),
+      where: and(
+        eq(documents.id, id),
+        eq(documents.organizationId, organizationId),
+        isNull(documents.deletedAt),
+      ),
     });
     if (!existing) throw new NotFoundException(`Document ${id} not found`);
     this.assertOwner(existing.createdBy, user);
@@ -229,11 +256,11 @@ export class DocumentsService {
         updatedBy: user.sub,
         updatedAt: new Date(),
       })
-      .where(eq(documents.id, id))
+      .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)))
       .returning({ id: documents.id });
 
     if (!updated[0]) throw new NotFoundException(`Document ${id} not found`);
-    return this.findById(id);
+    return this.findById(id, organizationId);
   }
 
   async createLink(
@@ -241,6 +268,23 @@ export class DocumentsService {
     userId: string,
     organizationId: string,
   ): Promise<DocumentResponse> {
+    if (input.vehicleId) {
+      const vehicle = await this.db.query.vehicles.findFirst({
+        where: and(eq(vehicles.id, input.vehicleId), eq(vehicles.organizationId, organizationId)),
+      });
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle ${input.vehicleId} not found in this organization`);
+      }
+    }
+    if (input.expenseId) {
+      const expense = await this.db.query.expenses.findFirst({
+        where: and(eq(expenses.id, input.expenseId), eq(expenses.organizationId, organizationId)),
+      });
+      if (!expense) {
+        throw new NotFoundException(`Expense ${input.expenseId} not found in this organization`);
+      }
+    }
+
     const inserted = await this.db
       .insert(documents)
       .values({
@@ -260,10 +304,13 @@ export class DocumentsService {
 
     const row = inserted[0];
     if (!row) throw new Error('Insert returned no rows');
-    return this.findById(row.id);
+    return this.findById(row.id, organizationId);
   }
 
-  async getDownload(id: string): Promise<
+  async getDownload(
+    id: string,
+    organizationId: string,
+  ): Promise<
     | { kind: 'link'; url: string }
     | {
         kind: 'file';
@@ -274,7 +321,11 @@ export class DocumentsService {
       }
   > {
     const doc = await this.db.query.documents.findFirst({
-      where: and(eq(documents.id, id), isNull(documents.deletedAt)),
+      where: and(
+        eq(documents.id, id),
+        eq(documents.organizationId, organizationId),
+        isNull(documents.deletedAt),
+      ),
     });
     if (!doc) throw new NotFoundException(`Document ${id} not found`);
     if (doc.kind === 'link') {
@@ -292,9 +343,18 @@ export class DocumentsService {
     };
   }
 
-  async update(id: string, input: DocumentUpdate, user: JwtPayload): Promise<DocumentResponse> {
+  async update(
+    id: string,
+    input: DocumentUpdate,
+    user: JwtPayload,
+    organizationId: string,
+  ): Promise<DocumentResponse> {
     const existing = await this.db.query.documents.findFirst({
-      where: and(eq(documents.id, id), isNull(documents.deletedAt)),
+      where: and(
+        eq(documents.id, id),
+        eq(documents.organizationId, organizationId),
+        isNull(documents.deletedAt),
+      ),
     });
     if (!existing) throw new NotFoundException(`Document ${id} not found`);
     this.assertOwner(existing.createdBy, user);
@@ -304,8 +364,31 @@ export class DocumentsService {
       updatedAt: new Date(),
     };
     if (input.name !== undefined) updateValues.name = input.name;
-    if (input.vehicleId !== undefined) updateValues.vehicleId = input.vehicleId;
-    if (input.expenseId !== undefined) updateValues.expenseId = input.expenseId;
+
+    if (input.vehicleId !== undefined && input.vehicleId !== null) {
+      const vehicle = await this.db.query.vehicles.findFirst({
+        where: and(eq(vehicles.id, input.vehicleId), eq(vehicles.organizationId, organizationId)),
+      });
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle ${input.vehicleId} not found in this organization`);
+      }
+      updateValues.vehicleId = input.vehicleId;
+    } else if (input.vehicleId === null) {
+      updateValues.vehicleId = null;
+    }
+
+    if (input.expenseId !== undefined && input.expenseId !== null) {
+      const expense = await this.db.query.expenses.findFirst({
+        where: and(eq(expenses.id, input.expenseId), eq(expenses.organizationId, organizationId)),
+      });
+      if (!expense) {
+        throw new NotFoundException(`Expense ${input.expenseId} not found in this organization`);
+      }
+      updateValues.expenseId = input.expenseId;
+    } else if (input.expenseId === null) {
+      updateValues.expenseId = null;
+    }
+
     if (input.url !== undefined) {
       if (existing.kind !== 'link') {
         throw new BadRequestException('UPLOAD_DOCUMENT_URL_CANNOT_BE_UPDATED');
@@ -316,16 +399,20 @@ export class DocumentsService {
     const updated = await this.db
       .update(documents)
       .set(updateValues)
-      .where(eq(documents.id, id))
+      .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)))
       .returning({ id: documents.id });
 
     if (!updated[0]) throw new NotFoundException(`Document ${id} not found`);
-    return this.findById(id);
+    return this.findById(id, organizationId);
   }
 
-  async softDelete(id: string, user: JwtPayload): Promise<void> {
+  async softDelete(id: string, user: JwtPayload, organizationId: string): Promise<void> {
     const existing = await this.db.query.documents.findFirst({
-      where: and(eq(documents.id, id), isNull(documents.deletedAt)),
+      where: and(
+        eq(documents.id, id),
+        eq(documents.organizationId, organizationId),
+        isNull(documents.deletedAt),
+      ),
     });
     if (!existing) throw new NotFoundException(`Document ${id} not found`);
     this.assertOwner(existing.createdBy, user);
@@ -338,21 +425,25 @@ export class DocumentsService {
         updatedBy: user.sub,
         updatedAt: new Date(),
       })
-      .where(eq(documents.id, id));
+      .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)));
   }
 
-  async restore(id: string, userId: string): Promise<DocumentResponse> {
+  async restore(id: string, userId: string, organizationId: string): Promise<DocumentResponse> {
     const existing = await this.db.query.documents.findFirst({
-      where: and(eq(documents.id, id), sql`${documents.deletedAt} IS NOT NULL`),
+      where: and(
+        eq(documents.id, id),
+        eq(documents.organizationId, organizationId),
+        sql`${documents.deletedAt} IS NOT NULL`,
+      ),
     });
     if (!existing) throw new NotFoundException(`Deleted document ${id} not found`);
 
     await this.db
       .update(documents)
       .set({ deletedAt: null, deletedBy: null, updatedBy: userId, updatedAt: new Date() })
-      .where(eq(documents.id, id));
+      .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)));
 
-    return this.findById(id, true);
+    return this.findById(id, organizationId, true);
   }
 
   assertAllowedUploadForTest(mime: string, size: number, maxUploadBytes: number): void {
@@ -364,10 +455,18 @@ export class DocumentsService {
     }
   }
 
-  private async findRowById(id: string, includeDeleted: boolean): Promise<DocumentRow> {
+  private async findRowById(
+    id: string,
+    organizationId: string,
+    includeDeleted: boolean,
+  ): Promise<DocumentRow> {
     const where = includeDeleted
-      ? eq(documents.id, id)
-      : and(eq(documents.id, id), isNull(documents.deletedAt));
+      ? and(eq(documents.id, id), eq(documents.organizationId, organizationId))
+      : and(
+          eq(documents.id, id),
+          eq(documents.organizationId, organizationId),
+          isNull(documents.deletedAt),
+        );
     const row = await this.db.query.documents.findFirst({
       where,
       with: this.responseRelations(),
