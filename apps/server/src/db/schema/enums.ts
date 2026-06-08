@@ -1,16 +1,10 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 
-export const vehicleStatusKindEnum = pgEnum('vehicle_status_kind', [
-  'in_work',
-  'final',
-  'other',
-]);
+export const vehicleStatusKindEnum = pgEnum('vehicle_status_kind', ['in_work', 'final', 'other']);
 
-export const userRoleEnum = pgEnum('user_role', [
-  'admin',
-  'volunteer',
-  'guest',
-]);
+export const userRoleEnum = pgEnum('user_role', ['admin', 'volunteer', 'guest']);
+
+export const orgRoleEnum = pgEnum('org_role', ['coordinator', 'volunteer', 'viewer']);
 
 export const documentKindEnum = pgEnum('document_kind', ['upload', 'link']);
 

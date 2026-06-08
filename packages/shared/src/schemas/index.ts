@@ -4,6 +4,7 @@ export * from './auth.js';
 export * from './exchange-rate.js';
 export * from './dictionary.js';
 export * from './user.js';
+export * from './organization.js';
 export * from './vehicle.js';
 export * from './vehicle-photo.js';
 export * from './expense.js';

@@ -3,10 +3,10 @@ id: ORG-1
 epic: organizations-multitenancy
 phase: 0
 type: feat
-status: todo
+status: in-progress
 depends_on: []
 parallelizable: false
-branch:
+branch: feat/org-1-organizations-schema
 pr:
 ---
 

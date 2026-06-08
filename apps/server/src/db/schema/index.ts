@@ -1,5 +1,7 @@
 export * from './enums.js';
 export * from './users.js';
+export * from './organizations.js';
+export * from './organization-members.js';
 export * from './dictionaries.js';
 export * from './vehicles.js';
 export * from './vehicle-photos.js';

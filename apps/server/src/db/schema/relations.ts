@@ -1,5 +1,7 @@
 import { relations } from 'drizzle-orm';
 import { users } from './users.js';
+import { organizations } from './organizations.js';
+import { organizationMembers } from './organization-members.js';
 import { vehicleStatuses, expenseCategories, fundingSources } from './dictionaries.js';
 import { vehicles } from './vehicles.js';
 import { vehicleStatusHistory } from './vehicle-status-history.js';
@@ -21,6 +23,28 @@ export const usersRelations = relations(users, ({ many }) => ({
   updatedVehiclePhotos: many(vehiclePhotos, { relationName: 'updatedBy' }),
   deletedVehiclePhotos: many(vehiclePhotos, { relationName: 'deletedBy' }),
   statusHistoryChanges: many(vehicleStatusHistory),
+  createdOrganizations: many(organizations, { relationName: 'createdBy' }),
+  organizationMemberships: many(organizationMembers),
+}));
+
+export const organizationsRelations = relations(organizations, ({ one, many }) => ({
+  createdByUser: one(users, {
+    fields: [organizations.createdBy],
+    references: [users.id],
+    relationName: 'createdBy',
+  }),
+  members: many(organizationMembers),
+}));
+
+export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [organizationMembers.organizationId],
+    references: [organizations.id],
+  }),
+  user: one(users, {
+    fields: [organizationMembers.userId],
+    references: [users.id],
+  }),
 }));
 
 export const vehicleStatusesRelations = relations(vehicleStatuses, ({ many }) => ({
