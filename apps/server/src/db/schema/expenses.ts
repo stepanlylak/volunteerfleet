@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { check, date, index, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { expenseCategories, fundingSources } from './dictionaries.js';
 import { currencyCodeEnum, rateSourceEnum } from './enums.js';
+import { organizations } from './organizations.js';
 import { users } from './users.js';
 import { vehicles } from './vehicles.js';
 
@@ -11,6 +12,9 @@ export const expenses = pgTable(
     id: uuid('id')
       .primaryKey()
       .default(sql`gen_random_uuid()`),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
     vehicleId: uuid('vehicle_id').references(() => vehicles.id, {
       onDelete: 'restrict',
     }),
@@ -45,6 +49,7 @@ export const expenses = pgTable(
   (table) => ({
     amountPositive: check('expenses_amount_positive', sql`${table.amount} > 0`),
     ratePositive: check('expenses_rate_positive', sql`${table.rate} > 0`),
+    organizationIdx: index('expenses_organization_id_idx').on(table.organizationId),
     vehicleIdx: index('expenses_vehicle_id_idx').on(table.vehicleId),
     expenseDateIdx: index('expenses_expense_date_idx').on(table.expenseDate),
     fundingSourceIdx: index('expenses_funding_source_id_idx').on(table.fundingSourceId),

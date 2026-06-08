@@ -15,6 +15,8 @@ import { UsersModule } from './modules/users/users.module.js';
 import { VehiclesModule } from './modules/vehicles/vehicles.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
+import { OrgContextGuard } from './common/guards/org-context.guard.js';
+import { OrgRolesGuard } from './common/guards/org-roles.guard.js';
 import { AppController } from './app.controller.js';
 
 @Module({
@@ -37,6 +39,8 @@ import { AppController } from './app.controller.js';
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: OrgContextGuard },
+    { provide: APP_GUARD, useClass: OrgRolesGuard },
   ],
 })
 export class AppModule {}

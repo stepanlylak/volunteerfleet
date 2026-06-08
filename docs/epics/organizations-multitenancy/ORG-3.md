@@ -3,10 +3,10 @@ id: ORG-3
 epic: organizations-multitenancy
 phase: 0
 type: chore
-status: todo
+status: done
 depends_on: [ORG-1, ORG-2, ORG-4]
 parallelizable: false
-branch:
+branch: feat/org-2-org-4-tenant-roles
 pr:
 ---
 

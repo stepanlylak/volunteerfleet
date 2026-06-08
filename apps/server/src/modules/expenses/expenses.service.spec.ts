@@ -4,6 +4,7 @@ import type { ExpenseResponse } from '@volunteerfleet/shared';
 import { ExpensesService } from './expenses.service.js';
 
 const userId = '11111111-1111-1111-1111-111111111111';
+const orgId = '66666666-6666-6666-6666-666666666666';
 
 function makeResponse(overrides: Partial<ExpenseResponse> = {}): ExpenseResponse {
   return {
@@ -106,6 +107,7 @@ describe('ExpensesService', () => {
         fundingSourceId: '55555555-5555-5555-5555-555555555555',
       },
       userId,
+      orgId,
     );
 
     expect(exchangeRates.getRate).toHaveBeenCalledWith(new Date('2026-05-21'), 'USD');
@@ -125,6 +127,7 @@ describe('ExpensesService', () => {
         fundingSourceId: '55555555-5555-5555-5555-555555555555',
       },
       userId,
+      orgId,
     );
 
     expect(exchangeRates.getRate).not.toHaveBeenCalled();
@@ -144,6 +147,7 @@ describe('ExpensesService', () => {
         fundingSourceId: '55555555-5555-5555-5555-555555555555',
       },
       userId,
+      orgId,
     );
 
     expect(insertedValues).toMatchObject({ rate: '1.000000', rateSource: 'default' });
@@ -207,7 +211,7 @@ describe('ExpensesService', () => {
         currency: 'USD',
         includeDeleted: false,
       },
-      'admin',
+      'coordinator',
     );
 
     expect(limitMock).toHaveBeenCalledWith(10);

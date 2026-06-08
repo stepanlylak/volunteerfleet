@@ -8,7 +8,7 @@ import type {
   VehicleReportResponse,
 } from '@volunteerfleet/shared';
 import { fundingSourceReportQuerySchema, idParamSchema } from '@volunteerfleet/shared';
-import { Roles } from '../../common/decorators/roles.decorator.js';
+import { OrgRoles } from '../../common/decorators/org-roles.decorator.js';
 import { ReportsService } from './reports.service.js';
 
 @ApiTags('reports')
@@ -17,7 +17,7 @@ export class ReportsController {
   constructor(private readonly service: ReportsService) {}
 
   @Get('vehicle/:id')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   vehicleReport(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
   ): Promise<VehicleReportResponse> {
@@ -25,7 +25,7 @@ export class ReportsController {
   }
 
   @Get('funding-source/:id')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   fundingSourceReport(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Query(new ZodValidationPipe(fundingSourceReportQuerySchema))

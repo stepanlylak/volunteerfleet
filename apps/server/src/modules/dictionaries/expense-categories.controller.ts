@@ -29,13 +29,12 @@ export class ExpenseCategoriesController {
   constructor(private readonly service: ExpenseCategoriesService) {}
 
   @Get()
-  @Roles('admin', 'volunteer', 'guest')
   list(): Promise<ExpenseCategory[]> {
     return this.service.list();
   }
 
   @Post()
-  @Roles('admin')
+  @Roles('superuser')
   create(
     @Body(new ZodValidationPipe(expenseCategoryCreateSchema)) dto: ExpenseCategoryCreate,
   ): Promise<ExpenseCategory> {
@@ -43,7 +42,7 @@ export class ExpenseCategoriesController {
   }
 
   @Patch(':id')
-  @Roles('admin')
+  @Roles('superuser')
   update(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Body(new ZodValidationPipe(expenseCategoryUpdateSchema)) dto: ExpenseCategoryUpdate,
@@ -52,7 +51,7 @@ export class ExpenseCategoriesController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles('superuser')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param(new ZodValidationPipe(idParamSchema)) params: IdParam): Promise<void> {
     await this.service.remove(params.id);

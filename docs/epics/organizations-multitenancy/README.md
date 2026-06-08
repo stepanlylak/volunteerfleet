@@ -23,10 +23,10 @@
 | #                   | Назва                                                | Фаза | Залежності          | Статус |
 | ------------------- | ---------------------------------------------------- | :--: | ------------------- | ------ |
 | [ORG-1](ORG-1.md)   | Схема: organizations та organization_members         |  0   | —                   | done   |
-| [ORG-2](ORG-2.md)   | Схема tenant-таблиць: org_id, drop slug, last_active |  0   | ORG-1               | ready  |
-| [ORG-3](ORG-3.md)   | Reset міграцій і сіди (greenfield)                   |  0   | ORG-1, ORG-2, ORG-4 | todo   |
-| [ORG-4](ORG-4.md)   | Рефактор ролей і гарди                               |  0   | ORG-1               | ready  |
-| [ORG-5](ORG-5.md)   | JWT активної org + cookie-only + switch-org          |  1   | ORG-1, ORG-3, ORG-4 | todo   |
+| [ORG-2](ORG-2.md)   | Схема tenant-таблиць: org_id, drop slug, last_active |  0   | ORG-1               | done   |
+| [ORG-3](ORG-3.md)   | Reset міграцій і сіди (greenfield)                   |  0   | ORG-1, ORG-2, ORG-4 | done   |
+| [ORG-4](ORG-4.md)   | Рефактор ролей і гарди                               |  0   | ORG-1               | done   |
+| [ORG-5](ORG-5.md)   | JWT активної org + cookie-only + switch-org          |  1   | ORG-1, ORG-3, ORG-4 | ready  |
 | [ORG-6](ORG-6.md)   | Контекст тенанта: orgScope + same-org валідація      |  1   | ORG-5               | todo   |
 | [ORG-7](ORG-7.md)   | Скоуп vehicles (+ photos, status history)            |  2   | ORG-6               | todo   |
 | [ORG-8](ORG-8.md)   | Скоуп expenses + same-org валідація                  |  2   | ORG-6               | todo   |

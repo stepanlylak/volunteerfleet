@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ROLES } from '../types/roles.js';
+import { ORG_ROLES, ROLES } from '../types/roles.js';
 import { nonEmptyString, uuidSchema } from './common.js';
 
 export const roleSchema = z.enum(ROLES);
@@ -36,6 +36,8 @@ export const jwtPayloadSchema = z.object({
   sub: uuidSchema,
   email: z.string().email(),
   role: roleSchema,
+  activeOrgId: uuidSchema.nullable().optional(),
+  orgRole: z.enum(ORG_ROLES).nullable().optional(),
   iat: z.number().int(),
   exp: z.number().int(),
 });

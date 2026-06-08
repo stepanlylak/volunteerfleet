@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -41,7 +42,7 @@ import {
 } from '@volunteerfleet/shared';
 import type { Env } from '../../config/env.schema.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { Roles } from '../../common/decorators/roles.decorator.js';
+import { OrgRoles } from '../../common/decorators/org-roles.decorator.js';
 import { DocumentsService } from './documents.service.js';
 
 @ApiTags('documents')
@@ -53,16 +54,16 @@ export class DocumentsController {
   ) {}
 
   @Get()
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   list(
     @Query(new ZodValidationPipe(documentListQuerySchema)) query: DocumentListQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentListResponse> {
-    return this.service.list(query, user?.role ?? 'volunteer');
+    return this.service.list(query, user?.orgRole);
   }
 
   @Post('upload')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -76,16 +77,18 @@ export class DocumentsController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentResponse> {
     if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     return this.service.upload(
       file,
       dto,
       user.sub,
+      user.activeOrgId,
       this.cfg.get('MAX_UPLOAD_BYTES', { infer: true }),
     );
   }
 
   @Patch(':id/upload')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -111,28 +114,29 @@ export class DocumentsController {
   }
 
   @Post('link')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   createLink(
     @Body(new ZodValidationPipe(documentLinkCreateSchema)) dto: DocumentLinkCreate,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentResponse> {
     if (!user) throw new Error('User required');
-    return this.service.createLink(dto, user.sub);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.createLink(dto, user.sub, user.activeOrgId);
   }
 
   @Get(':id')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   findOne(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Query('includeDeleted') includeDeleted: string | undefined,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentResponse> {
-    const canIncludeDeleted = user?.role === 'admin' && includeDeleted === 'true';
+    const canIncludeDeleted = user?.orgRole === 'coordinator' && includeDeleted === 'true';
     return this.service.findById(params.id, canIncludeDeleted);
   }
 
   @Get(':id/download')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   async download(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Res({ passthrough: true }) res: Response,
@@ -151,7 +155,7 @@ export class DocumentsController {
   }
 
   @Patch(':id')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   update(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Body(new ZodValidationPipe(documentUpdateSchema)) dto: DocumentUpdate,
@@ -162,7 +166,7 @@ export class DocumentsController {
   }
 
   @Delete(':id')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
@@ -173,7 +177,7 @@ export class DocumentsController {
   }
 
   @Post(':id/restore')
-  @Roles('admin')
+  @OrgRoles('coordinator')
   restore(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @CurrentUser() user: JwtPayload | undefined,

@@ -35,10 +35,7 @@ type VehicleRow = typeof vehicles.$inferSelect & {
 };
 
 type ExpenseRow = typeof expenses.$inferSelect & {
-  vehicle?: Pick<
-    typeof vehicles.$inferSelect,
-    'id' | 'identifier' | 'brand' | 'model' | 'publicSlug'
-  > | null;
+  vehicle?: Pick<typeof vehicles.$inferSelect, 'id' | 'identifier' | 'brand' | 'model'> | null;
   category?: typeof expenseCategories.$inferSelect;
   fundingSource?: typeof fundingSources.$inferSelect;
   createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
@@ -72,7 +69,6 @@ type AggregationExpense = {
     identifier: string;
     brand: string;
     model: string;
-    publicSlug?: string | null;
   } | null;
 };
 
@@ -133,7 +129,6 @@ export function buildExpenseAggregations(
             identifier: row.vehicle.identifier,
             brand: row.vehicle.brand,
             model: row.vehicle.model,
-            publicSlug: row.vehicle.publicSlug ?? null,
           }
         : null,
       totalUah: 0,
@@ -309,7 +304,6 @@ export class ReportsService {
         identifier: vehicles.identifier,
         brand: vehicles.brand,
         model: vehicles.model,
-        publicSlug: vehicles.publicSlug,
       })
       .from(expenses)
       .innerJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
@@ -329,7 +323,6 @@ export class ReportsService {
           identifier: row.identifier,
           brand: row.brand,
           model: row.model,
-          publicSlug: row.publicSlug,
         },
       })),
       (row) => this.resolveReportRate(row),
@@ -360,7 +353,6 @@ export class ReportsService {
           identifier: true,
           brand: true,
           model: true,
-          publicSlug: true,
         },
       },
       category: true,
@@ -435,7 +427,7 @@ export class ReportsService {
         : undefined,
       description: row.description,
       isPublic: row.isPublic,
-      publicSlug: row.publicSlug,
+      publicSlug: null,
       publicSummary: row.publicSummary,
       publicCollectedAmountUah: row.publicCollectedAmountUah
         ? Number(row.publicCollectedAmountUah)

@@ -190,7 +190,8 @@ export function VehicleCardPage() {
   const navigate = useNavigate();
   const [form] = Form.useForm<PublicFormValues>();
   const role = useAuth((state) => state.user?.role);
-  const isAdmin = role === 'admin';
+  // TODO(ORG-17): gate by orgRole once the active-org context lands on the client (ORG-14).
+  const isAdmin = role === 'superuser';
   const { data: vehicle, isLoading } = useVehicle(id, isAdmin);
   const { data: history } = useVehicleStatusHistory(id);
   const updateVehicle = useUpdateVehicle();

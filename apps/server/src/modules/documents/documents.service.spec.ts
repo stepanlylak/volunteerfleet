@@ -75,12 +75,19 @@ describe('DocumentsService', () => {
       svc.update(
         'doc-id',
         { name: 'New name' },
-        { sub: otherUserId, email: 'v@example.com', role: 'volunteer', iat: 0, exp: 0 },
+        {
+          sub: otherUserId,
+          email: 'v@example.com',
+          role: 'user',
+          orgRole: 'volunteer',
+          iat: 0,
+          exp: 0,
+        },
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('allows admin to delete any document', async () => {
+  it('allows coordinator to delete any document', async () => {
     db.query.documents.findFirst.mockResolvedValue({
       id: 'doc-id',
       createdBy: ownerId,
@@ -94,8 +101,9 @@ describe('DocumentsService', () => {
     await expect(
       svc.softDelete('doc-id', {
         sub: otherUserId,
-        email: 'admin@example.com',
-        role: 'admin',
+        email: 'coordinator@example.com',
+        role: 'user',
+        orgRole: 'coordinator',
         iat: 0,
         exp: 0,
       }),

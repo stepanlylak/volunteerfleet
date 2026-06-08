@@ -9,7 +9,12 @@ import { expenses } from './expenses.js';
 import { documents } from './documents.js';
 import { vehiclePhotos } from './vehicle-photos.js';
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
+  lastActiveOrg: one(organizations, {
+    fields: [users.lastActiveOrgId],
+    references: [organizations.id],
+    relationName: 'lastActiveOrg',
+  }),
   createdVehicles: many(vehicles, { relationName: 'createdBy' }),
   updatedVehicles: many(vehicles, { relationName: 'updatedBy' }),
   deletedVehicles: many(vehicles, { relationName: 'deletedBy' }),
@@ -34,6 +39,12 @@ export const organizationsRelations = relations(organizations, ({ one, many }) =
     relationName: 'createdBy',
   }),
   members: many(organizationMembers),
+  lastActiveUsers: many(users, { relationName: 'lastActiveOrg' }),
+  vehicles: many(vehicles),
+  expenses: many(expenses),
+  documents: many(documents),
+  vehiclePhotos: many(vehiclePhotos),
+  statusHistory: many(vehicleStatusHistory),
 }));
 
 export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
@@ -54,6 +65,10 @@ export const vehicleStatusesRelations = relations(vehicleStatuses, ({ many }) =>
 }));
 
 export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [vehicles.organizationId],
+    references: [organizations.id],
+  }),
   status: one(vehicleStatuses, {
     fields: [vehicles.statusId],
     references: [vehicleStatuses.id],
@@ -80,6 +95,10 @@ export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
 }));
 
 export const vehiclePhotosRelations = relations(vehiclePhotos, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [vehiclePhotos.organizationId],
+    references: [organizations.id],
+  }),
   vehicle: one(vehicles, {
     fields: [vehiclePhotos.vehicleId],
     references: [vehicles.id],
@@ -102,6 +121,10 @@ export const vehiclePhotosRelations = relations(vehiclePhotos, ({ one }) => ({
 }));
 
 export const vehicleStatusHistoryRelations = relations(vehicleStatusHistory, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [vehicleStatusHistory.organizationId],
+    references: [organizations.id],
+  }),
   vehicle: one(vehicles, {
     fields: [vehicleStatusHistory.vehicleId],
     references: [vehicles.id],
@@ -131,6 +154,10 @@ export const fundingSourcesRelations = relations(fundingSources, ({ many }) => (
 }));
 
 export const expensesRelations = relations(expenses, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [expenses.organizationId],
+    references: [organizations.id],
+  }),
   vehicle: one(vehicles, {
     fields: [expenses.vehicleId],
     references: [vehicles.id],
@@ -162,6 +189,10 @@ export const expensesRelations = relations(expenses, ({ one, many }) => ({
 }));
 
 export const documentsRelations = relations(documents, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [documents.organizationId],
+    references: [organizations.id],
+  }),
   vehicle: one(vehicles, {
     fields: [documents.vehicleId],
     references: [vehicles.id],

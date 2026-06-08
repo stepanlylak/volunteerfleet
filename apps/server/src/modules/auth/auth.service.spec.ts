@@ -29,7 +29,7 @@ function makeUser(overrides: Partial<UserRecord> = {}): UserRecord {
     email: 'admin@example.com',
     passwordHash: '',
     fullName: 'Admin',
-    role: 'admin',
+    role: 'superuser',
     isActive: true,
     ...overrides,
   };
@@ -88,7 +88,7 @@ describe('AuthService', () => {
       expect(result.refreshToken).toBeTruthy();
       const verified = jwt.verify(result.response.accessToken, { secret: ACCESS_SECRET });
       expect(verified.sub).toBe('00000000-0000-0000-0000-000000000001');
-      expect(verified.role).toBe('admin');
+      expect(verified.role).toBe('superuser');
     });
   });
 
@@ -112,7 +112,7 @@ describe('AuthService', () => {
 
     it('throws on invalid signature', async () => {
       const bogus = jwt.sign(
-        { sub: 'x', email: 'x@x', role: 'admin' },
+        { sub: 'x', email: 'x@x', role: 'superuser' },
         { secret: 'other-secret-aaaaaaaaaaaaaaaa' },
       );
       await expect(svc.refresh(bogus)).rejects.toBeInstanceOf(UnauthorizedException);

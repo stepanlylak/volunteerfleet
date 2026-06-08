@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -49,7 +50,7 @@ import {
   type VehicleExpensesQuery,
 } from '@volunteerfleet/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { Roles } from '../../common/decorators/roles.decorator.js';
+import { OrgRoles } from '../../common/decorators/org-roles.decorator.js';
 import type { Env } from '../../config/env.schema.js';
 import { DocumentsService } from '../documents/documents.service.js';
 import { ExpensesService } from '../expenses/expenses.service.js';
@@ -68,37 +69,38 @@ export class VehiclesController {
   ) {}
 
   @Get()
-  @Roles('admin', 'volunteer', 'guest')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   list(
     @Query(new ZodValidationPipe(vehicleListQuerySchema)) query: VehicleListQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehicleListResponse> {
-    return this.service.list(query, user?.role ?? 'guest');
+    return this.service.list(query, user?.orgRole);
   }
 
   @Post()
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   async create(
     @Body(new ZodValidationPipe(vehicleCreateSchema)) dto: VehicleCreate,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehicleResponse> {
     if (!user) throw new Error('User required');
-    return this.service.create(dto, user.sub);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.create(dto, user.sub, user.activeOrgId);
   }
 
   @Get(':id')
-  @Roles('admin', 'volunteer', 'guest')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   async findOne(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Query('includeDeleted') includeDeleted: string | undefined,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehicleResponse> {
-    const canIncludeDeleted = user?.role === 'admin' && includeDeleted === 'true';
+    const canIncludeDeleted = user?.orgRole === 'coordinator' && includeDeleted === 'true';
     return this.service.findById(params.id, canIncludeDeleted);
   }
 
   @Patch(':id')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   async update(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Body(new ZodValidationPipe(vehicleUpdateSchema)) dto: VehicleUpdate,
@@ -106,8 +108,8 @@ export class VehiclesController {
   ): Promise<VehicleResponse> {
     if (!user) throw new Error('User required');
 
-    // Admin can edit public fields, volunteer cannot
-    if (user.role !== 'admin') {
+    // Coordinator can edit public fields, volunteer cannot
+    if (user.orgRole !== 'coordinator') {
       delete (dto as Partial<VehicleUpdate>).isPublic;
       delete (dto as Partial<VehicleUpdate>).publicSlug;
       delete (dto as Partial<VehicleUpdate>).publicSummary;
@@ -119,7 +121,7 @@ export class VehiclesController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @OrgRoles('coordinator')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
@@ -130,7 +132,7 @@ export class VehiclesController {
   }
 
   @Post(':id/restore')
-  @Roles('admin')
+  @OrgRoles('coordinator')
   async restore(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
   ): Promise<VehicleResponse> {
@@ -138,7 +140,7 @@ export class VehiclesController {
   }
 
   @Get(':id/status-history')
-  @Roles('admin', 'volunteer', 'guest')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   async getStatusHistory(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
   ): Promise<VehicleStatusHistoryListResponse> {
@@ -146,32 +148,29 @@ export class VehiclesController {
   }
 
   @Get(':id/expenses')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   async getExpenses(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Query(new ZodValidationPipe(vehicleExpensesQuerySchema)) query: VehicleExpensesQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<ExpenseListResponse> {
     await this.service.findById(params.id);
-    return this.expensesService.list({ ...query, vehicleId: params.id }, user?.role ?? 'volunteer');
+    return this.expensesService.list({ ...query, vehicleId: params.id }, user?.orgRole);
   }
 
   @Get(':id/documents')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   async getDocuments(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Query(new ZodValidationPipe(vehicleDocumentsQuerySchema)) query: VehicleDocumentsQuery,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentListResponse> {
     await this.service.findById(params.id);
-    return this.documentsService.list(
-      { ...query, vehicleId: params.id },
-      user?.role ?? 'volunteer',
-    );
+    return this.documentsService.list({ ...query, vehicleId: params.id }, user?.orgRole);
   }
 
   @Get(':id/photos')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   async getPhotos(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
   ): Promise<VehiclePhotoListResponse> {
@@ -179,7 +178,7 @@ export class VehiclesController {
   }
 
   @Post(':id/photos')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -204,7 +203,7 @@ export class VehiclesController {
   }
 
   @Patch(':id/photos/order')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   reorderPhotos(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Body(new ZodValidationPipe(vehiclePhotoOrderUpdateSchema)) dto: VehiclePhotoOrderUpdate,
@@ -215,7 +214,7 @@ export class VehiclesController {
   }
 
   @Get(':id/photos/:photoId/download')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
   async downloadPhoto(
     @Param('photoId') photoId: string,
     @Res({ passthrough: true }) res: Response,
@@ -231,7 +230,7 @@ export class VehiclesController {
   }
 
   @Delete(':id/photos/:photoId')
-  @Roles('admin', 'volunteer')
+  @OrgRoles('coordinator', 'volunteer')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removePhoto(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,

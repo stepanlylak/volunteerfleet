@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { bigint, index, pgTable, smallint, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { organizations } from './organizations.js';
 import { users } from './users.js';
 import { vehicles } from './vehicles.js';
 
@@ -9,6 +10,9 @@ export const vehiclePhotos = pgTable(
     id: uuid('id')
       .primaryKey()
       .default(sql`gen_random_uuid()`),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
     vehicleId: uuid('vehicle_id')
       .notNull()
       .references(() => vehicles.id, { onDelete: 'restrict' }),
@@ -31,6 +35,7 @@ export const vehiclePhotos = pgTable(
     deletedBy: uuid('deleted_by').references(() => users.id, { onDelete: 'restrict' }),
   },
   (table) => ({
+    organizationIdx: index('vehicle_photos_organization_id_idx').on(table.organizationId),
     vehicleIdx: index('vehicle_photos_vehicle_id_idx').on(table.vehicleId),
     orderIdx: index('vehicle_photos_vehicle_order_idx').on(table.vehicleId, table.sortOrder),
   }),

@@ -22,11 +22,7 @@ export class PublicService {
 
   async getVehicleBySlug(slug: string): Promise<PublicVehicleResponse> {
     const row = await this.db.query.vehicles.findFirst({
-      where: and(
-        eq(vehicles.publicSlug, slug),
-        eq(vehicles.isPublic, true),
-        isNull(vehicles.deletedAt),
-      ),
+      where: and(eq(vehicles.id, slug), eq(vehicles.isPublic, true), isNull(vehicles.deletedAt)),
       with: {
         status: true,
       },
@@ -73,7 +69,7 @@ export class PublicService {
       dateTo: report.dateTo,
       totalUah: report.totalUah,
       byCategory: report.byCategory,
-      byVehicle: report.byVehicle.filter((row) => row.vehicle?.publicSlug),
+      byVehicle: report.byVehicle.filter((row) => row.vehicle != null),
     };
   }
 

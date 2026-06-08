@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { boolean, pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  type AnyPgColumn,
+  boolean,
+  pgTable,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
+import { organizations } from './organizations.js';
 import { userRoleEnum } from './enums.js';
 
 export const users = pgTable(
@@ -12,6 +21,9 @@ export const users = pgTable(
     passwordHash: varchar('password_hash', { length: 255 }).notNull(),
     fullName: varchar('full_name', { length: 255 }).notNull(),
     role: userRoleEnum('role').notNull(),
+    lastActiveOrgId: uuid('last_active_org_id').references((): AnyPgColumn => organizations.id, {
+      onDelete: 'set null',
+    }),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })

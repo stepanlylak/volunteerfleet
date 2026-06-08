@@ -11,6 +11,8 @@ import {
   expenseCategories,
   expenses,
   fundingSources,
+  organizationMembers,
+  organizations,
   users,
   vehicleStatuses,
   vehicles,
@@ -18,12 +20,34 @@ import {
 import {
   SEED_EXPENSE_CATEGORY_IDS,
   SEED_FUNDING_SOURCE_IDS,
+  SEED_ORG_IDS,
   SEED_VEHICLE_STATUS_IDS,
 } from './seed-ids.js';
 
-const VOLUNTEER_EMAIL = 'volunteer@example.com';
-const VOLUNTEER_PASSWORD = 'demo-volunteer-pass';
-const VOLUNTEER_NAME = 'Демо Волонтер';
+type OrgKey = 'A' | 'B';
+
+interface DemoUserSpec {
+  email: string;
+  password: string;
+  fullName: string;
+}
+
+const COORDINATOR_B: DemoUserSpec = {
+  email: 'coordinator.b@example.com',
+  password: 'demo-coordinator-pass',
+  fullName: 'Демо Координатор Б',
+};
+
+const MEMBER_A: DemoUserSpec = {
+  email: 'volunteer.a@example.com',
+  password: 'demo-volunteer-pass',
+  fullName: 'Демо Волонтер А',
+};
+
+const DEMO_ORGS: Record<OrgKey, { id: string; name: string }> = {
+  A: { id: SEED_ORG_IDS.demoA, name: 'Перша Чота (демо)' },
+  B: { id: SEED_ORG_IDS.demoB, name: 'Друга Чота (демо)' },
+};
 
 const ratesFileSchema = z.record(
   z.string().regex(/^\d{4}-\d{2}$/),
@@ -74,36 +98,37 @@ async function loadRates(): Promise<RatesMap> {
   return ratesFileSchema.parse(parsed);
 }
 
-async function getOrCreateVolunteer(
+async function getOrCreateUser(
   db: ReturnType<typeof createDb>,
-): Promise<{ id: string; created: boolean }> {
+  spec: DemoUserSpec,
+): Promise<string> {
   const existing = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, VOLUNTEER_EMAIL))
+    .where(eq(users.email, spec.email))
     .limit(1);
   const found = existing[0];
-  if (found) return { id: found.id, created: false };
+  if (found) return found.id;
 
   const bcryptCost = Number(process.env.BCRYPT_COST ?? '12');
-  const passwordHash = await bcrypt.hash(VOLUNTEER_PASSWORD, bcryptCost);
+  const passwordHash = await bcrypt.hash(spec.password, bcryptCost);
   const inserted = await db
     .insert(users)
     .values({
-      email: VOLUNTEER_EMAIL,
+      email: spec.email,
       passwordHash,
-      fullName: VOLUNTEER_NAME,
-      role: 'volunteer',
+      fullName: spec.fullName,
+      role: 'user',
       isActive: true,
     })
     .returning({ id: users.id });
   const row = inserted[0];
-  if (!row) throw new Error('Failed to insert volunteer user');
-  console.log(`[seed-demo] created volunteer: ${VOLUNTEER_EMAIL}`);
-  return { id: row.id, created: true };
+  if (!row) throw new Error(`Failed to insert user ${spec.email}`);
+  console.log(`[seed-demo] created user: ${spec.email}`);
+  return row.id;
 }
 
-async function getAdminId(db: ReturnType<typeof createDb>): Promise<string> {
+async function getSuperuserId(db: ReturnType<typeof createDb>): Promise<string> {
   const adminEmail = requireEnv('ADMIN_EMAIL');
   const rows = await db
     .select({ id: users.id })
@@ -112,9 +137,42 @@ async function getAdminId(db: ReturnType<typeof createDb>): Promise<string> {
     .limit(1);
   const admin = rows[0];
   if (!admin) {
-    throw new Error('Admin user not found. Run `pnpm db:seed` first.');
+    throw new Error('Superuser not found. Run `pnpm db:seed` first.');
   }
   return admin.id;
+}
+
+async function demoOrgExists(db: ReturnType<typeof createDb>): Promise<boolean> {
+  const rows = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.id, DEMO_ORGS.A.id))
+    .limit(1);
+  return rows.length > 0;
+}
+
+// Two organizations with different member compositions, so isolation can be checked
+// by hand: org A is run by the superuser (coordinator) with member A as a volunteer;
+// org B is run by coordinator B, and member A only has read access there (viewer).
+async function seedOrganizations(
+  db: ReturnType<typeof createDb>,
+  superuserId: string,
+  coordinatorBId: string,
+  memberAId: string,
+): Promise<void> {
+  await db.insert(organizations).values([
+    { id: DEMO_ORGS.A.id, name: DEMO_ORGS.A.name, createdBy: superuserId },
+    { id: DEMO_ORGS.B.id, name: DEMO_ORGS.B.name, createdBy: superuserId },
+  ]);
+
+  await db.insert(organizationMembers).values([
+    { organizationId: DEMO_ORGS.A.id, userId: superuserId, role: 'coordinator' },
+    { organizationId: DEMO_ORGS.A.id, userId: memberAId, role: 'volunteer' },
+    { organizationId: DEMO_ORGS.B.id, userId: coordinatorBId, role: 'coordinator' },
+    { organizationId: DEMO_ORGS.B.id, userId: memberAId, role: 'viewer' },
+  ]);
+
+  console.log('[seed-demo] organizations and memberships created (A, B)');
 }
 
 async function loadStatusMap(db: ReturnType<typeof createDb>): Promise<Map<string, string>> {
@@ -177,6 +235,12 @@ interface VehicleSeedSpec {
   model: string;
   year: number;
   statusName: string;
+  org: OrgKey;
+}
+
+interface VehicleRecord {
+  id: string;
+  org: OrgKey;
 }
 
 const DEMO_VEHICLES: VehicleSeedSpec[] = [
@@ -186,6 +250,7 @@ const DEMO_VEHICLES: VehicleSeedSpec[] = [
     model: 'L200',
     year: 2008,
     statusName: 'в ремонті',
+    org: 'A',
   },
   {
     identifier: 'VF-DEMO-002',
@@ -193,6 +258,7 @@ const DEMO_VEHICLES: VehicleSeedSpec[] = [
     model: 'Transporter T4',
     year: 2001,
     statusName: 'готове',
+    org: 'A',
   },
   {
     identifier: 'VF-DEMO-003',
@@ -200,38 +266,41 @@ const DEMO_VEHICLES: VehicleSeedSpec[] = [
     model: 'Land Cruiser 80',
     year: 1995,
     statusName: 'передано',
+    org: 'B',
   },
 ];
 
 async function seedVehicles(
   db: ReturnType<typeof createDb>,
-  userId: string,
   statusMap: Map<string, string>,
-): Promise<string[]> {
-  const vehicleIds: string[] = [];
+  creatorByOrg: Record<OrgKey, string>,
+): Promise<VehicleRecord[]> {
+  const records: VehicleRecord[] = [];
   for (const spec of DEMO_VEHICLES) {
     const statusId = statusMap.get(spec.statusName);
     if (!statusId) {
       throw new Error(`Unknown status: ${spec.statusName}`);
     }
+    const createdBy = creatorByOrg[spec.org];
     const inserted = await db
       .insert(vehicles)
       .values({
+        organizationId: DEMO_ORGS[spec.org].id,
         identifier: spec.identifier,
         brand: spec.brand,
         model: spec.model,
         year: spec.year,
         statusId,
-        createdBy: userId,
-        updatedBy: userId,
+        createdBy,
+        updatedBy: createdBy,
       })
       .returning({ id: vehicles.id });
     const row = inserted[0];
     if (!row) throw new Error('Failed to insert vehicle');
-    vehicleIds.push(row.id);
-    console.log(`[seed-demo] vehicle: ${spec.identifier}`);
+    records.push({ id: row.id, org: spec.org });
+    console.log(`[seed-demo] vehicle: ${spec.identifier} (org ${spec.org})`);
   }
-  return vehicleIds;
+  return records;
 }
 
 interface ExpenseSeedSpec {
@@ -326,25 +395,32 @@ const DEMO_EXPENSES: ExpenseSeedSpec[] = [
   },
 ];
 
+interface ExpenseRecord {
+  id: string;
+  org: OrgKey;
+}
+
 async function seedExpenses(
   db: ReturnType<typeof createDb>,
-  vehicleIds: string[],
+  vehicleRecords: VehicleRecord[],
   categoryMap: Map<string, string>,
   fundingSourceId: string,
-  userId: string,
+  creatorByOrg: Record<OrgKey, string>,
   rates: RatesMap,
-): Promise<string[]> {
-  const expenseIds: string[] = [];
+): Promise<ExpenseRecord[]> {
+  const records: ExpenseRecord[] = [];
   for (const spec of DEMO_EXPENSES) {
-    const vehicleId = vehicleIds[spec.vehicleIndex];
-    if (!vehicleId) throw new Error(`No vehicle at index ${spec.vehicleIndex}`);
+    const vehicle = vehicleRecords[spec.vehicleIndex];
+    if (!vehicle) throw new Error(`No vehicle at index ${spec.vehicleIndex}`);
     const categoryId = categoryMap.get(spec.categoryName);
     if (!categoryId) throw new Error(`Unknown category: ${spec.categoryName}`);
     const rate = getRate(rates, new Date(spec.expenseDate), spec.currency);
+    const createdBy = creatorByOrg[vehicle.org];
     const inserted = await db
       .insert(expenses)
       .values({
-        vehicleId,
+        organizationId: DEMO_ORGS[vehicle.org].id,
+        vehicleId: vehicle.id,
         expenseDate: spec.expenseDate,
         amount: spec.amount,
         currency: spec.currency,
@@ -353,16 +429,16 @@ async function seedExpenses(
         categoryId,
         fundingSourceId,
         description: spec.description,
-        createdBy: userId,
-        updatedBy: userId,
+        createdBy,
+        updatedBy: createdBy,
       })
       .returning({ id: expenses.id });
     const row = inserted[0];
     if (!row) throw new Error('Failed to insert expense');
-    expenseIds.push(row.id);
+    records.push({ id: row.id, org: vehicle.org });
   }
-  console.log(`[seed-demo] expenses: ${expenseIds.length}`);
-  return expenseIds;
+  console.log(`[seed-demo] expenses: ${records.length}`);
+  return records;
 }
 
 interface DocumentSeedSpec {
@@ -431,30 +507,35 @@ const DEMO_DOCUMENTS: DocumentSeedSpec[] = [
 
 async function seedDocuments(
   db: ReturnType<typeof createDb>,
-  vehicleIds: string[],
-  expenseIds: string[],
-  userId: string,
+  vehicleRecords: VehicleRecord[],
+  expenseRecords: ExpenseRecord[],
+  creatorByOrg: Record<OrgKey, string>,
 ): Promise<void> {
   for (const spec of DEMO_DOCUMENTS) {
-    const vehicleId = spec.vehicleIndex !== null ? vehicleIds[spec.vehicleIndex] : null;
-    const expenseId = spec.expenseIndex !== null ? expenseIds[spec.expenseIndex] : null;
-    if (spec.vehicleIndex !== null && !vehicleId) {
+    const vehicle = spec.vehicleIndex !== null ? vehicleRecords[spec.vehicleIndex] : null;
+    const expense = spec.expenseIndex !== null ? expenseRecords[spec.expenseIndex] : null;
+    if (spec.vehicleIndex !== null && !vehicle) {
       throw new Error(`No vehicle at index ${spec.vehicleIndex}`);
     }
-    if (spec.expenseIndex !== null && !expenseId) {
+    if (spec.expenseIndex !== null && !expense) {
       throw new Error(`No expense at index ${spec.expenseIndex}`);
     }
+    // A document inherits the organization of whatever it is attached to.
+    const org = vehicle?.org ?? expense?.org;
+    if (!org) throw new Error(`Document "${spec.name}" is not attached to anything`);
+    const createdBy = creatorByOrg[org];
     await db.insert(documents).values({
+      organizationId: DEMO_ORGS[org].id,
       name: spec.name,
       kind: spec.kind,
       fileKey: spec.fileKey,
       url: spec.url,
       mimeType: spec.mimeType,
       sizeBytes: spec.sizeBytes,
-      vehicleId: vehicleId ?? null,
-      expenseId: expenseId ?? null,
-      createdBy: userId,
-      updatedBy: userId,
+      vehicleId: vehicle?.id ?? null,
+      expenseId: expense?.id ?? null,
+      createdBy,
+      updatedBy: createdBy,
     });
   }
   console.log(`[seed-demo] documents: ${DEMO_DOCUMENTS.length}`);
@@ -466,32 +547,37 @@ async function main(): Promise<void> {
   const db = createDb(pool);
 
   try {
-    const { id: volunteerId, created } = await getOrCreateVolunteer(db);
-    if (!created) {
-      console.log(
-        '[seed-demo] volunteer already exists — skipping demo entities to keep idempotency.',
-      );
+    if (await demoOrgExists(db)) {
+      console.log('[seed-demo] demo organizations already exist — skipping to keep idempotency.');
       return;
     }
 
-    const adminId = await getAdminId(db);
+    const superuserId = await getSuperuserId(db);
+    const coordinatorBId = await getOrCreateUser(db, COORDINATOR_B);
+    const memberAId = await getOrCreateUser(db, MEMBER_A);
+
     const statusMap = await loadStatusMap(db);
     const categoryMap = await loadCategoryMap(db);
     const fundingSourceId = await getFundingSourceId(db);
     const rates = await loadRates();
 
+    // Coordinators own vehicles; members author expenses/documents within their org.
+    const vehicleCreatorByOrg: Record<OrgKey, string> = { A: superuserId, B: coordinatorBId };
+    const entryCreatorByOrg: Record<OrgKey, string> = { A: memberAId, B: coordinatorBId };
+
     await db.execute(sql`BEGIN`);
     try {
-      const vehicleIds = await seedVehicles(db, adminId, statusMap);
-      const expenseIds = await seedExpenses(
+      await seedOrganizations(db, superuserId, coordinatorBId, memberAId);
+      const vehicleRecords = await seedVehicles(db, statusMap, vehicleCreatorByOrg);
+      const expenseRecords = await seedExpenses(
         db,
-        vehicleIds,
+        vehicleRecords,
         categoryMap,
         fundingSourceId,
-        volunteerId,
+        entryCreatorByOrg,
         rates,
       );
-      await seedDocuments(db, vehicleIds, expenseIds, volunteerId);
+      await seedDocuments(db, vehicleRecords, expenseRecords, entryCreatorByOrg);
       await db.execute(sql`COMMIT`);
     } catch (error) {
       await db.execute(sql`ROLLBACK`);
