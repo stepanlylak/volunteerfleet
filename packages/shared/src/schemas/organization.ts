@@ -50,3 +50,39 @@ export const organizationMemberUpdateSchema = z.object({
   role: orgRoleSchema,
 });
 export type OrganizationMemberUpdate = z.infer<typeof organizationMemberUpdateSchema>;
+
+export const addMemberByEmailSchema = z.object({
+  email: z.string().email(),
+  role: orgRoleSchema,
+});
+export type AddMemberByEmail = z.infer<typeof addMemberByEmailSchema>;
+
+export const organizationListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().default(20),
+  search: z.string().optional(),
+  isActive: z.coerce.boolean().optional(),
+});
+export type OrganizationListQuery = z.infer<typeof organizationListQuerySchema>;
+
+export const organizationListResponseSchema = z.object({
+  items: z.array(organizationResponseSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+  totalPages: z.number(),
+});
+export type OrganizationListResponse = z.infer<typeof organizationListResponseSchema>;
+
+export const organizationWithMembersResponseSchema = organizationResponseSchema.extend({
+  members: z.array(
+    organizationMemberResponseSchema.extend({
+      user: z.object({
+        id: uuidSchema,
+        email: z.string().email(),
+        fullName: z.string(),
+      }),
+    }),
+  ),
+});
+export type OrganizationWithMembersResponse = z.infer<typeof organizationWithMembersResponseSchema>;

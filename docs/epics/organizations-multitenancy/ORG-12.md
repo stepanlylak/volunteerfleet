@@ -3,10 +3,10 @@ id: ORG-12
 epic: organizations-multitenancy
 phase: 3
 type: feat
-status: ready
+status: done
 depends_on: [ORG-4, ORG-5]
 parallelizable: true
-branch:
+branch: feat/org-12-organizations-api
 pr:
 ---
 

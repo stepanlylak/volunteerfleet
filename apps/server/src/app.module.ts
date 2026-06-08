@@ -10,6 +10,7 @@ import { DocumentsModule } from './modules/documents/documents.module.js';
 import { ExchangeRatesModule } from './modules/exchange-rates/exchange-rates.module.js';
 import { ExpensesModule } from './modules/expenses/expenses.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
+import { OrganizationsModule } from './modules/organizations/organizations.module.js';
 import { PublicModule } from './modules/public/public.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { TenantModule } from './common/tenant/tenant.module.js';
@@ -34,6 +35,7 @@ import { AppController } from './app.controller.js';
     ExpensesModule,
     DocumentsModule,
     ReportsModule,
+    OrganizationsModule,
     PublicModule,
     TenantModule,
   ],
