@@ -3,10 +3,10 @@ id: ORG-17
 epic: organizations-multitenancy
 phase: 4
 type: feat
-status: todo
+status: done
 depends_on: [ORG-14]
 parallelizable: true
-branch:
+branch: feat/org-17-active-org-pages-empty-states
 pr:
 ---
 

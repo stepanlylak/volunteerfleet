@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import { EyeOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Col, DatePicker, Row, Select, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import {
+  Button,
+  Col,
+  DatePicker,
+  Empty,
+  Row,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import type { ExpenseCategory, ExpenseResponse, FundingSource } from '@volunteerfleet/shared';
@@ -11,6 +23,7 @@ import { useExpensesList } from '../../hooks/useExpenses';
 import { useDictionary } from '../../hooks/useDictionaries';
 import { useVehicles } from '../../hooks/useVehicles';
 import { ExpenseFormModal } from '../../modals/ExpenseFormModal';
+import { useAuth, useOrgRole } from '../../stores/auth.store';
 
 const { RangePicker } = DatePicker;
 
@@ -35,6 +48,9 @@ function renderDescription(value: string | null) {
 export function ExpensesListPage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const orgRole = useOrgRole();
+  const user = useAuth((s) => s.user);
+  const canMutate = orgRole !== null && orgRole !== 'viewer';
   const [params, setParams] = useState<ExpensesListParams>({
     page: 1,
     pageSize: 20,
@@ -130,15 +146,31 @@ export function ExpensesListPage() {
     },
   ];
 
+  if (user && !user.activeOrgId) {
+    return (
+      <Empty
+        description={
+          <Typography.Text>
+            {user.userRole === 'superuser'
+              ? 'Активна організація не вибрана. Оберіть організацію у верхньому меню.'
+              : 'Вас ще не додано до жодної організації. Зверніться до координатора.'}
+          </Typography.Text>
+        }
+      />
+    );
+  }
+
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography.Title level={2} style={{ margin: 0 }}>
           Витрати
         </Typography.Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-          Додати витрату
-        </Button>
+        {canMutate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+            Додати витрату
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
