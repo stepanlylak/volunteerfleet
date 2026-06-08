@@ -139,6 +139,7 @@ export class DocumentsService {
     file: Express.Multer.File | undefined,
     input: DocumentUploadMetadata,
     userId: string,
+    organizationId: string,
     maxUploadBytes: number,
   ): Promise<DocumentResponse> {
     if (!file) throw new BadRequestException('FILE_REQUIRED');
@@ -164,6 +165,7 @@ export class DocumentsService {
       .insert(documents)
       .values({
         id,
+        organizationId,
         name: input.name,
         kind: 'upload',
         fileKey: key,
@@ -230,10 +232,15 @@ export class DocumentsService {
     return this.findById(id);
   }
 
-  async createLink(input: DocumentLinkCreate, userId: string): Promise<DocumentResponse> {
+  async createLink(
+    input: DocumentLinkCreate,
+    userId: string,
+    organizationId: string,
+  ): Promise<DocumentResponse> {
     const inserted = await this.db
       .insert(documents)
       .values({
+        organizationId,
         name: input.name,
         kind: 'link',
         fileKey: null,

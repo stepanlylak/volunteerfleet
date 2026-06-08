@@ -13,6 +13,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { vehicleStatuses } from './dictionaries.js';
+import { organizations } from './organizations.js';
 import { users } from './users.js';
 
 export const vehicles = pgTable(
@@ -21,6 +22,9 @@ export const vehicles = pgTable(
     id: uuid('id')
       .primaryKey()
       .default(sql`gen_random_uuid()`),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
     identifier: varchar('identifier', { length: 64 }).notNull(),
     brand: varchar('brand', { length: 128 }).notNull(),
     model: varchar('model', { length: 128 }).notNull(),
@@ -32,7 +36,6 @@ export const vehicles = pgTable(
       .references(() => vehicleStatuses.id, { onDelete: 'restrict' }),
     description: text('description'),
     isPublic: boolean('is_public').notNull().default(false),
-    publicSlug: varchar('public_slug', { length: 96 }),
     publicSummary: text('public_summary'),
     publicCollectedAmountUah: numeric('public_collected_amount_uah', {
       precision: 14,
@@ -62,9 +65,7 @@ export const vehicles = pgTable(
     identifierUniqueActive: uniqueIndex('vehicles_identifier_active_unique')
       .on(table.identifier)
       .where(sql`${table.deletedAt} IS NULL`),
-    publicSlugUniqueActive: uniqueIndex('vehicles_public_slug_active_unique')
-      .on(table.publicSlug)
-      .where(sql`${table.publicSlug} IS NOT NULL AND ${table.deletedAt} IS NULL`),
+    organizationIdx: index('vehicles_organization_id_idx').on(table.organizationId),
     statusIdx: index('vehicles_status_id_idx').on(table.statusId),
     brandModelIdx: index('vehicles_brand_model_idx').on(table.brand, table.model),
     vinLowerIdx: index('vehicles_vin_lower_idx').on(sql`lower(${table.vin})`),

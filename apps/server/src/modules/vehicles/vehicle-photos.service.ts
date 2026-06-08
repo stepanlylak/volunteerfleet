@@ -99,6 +99,7 @@ export class VehiclePhotosService {
         .insert(vehiclePhotos)
         .values({
           id,
+          organizationId: existingVehicle.organizationId,
           vehicleId,
           fileKey: key,
           mimeType: mime,

@@ -144,12 +144,17 @@ export class ExpensesService {
     return this.toResponse(row);
   }
 
-  async create(input: ExpenseCreate, userId: string): Promise<ExpenseResponse> {
+  async create(
+    input: ExpenseCreate,
+    userId: string,
+    organizationId: string,
+  ): Promise<ExpenseResponse> {
     const rateInfo = this.resolveCreateRate(input);
 
     const inserted = await this.db
       .insert(expenses)
       .values({
+        organizationId,
         vehicleId: input.vehicleId ?? null,
         expenseDate: input.expenseDate,
         amount: input.amount.toFixed(2),

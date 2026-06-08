@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -76,10 +77,12 @@ export class DocumentsController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentResponse> {
     if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     return this.service.upload(
       file,
       dto,
       user.sub,
+      user.activeOrgId,
       this.cfg.get('MAX_UPLOAD_BYTES', { infer: true }),
     );
   }
@@ -117,7 +120,8 @@ export class DocumentsController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<DocumentResponse> {
     if (!user) throw new Error('User required');
-    return this.service.createLink(dto, user.sub);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.createLink(dto, user.sub, user.activeOrgId);
   }
 
   @Get(':id')

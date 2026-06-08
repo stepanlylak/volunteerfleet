@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -83,7 +84,8 @@ export class VehiclesController {
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<VehicleResponse> {
     if (!user) throw new Error('User required');
-    return this.service.create(dto, user.sub);
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.service.create(dto, user.sub, user.activeOrgId);
   }
 
   @Get(':id')

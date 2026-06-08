@@ -1,10 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  ConflictException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { and, asc, desc, eq, ilike, isNull, not, or, SQL, sql } from 'drizzle-orm';
 import type {
   VehicleCreate,
@@ -128,13 +122,18 @@ export class VehiclesService {
     return this.toResponse(row);
   }
 
-  async create(input: VehicleCreate, userId: string): Promise<VehicleResponse> {
+  async create(
+    input: VehicleCreate,
+    userId: string,
+    organizationId: string,
+  ): Promise<VehicleResponse> {
     const result = await this.db.transaction(async (tx) => {
       // Insert vehicle
       const inserted = await tx
         .insert(vehicles)
         .values({
           ...input,
+          organizationId,
           createdBy: userId,
           updatedBy: userId,
         })
@@ -145,6 +144,7 @@ export class VehiclesService {
 
       // Create status history entry with null oldStatusId
       await tx.insert(vehicleStatusHistory).values({
+        organizationId: vehicle.organizationId,
         vehicleId: vehicle.id,
         oldStatusId: null,
         newStatusId: vehicle.statusId,
@@ -172,24 +172,6 @@ export class VehiclesService {
     const newStatusId = input.statusId ?? oldStatusId;
     const statusChanged = input.statusId !== undefined && input.statusId !== oldStatusId;
 
-    // Check publicSlug uniqueness if provided
-    if (
-      input.publicSlug !== undefined &&
-      input.publicSlug !== null &&
-      input.publicSlug !== vehicle.publicSlug
-    ) {
-      const existing = await this.db.query.vehicles.findFirst({
-        where: and(
-          eq(vehicles.publicSlug, input.publicSlug),
-          not(eq(vehicles.id, id)),
-          isNull(vehicles.deletedAt),
-        ),
-      });
-      if (existing) {
-        throw new ConflictException('public_slug already in use');
-      }
-    }
-
     // Build update values with proper type conversion
     const updateValues: Record<string, unknown> = {
       updatedBy: userId,
@@ -207,7 +189,6 @@ export class VehiclesService {
     if (input.statusId !== undefined) updateValues.statusId = input.statusId;
     if (input.description !== undefined) updateValues.description = input.description;
     if (input.isPublic !== undefined) updateValues.isPublic = input.isPublic;
-    if (input.publicSlug !== undefined) updateValues.publicSlug = input.publicSlug;
     if (input.publicSummary !== undefined) updateValues.publicSummary = input.publicSummary;
     if (input.publicCollectedAmountUah !== undefined) {
       updateValues.publicCollectedAmountUah = input.publicCollectedAmountUah?.toString() ?? null;
@@ -230,6 +211,7 @@ export class VehiclesService {
       // Create status history if status changed
       if (statusChanged) {
         await tx.insert(vehicleStatusHistory).values({
+          organizationId: updatedVehicle.organizationId,
           vehicleId: id,
           oldStatusId,
           newStatusId,
@@ -395,7 +377,7 @@ export class VehiclesService {
         : undefined,
       description: row.description,
       isPublic: row.isPublic,
-      publicSlug: row.publicSlug,
+      publicSlug: null,
       publicSummary: row.publicSummary,
       publicCollectedAmountUah: row.publicCollectedAmountUah
         ? Number(row.publicCollectedAmountUah)

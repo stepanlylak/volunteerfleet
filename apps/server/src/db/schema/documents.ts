@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { bigint, check, index, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { documentKindEnum } from './enums.js';
 import { expenses } from './expenses.js';
+import { organizations } from './organizations.js';
 import { users } from './users.js';
 import { vehicles } from './vehicles.js';
 
@@ -11,6 +12,9 @@ export const documents = pgTable(
     id: uuid('id')
       .primaryKey()
       .default(sql`gen_random_uuid()`),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
     name: varchar('name', { length: 255 }).notNull(),
     kind: documentKindEnum('kind').notNull(),
     fileKey: varchar('file_key', { length: 512 }),
@@ -48,6 +52,7 @@ export const documents = pgTable(
       'documents_attached_to_something',
       sql`${table.vehicleId} IS NOT NULL OR ${table.expenseId} IS NOT NULL`,
     ),
+    organizationIdx: index('documents_organization_id_idx').on(table.organizationId),
     vehicleIdx: index('documents_vehicle_id_idx').on(table.vehicleId),
     expenseIdx: index('documents_expense_id_idx').on(table.expenseId),
   }),

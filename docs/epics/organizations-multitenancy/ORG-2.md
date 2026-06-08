@@ -3,10 +3,10 @@ id: ORG-2
 epic: organizations-multitenancy
 phase: 0
 type: feat
-status: ready
+status: done
 depends_on: [ORG-1]
 parallelizable: true
-branch:
+branch: feat/org-2-org-4-tenant-roles
 pr:
 ---
 
