@@ -11,6 +11,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { fundingSourceTypeEnum, vehicleStatusKindEnum } from './enums.js';
+import { organizations } from './organizations.js';
 
 export const vehicleStatuses = pgTable(
   'vehicle_statuses',
@@ -57,6 +58,9 @@ export const fundingSources = pgTable('funding_sources', {
   name: varchar('name', { length: 128 }).notNull().unique(),
   type: fundingSourceTypeEnum('type').notNull(),
   description: text('description'),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()

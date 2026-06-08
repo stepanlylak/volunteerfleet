@@ -56,6 +56,7 @@ function toResponse(row: typeof fundingSources.$inferSelect): FundingSource {
     name: row.name,
     type: row.type,
     description: row.description,
+    organizationId: row.organizationId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

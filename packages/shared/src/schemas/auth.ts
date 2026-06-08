@@ -6,6 +6,7 @@ export const roleSchema = z.enum(ROLES);
 
 export const orgMembershipSchema = z.object({
   organizationId: uuidSchema,
+  name: nonEmptyString,
   role: z.enum(ORG_ROLES),
 });
 export type OrgMembership = z.infer<typeof orgMembershipSchema>;

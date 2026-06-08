@@ -366,6 +366,7 @@ export class ExpensesService {
         name: row.fundingSource?.name ?? '',
         type: row.fundingSource?.type ?? 'other',
         description: row.fundingSource?.description ?? null,
+        organizationId: row.fundingSource?.organizationId ?? '',
         createdAt: row.fundingSource?.createdAt.toISOString() ?? '',
         updatedAt: row.fundingSource?.updatedAt.toISOString() ?? '',
       },

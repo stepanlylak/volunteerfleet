@@ -57,8 +57,17 @@ describe('FundingSourcesService', () => {
       returning: vi.fn().mockResolvedValue([makeRow({ name: 'Donor A', type: 'donor' })]),
     });
     db.insert.mockReturnValue({ values: valuesMock });
-    const result = await svc.create({ name: 'Donor A', type: 'donor' });
-    expect(valuesMock).toHaveBeenCalledWith({ name: 'Donor A', type: 'donor', description: null });
+    const result = await svc.create({
+      name: 'Donor A',
+      type: 'donor',
+      organizationId: '11111111-1111-1111-1111-111111111111',
+    });
+    expect(valuesMock).toHaveBeenCalledWith({
+      name: 'Donor A',
+      type: 'donor',
+      organizationId: '11111111-1111-1111-1111-111111111111',
+      description: null,
+    });
     expect(result.name).toBe('Donor A');
   });
 

@@ -1,14 +1,5 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
-import {
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import type {
   AddMemberByEmail,
   JwtPayload,
   OrganizationCreate,
@@ -38,7 +29,7 @@ export class OrganizationsController {
     @Body() input: OrganizationCreate,
     @CurrentUser() user: JwtPayload,
   ): Promise<OrganizationResponse> {
-    return this.organizationsService.create(input, user.userId);
+    return this.organizationsService.create(input, user.sub);
   }
 
   @Get(':id')

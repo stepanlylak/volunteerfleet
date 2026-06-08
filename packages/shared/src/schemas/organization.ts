@@ -37,6 +37,11 @@ export const organizationMemberResponseSchema = z.object({
   role: orgRoleSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
+  user: z.object({
+    id: uuidSchema,
+    email: z.string().email(),
+    fullName: z.string().nullable(),
+  }),
 });
 export type OrganizationMemberResponse = z.infer<typeof organizationMemberResponseSchema>;
 

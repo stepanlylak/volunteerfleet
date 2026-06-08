@@ -14,7 +14,7 @@ import type {
 } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
-import { organizationMembers, users } from '../../db/schema/index.js';
+import { organizationMembers, organizations, users } from '../../db/schema/index.js';
 
 export interface UserRecord {
   id: string;
@@ -158,9 +158,11 @@ export class UsersService {
     return this.db
       .select({
         organizationId: organizationMembers.organizationId,
+        name: organizations.name,
         role: organizationMembers.role,
       })
       .from(organizationMembers)
+      .innerJoin(organizations, eq(organizationMembers.organizationId, organizations.id))
       .where(eq(organizationMembers.userId, userId));
   }
 

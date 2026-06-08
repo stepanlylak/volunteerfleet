@@ -1,14 +1,5 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
-import {
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import type {
   AddMemberByEmail,
   JwtPayload,
   OrganizationMemberResponse,
@@ -45,17 +36,12 @@ export class MyOrganizationController {
   }
 
   @Get('members')
-  async listMembers(
-    @CurrentUser() user: JwtPayload,
-  ): Promise<OrganizationMemberResponse[]> {
+  async listMembers(@CurrentUser() user: JwtPayload): Promise<OrganizationMemberResponse[]> {
     return this.organizationsService.listMembers(user.activeOrgId!);
   }
 
   @Post('members')
-  async addMember(
-    @CurrentUser() user: JwtPayload,
-    @Body() input: AddMemberByEmail,
-  ): Promise<void> {
+  async addMember(@CurrentUser() user: JwtPayload, @Body() input: AddMemberByEmail): Promise<void> {
     return this.organizationsService.addMember(user.activeOrgId!, input);
   }
 
@@ -65,11 +51,7 @@ export class MyOrganizationController {
     @Param('userId') userId: string,
     @Body() input: OrganizationMemberUpdate,
   ): Promise<void> {
-    return this.organizationsService.updateMemberRole(
-      user.activeOrgId!,
-      userId,
-      input.role,
-    );
+    return this.organizationsService.updateMemberRole(user.activeOrgId!, userId, input.role);
   }
 
   @Delete('members/:userId')
