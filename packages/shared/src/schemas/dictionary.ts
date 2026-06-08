@@ -8,9 +8,7 @@ export const VEHICLE_STATUS_KINDS = ['in_work', 'final', 'other'] as const;
 export type VehicleStatusKind = (typeof VEHICLE_STATUS_KINDS)[number];
 
 const sortOrderSchema = z.number().int().min(0).max(32767);
-const colorHexSchema = z
-  .string()
-  .regex(/^#[0-9A-Fa-f]{6}$/, 'Колір має бути у форматі #RRGGBB');
+const colorHexSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Колір має бути у форматі #RRGGBB');
 
 // vehicle_statuses
 export const vehicleStatusCreateSchema = z.object({
@@ -63,6 +61,7 @@ export const fundingSourceCreateSchema = z.object({
   name: nonEmptyString.max(128),
   type: fundingSourceTypeSchema,
   description: z.string().trim().max(2000).optional().nullable(),
+  organizationId: uuidSchema,
 });
 export type FundingSourceCreate = z.infer<typeof fundingSourceCreateSchema>;
 
@@ -74,6 +73,7 @@ export const fundingSourceSchema = z.object({
   name: z.string(),
   type: fundingSourceTypeSchema,
   description: z.string().nullable(),
+  organizationId: uuidSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
 });

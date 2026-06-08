@@ -161,7 +161,7 @@ export function AppLayout() {
                 menu={{
                   items: memberships.map((m) => ({
                     key: m.organizationId,
-                    label: m.organizationId, // TODO: Назва організації буде в наступних тікетах або вже є в моделі?
+                    label: m.name,
                     disabled: m.organizationId === user?.activeOrgId,
                     onClick: () => handleSwitchOrg(m.organizationId),
                   })),

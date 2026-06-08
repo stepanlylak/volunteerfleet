@@ -38,6 +38,7 @@ interface FundingSourceSeed {
   name: string;
   type: 'donor' | 'fundraiser' | 'initiative' | 'other';
   description: string | null;
+  organizationId: string;
 }
 
 const VEHICLE_STATUSES: VehicleStatusSeed[] = [
@@ -99,6 +100,7 @@ const FUNDING_SOURCES: FundingSourceSeed[] = [
     name: 'Загальний збір',
     type: 'fundraiser',
     description: 'Стандартний загальний волонтерський збір.',
+    organizationId: SEED_ORG_IDS.primary,
   },
 ];
 

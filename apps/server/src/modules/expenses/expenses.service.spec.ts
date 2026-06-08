@@ -35,6 +35,7 @@ function makeResponse(overrides: Partial<ExpenseResponse> = {}): ExpenseResponse
       name: 'Фонд',
       type: 'fundraiser',
       description: null,
+      organizationId: '11111111-1111-1111-1111-111111111111',
       createdAt: '2026-05-21T10:00:00.000Z',
       updatedAt: '2026-05-21T10:00:00.000Z',
     },

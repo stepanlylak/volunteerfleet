@@ -5,8 +5,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, desc, eq, ilike, isNull, or, sql, SQL } from 'drizzle-orm';
-import {
+import { and, desc, eq, ilike, isNull, sql, SQL } from 'drizzle-orm';
+import type {
   AddMemberByEmail,
   OrganizationCreate,
   OrganizationListQuery,
@@ -16,7 +16,7 @@ import {
   OrganizationUpdate,
   OrganizationWithMembersResponse,
 } from '@volunteerfleet/shared';
-import { Database } from '../../db/client.js';
+import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
 import { organizationMembers, organizations, users } from '../../db/schema/index.js';
 import { UsersService } from '../users/users.service.js';
@@ -80,8 +80,8 @@ export class OrganizationsService {
       const row = rows[0];
       if (!row) throw new Error('Insert failed');
       return toResponse(row);
-    } catch (e: any) {
-      if (e.code === '23505') {
+    } catch (e: unknown) {
+      if (e instanceof Error && 'code' in e && e.code === '23505') {
         throw new ConflictException('ORGANIZATION_ALREADY_EXISTS');
       }
       throw e;
@@ -119,6 +119,7 @@ export class OrganizationsService {
 
     return {
       ...toResponse(org),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       members: (org as any).members.map(toMemberResponse),
     };
   }
@@ -146,15 +147,19 @@ export class OrganizationsService {
         userId: user.id,
         role: input.role,
       });
-    } catch (e: any) {
-      if (e.code === '23505') {
+    } catch (e: unknown) {
+      if (e instanceof Error && 'code' in e && e.code === '23505') {
         throw new ConflictException('MEMBER_ALREADY_EXISTS');
       }
       throw e;
     }
   }
 
-  async updateMemberRole(orgId: string, userId: string, role: any) {
+  async updateMemberRole(
+    orgId: string,
+    userId: string,
+    role: 'coordinator' | 'volunteer' | 'viewer',
+  ) {
     if (role !== 'coordinator') {
       await this.ensureNotLastCoordinator(orgId, userId);
     }
@@ -162,7 +167,9 @@ export class OrganizationsService {
     const rows = await this.db
       .update(organizationMembers)
       .set({ role, updatedAt: new Date() })
-      .where(and(eq(organizationMembers.organizationId, orgId), eq(organizationMembers.userId, userId)))
+      .where(
+        and(eq(organizationMembers.organizationId, orgId), eq(organizationMembers.userId, userId)),
+      )
       .returning();
 
     if (rows.length === 0) {
@@ -175,7 +182,9 @@ export class OrganizationsService {
 
     const result = await this.db
       .delete(organizationMembers)
-      .where(and(eq(organizationMembers.organizationId, orgId), eq(organizationMembers.userId, userId)))
+      .where(
+        and(eq(organizationMembers.organizationId, orgId), eq(organizationMembers.userId, userId)),
+      )
       .returning();
 
     if (result.length === 0) {
@@ -197,7 +206,12 @@ export class OrganizationsService {
     const coordinatorsCount = await this.db
       .select({ count: sql<number>`count(*)::int` })
       .from(organizationMembers)
-      .where(and(eq(organizationMembers.organizationId, orgId), eq(organizationMembers.role, 'coordinator')));
+      .where(
+        and(
+          eq(organizationMembers.organizationId, orgId),
+          eq(organizationMembers.role, 'coordinator'),
+        ),
+      );
 
     if ((coordinatorsCount[0]?.count ?? 0) <= 1) {
       throw new BadRequestException('CANNOT_REMOVE_LAST_COORDINATOR');
@@ -205,7 +219,7 @@ export class OrganizationsService {
   }
 }
 
-function toResponse(row: any): OrganizationResponse {
+function toResponse(row: typeof organizations.$inferSelect): OrganizationResponse {
   return {
     id: row.id,
     name: row.name,
@@ -218,7 +232,10 @@ function toResponse(row: any): OrganizationResponse {
   };
 }
 
-function toMemberResponse(m: any): OrganizationMemberResponse {
+function toMemberResponse(
+  m: typeof organizationMembers.$inferSelect & { user: typeof users.$inferSelect | null },
+): OrganizationMemberResponse {
+  if (!m.user) throw new Error('User is null');
   return {
     id: m.id,
     organizationId: m.organizationId,
