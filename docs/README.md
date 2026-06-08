@@ -10,21 +10,22 @@
 
 ## Структура
 
-| Файл                                                   | Про що                                                                                       |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| [overview.md](overview.md)                             | Огляд системи: домен, ролі, сценарії, архітектурний стиль, компонентна модель, потоки даних. |
-| [architecture-decisions.md](architecture-decisions.md) | **Журнал архітектурних рішень (ADR)** — головне джерело відповідей на питання «чому саме так». |
-| [tech-stack.md](tech-stack.md)                         | Повний технологічний стек із версіями та обґрунтуванням нестандартних виборів.                |
-| [repository.md](repository.md)                         | Структура monorepo, pnpm workspaces, модульна система (ESM/SWC), TS-конфіги.                  |
+| Файл                                                   | Про що                                                                                           |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| [overview.md](overview.md)                             | Огляд системи: домен, ролі, сценарії, архітектурний стиль, компонентна модель, потоки даних.     |
+| [architecture-decisions.md](architecture-decisions.md) | **Журнал архітектурних рішень (ADR)** — головне джерело відповідей на питання «чому саме так».   |
+| [tech-stack.md](tech-stack.md)                         | Повний технологічний стек із версіями та обґрунтуванням нестандартних виборів.                   |
+| [repository.md](repository.md)                         | Структура monorepo, pnpm workspaces, модульна система (ESM/SWC), TS-конфіги.                     |
 | [database.md](database.md)                             | PostgreSQL + Drizzle: повна схема, soft delete, ON DELETE-політики, міграції, seed, ER-діаграма. |
-| [api.md](api.md)                                       | REST API: конвенції, zod-валідація, формат помилок, пагінація, перелік ендпоінтів.            |
-| [auth-and-security.md](auth-and-security.md)           | Автентифікація (JWT access + refresh), RBAC, cookie-auth, безпекові механізми.               |
-| [files.md](files.md)                                   | Сховище файлів (MinIO/S3): документи (upload/link), фото авто, presigned-завантаження.        |
-| [currency.md](currency.md)                             | Мультивалюта: базова UAH, помісячні курси, ExchangeRatesService, агрегації у звітах.          |
-| [frontend.md](frontend.md)                             | SPA-клієнт: маршрутизація, стан, форми, друк звітів, темізація.                               |
-| [deployment.md](deployment.md)                         | Запуск і середовище: docker-compose, ENV, порти, production-нотатки.                          |
-| [testing.md](testing.md)                               | Стратегія тестування (Vitest) і CI.                                                          |
-| [contributing.md](contributing.md)                     | Git-воркфлоу, конвенції комітів, процес PR.                                                   |
+| [api.md](api.md)                                       | REST API: конвенції, zod-валідація, формат помилок, пагінація, перелік ендпоінтів.               |
+| [auth-and-security.md](auth-and-security.md)           | Автентифікація (JWT access + refresh), RBAC, cookie-auth, безпекові механізми.                   |
+| [files.md](files.md)                                   | Сховище файлів (MinIO/S3): документи (upload/link), фото авто, presigned-завантаження.           |
+| [currency.md](currency.md)                             | Мультивалюта: базова UAH, помісячні курси, ExchangeRatesService, агрегації у звітах.             |
+| [frontend.md](frontend.md)                             | SPA-клієнт: маршрутизація, стан, форми, друк звітів, темізація.                                  |
+| [deployment.md](deployment.md)                         | Запуск і середовище: docker-compose, ENV, порти, production-нотатки.                             |
+| [testing.md](testing.md)                               | Стратегія тестування (Vitest) і CI.                                                              |
+| [contributing.md](contributing.md)                     | Git-воркфлоу, конвенції комітів, процес PR.                                                      |
+| [agent-workflow.md](agent-workflow.md)                 | Процес роботи з тікетами через AI-агентів: статуси, ролі, життєвий цикл тікета.                  |
 
 ## Шляхи читання
 
