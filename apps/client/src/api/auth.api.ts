@@ -3,6 +3,7 @@ import type {
   LoginRequest,
   LoginResponse,
   RefreshResponse,
+  SwitchOrgRequest,
 } from '@volunteerfleet/shared';
 import { http } from './client';
 
@@ -24,5 +25,9 @@ export const authApi = {
   async me(): Promise<AuthUser> {
     const res = await http.get<AuthUser>('/auth/me');
     return res.data;
+  },
+
+  async switchOrg(data: SwitchOrgRequest): Promise<void> {
+    await http.post('/auth/switch-org', data);
   },
 };

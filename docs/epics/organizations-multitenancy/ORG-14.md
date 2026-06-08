@@ -3,10 +3,10 @@ id: ORG-14
 epic: organizations-multitenancy
 phase: 4
 type: feat
-status: ready
+status: done
 depends_on: [ORG-5]
 parallelizable: false
-branch:
+branch: feat/org-14-auth-store-org-switcher
 pr:
 ---
 

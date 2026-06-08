@@ -34,3 +34,8 @@ export const useAuth = create<AuthState>((set) => ({
     set({ user: null, hasSessionHint: false });
   },
 }));
+
+export const useUserRole = () => useAuth((state) => state.user?.userRole);
+export const useActiveOrgId = () => useAuth((state) => state.user?.activeOrgId);
+export const useOrgRole = () => useAuth((state) => state.user?.orgRole);
+export const useMemberships = () => useAuth((state) => state.user?.memberships ?? []);

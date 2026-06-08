@@ -1,15 +1,18 @@
 import {
   CarOutlined,
   DollarOutlined,
+  DownOutlined,
   LogoutOutlined,
+  ShopOutlined,
   TeamOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
-import { Button, Dropdown, Layout, Menu, Space, Typography } from 'antd';
+import { Button, Dropdown, Layout, Menu, Space, Typography, message } from 'antd';
 import { useLocation, useNavigate, Link, Outlet } from 'react-router-dom';
-import { useAuth } from '@/stores/auth.store.ts';
+import { useAuth, useMemberships } from '@/stores/auth.store.ts';
 import { authApi } from '@/api/auth.api.ts';
 import { CSSProperties } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 const { Header, Sider, Content } = Layout;
 
@@ -25,9 +28,12 @@ const siderStyle: CSSProperties = {
 
 export function AppLayout() {
   const user = useAuth((s) => s.user);
+  const memberships = useMemberships();
+  const setAuth = useAuth((s) => s.setAuth);
   const clearAuth = useAuth((s) => s.clear);
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const handleLogout = async () => {
     try {
@@ -35,6 +41,18 @@ export function AppLayout() {
     } finally {
       clearAuth();
       navigate('/login');
+    }
+  };
+
+  const handleSwitchOrg = async (organizationId: string) => {
+    try {
+      await authApi.switchOrg({ organizationId });
+      const updatedUser = await authApi.me();
+      setAuth({ user: updatedUser });
+      await queryClient.invalidateQueries();
+      message.success('Організацію змінено');
+    } catch (err) {
+      message.error('Не вдалося змінити організацію');
     }
   };
 
@@ -123,23 +141,45 @@ export function AppLayout() {
             height: '100%',
           }}
         >
-          <Space>
-            <Typography.Text>{user?.fullName}</Typography.Text>
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: 'logout',
-                    icon: <LogoutOutlined />,
-                    label: 'Вийти',
-                    onClick: handleLogout,
-                  },
-                ],
-              }}
-              placement="bottomRight"
-            >
-              <Button shape="circle" icon={<TeamOutlined />} />
-            </Dropdown>
+          <Space size="large">
+            {memberships.length > 0 && (
+              <Dropdown
+                menu={{
+                  items: memberships.map((m) => ({
+                    key: m.organizationId,
+                    label: m.organizationId, // TODO: Назва організації буде в наступних тікетах або вже є в моделі?
+                    disabled: m.organizationId === user?.activeOrgId,
+                    onClick: () => handleSwitchOrg(m.organizationId),
+                  })),
+                }}
+              >
+                <Button type="text">
+                  <Space>
+                    <ShopOutlined />
+                    Організація
+                    <DownOutlined />
+                  </Space>
+                </Button>
+              </Dropdown>
+            )}
+            <Space>
+              <Typography.Text>{user?.fullName}</Typography.Text>
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'logout',
+                      icon: <LogoutOutlined />,
+                      label: 'Вийти',
+                      onClick: handleLogout,
+                    },
+                  ],
+                }}
+                placement="bottomRight"
+              >
+                <Button shape="circle" icon={<TeamOutlined />} />
+              </Dropdown>
+            </Space>
           </Space>
         </div>
       </Header>
