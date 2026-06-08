@@ -37,7 +37,11 @@ function makeUser(overrides: Partial<UserRecord> = {}): UserRecord {
 }
 
 describe('AuthService', () => {
-  let users: { findByEmail: ReturnType<typeof vi.fn>; findById: ReturnType<typeof vi.fn> };
+  let users: {
+    findByEmail: ReturnType<typeof vi.fn>;
+    findById: ReturnType<typeof vi.fn>;
+    getUserMemberships: ReturnType<typeof vi.fn>;
+  };
   let jwt: JwtService;
   let svc: AuthService;
   let passwordHash: string;
@@ -47,6 +51,7 @@ describe('AuthService', () => {
     users = {
       findByEmail: vi.fn(),
       findById: vi.fn(),
+      getUserMemberships: vi.fn().mockResolvedValue([]),
     };
     jwt = new JwtService({});
     svc = new AuthService(users as unknown as UsersService, jwt, makeCfg());

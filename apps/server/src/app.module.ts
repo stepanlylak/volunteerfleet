@@ -12,6 +12,7 @@ import { ExpensesModule } from './modules/expenses/expenses.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { PublicModule } from './modules/public/public.module.js';
 import { UsersModule } from './modules/users/users.module.js';
+import { TenantModule } from './common/tenant/tenant.module.js';
 import { VehiclesModule } from './modules/vehicles/vehicles.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
@@ -34,6 +35,7 @@ import { AppController } from './app.controller.js';
     DocumentsModule,
     ReportsModule,
     PublicModule,
+    TenantModule,
   ],
   controllers: [AppController],
   providers: [
