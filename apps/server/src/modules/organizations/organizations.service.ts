@@ -11,6 +11,7 @@ import {
   OrganizationCreate,
   OrganizationListQuery,
   OrganizationListResponse,
+  OrganizationMemberResponse,
   OrganizationResponse,
   OrganizationUpdate,
   OrganizationWithMembersResponse,
@@ -118,20 +119,19 @@ export class OrganizationsService {
 
     return {
       ...toResponse(org),
-      members: (org as any).members.map((m: any) => ({
-        id: m.id,
-        organizationId: m.organizationId,
-        userId: m.userId,
-        role: m.role,
-        createdAt: m.createdAt.toISOString(),
-        updatedAt: m.updatedAt.toISOString(),
-        user: {
-          id: m.user.id,
-          email: m.user.email,
-          fullName: m.user.fullName,
-        },
-      })),
+      members: (org as any).members.map(toMemberResponse),
     };
+  }
+
+  async listMembers(orgId: string): Promise<OrganizationMemberResponse[]> {
+    const members = await this.db.query.organizationMembers.findMany({
+      where: eq(organizationMembers.organizationId, orgId),
+      with: {
+        user: true,
+      },
+    });
+
+    return members.map(toMemberResponse);
   }
 
   async addMember(orgId: string, input: AddMemberByEmail) {
@@ -155,6 +155,10 @@ export class OrganizationsService {
   }
 
   async updateMemberRole(orgId: string, userId: string, role: any) {
+    if (role !== 'coordinator') {
+      await this.ensureNotLastCoordinator(orgId, userId);
+    }
+
     const rows = await this.db
       .update(organizationMembers)
       .set({ role, updatedAt: new Date() })
@@ -167,6 +171,8 @@ export class OrganizationsService {
   }
 
   async removeMember(orgId: string, userId: string) {
+    await this.ensureNotLastCoordinator(orgId, userId);
+
     const result = await this.db
       .delete(organizationMembers)
       .where(and(eq(organizationMembers.organizationId, orgId), eq(organizationMembers.userId, userId)))
@@ -174,6 +180,27 @@ export class OrganizationsService {
 
     if (result.length === 0) {
       throw new NotFoundException('MEMBER_NOT_FOUND');
+    }
+  }
+
+  private async ensureNotLastCoordinator(orgId: string, userId: string) {
+    const member = await this.db.query.organizationMembers.findFirst({
+      where: and(
+        eq(organizationMembers.organizationId, orgId),
+        eq(organizationMembers.userId, userId),
+        eq(organizationMembers.role, 'coordinator'),
+      ),
+    });
+
+    if (!member) return;
+
+    const coordinatorsCount = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(organizationMembers)
+      .where(and(eq(organizationMembers.organizationId, orgId), eq(organizationMembers.role, 'coordinator')));
+
+    if ((coordinatorsCount[0]?.count ?? 0) <= 1) {
+      throw new BadRequestException('CANNOT_REMOVE_LAST_COORDINATOR');
     }
   }
 }
@@ -188,5 +215,21 @@ function toResponse(row: any): OrganizationResponse {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     deletedAt: row.deletedAt?.toISOString() ?? null,
+  };
+}
+
+function toMemberResponse(m: any): OrganizationMemberResponse {
+  return {
+    id: m.id,
+    organizationId: m.organizationId,
+    userId: m.userId,
+    role: m.role,
+    createdAt: m.createdAt.toISOString(),
+    updatedAt: m.updatedAt.toISOString(),
+    user: {
+      id: m.user.id,
+      email: m.user.email,
+      fullName: m.user.fullName,
+    },
   };
 }

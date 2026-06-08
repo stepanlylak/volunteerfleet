@@ -3,10 +3,10 @@ id: ORG-13
 epic: organizations-multitenancy
 phase: 3
 type: feat
-status: ready
+status: done
 depends_on: [ORG-4, ORG-5]
 parallelizable: true
-branch:
+branch: feat/ORG-13-members-api
 pr:
 ---
 
