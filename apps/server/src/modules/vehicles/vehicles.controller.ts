@@ -177,7 +177,11 @@ export class VehiclesController {
   ): Promise<DocumentListResponse> {
     if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     await this.service.findById(params.id, user.activeOrgId);
-    return this.documentsService.list({ ...query, vehicleId: params.id }, user.orgRole);
+    return this.documentsService.list(
+      { ...query, vehicleId: params.id },
+      user.orgRole,
+      user.activeOrgId,
+    );
   }
 
   @Get(':id/photos')

@@ -8,6 +8,7 @@ import { DocumentsService } from './documents.service.js';
 
 const ownerId = '11111111-1111-1111-1111-111111111111';
 const otherUserId = '22222222-2222-2222-2222-222222222222';
+const orgId = '66666666-6666-6666-6666-666666666666';
 
 describe('DocumentsService', () => {
   let db: {
@@ -57,6 +58,7 @@ describe('DocumentsService', () => {
         vehicleId: '44846ea1-f39a-4574-9f4f-92b5ae208045',
       },
       'volunteer',
+      orgId,
     );
 
     expect(result.total).toBe(2);
@@ -83,6 +85,7 @@ describe('DocumentsService', () => {
           iat: 0,
           exp: 0,
         },
+        orgId,
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -99,14 +102,18 @@ describe('DocumentsService', () => {
     });
 
     await expect(
-      svc.softDelete('doc-id', {
-        sub: otherUserId,
-        email: 'coordinator@example.com',
-        userRole: 'user',
-        orgRole: 'coordinator',
-        iat: 0,
-        exp: 0,
-      }),
+      svc.softDelete(
+        'doc-id',
+        {
+          sub: otherUserId,
+          email: 'coordinator@example.com',
+          userRole: 'user',
+          orgRole: 'coordinator',
+          iat: 0,
+          exp: 0,
+        },
+        orgId,
+      ),
     ).resolves.toBeUndefined();
   });
 
