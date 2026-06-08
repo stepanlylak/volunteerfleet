@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Empty, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -9,6 +9,7 @@ import type { VehicleResponse } from '@volunteerfleet/shared';
 import { VehicleFormModal } from '../../modals/VehicleFormModal';
 import { useDictionaries } from '../../hooks/useDictionaries';
 import { useVehicles } from '../../hooks/useVehicles';
+import { useAuth, useOrgRole } from '../../stores/auth.store';
 
 export function VehiclesListPage() {
   const navigate = useNavigate();
@@ -18,6 +19,9 @@ export function VehiclesListPage() {
   const [statusId, setStatusId] = useState<string | undefined>();
   const [sort, setSort] = useState('createdAt:desc');
   const [modalOpen, setModalOpen] = useState(false);
+  const orgRole = useOrgRole();
+  const user = useAuth((s) => s.user);
+  const canMutate = orgRole !== null && orgRole !== 'viewer';
   const { data: dictionaries } = useDictionaries();
   const { data, isFetching } = useVehicles({
     page,
@@ -89,15 +93,31 @@ export function VehiclesListPage() {
     }
   };
 
+  if (user && !user.activeOrgId) {
+    return (
+      <Empty
+        description={
+          <Typography.Text>
+            {user.userRole === 'superuser'
+              ? 'Активна організація не вибрана. Оберіть організацію у верхньому меню.'
+              : 'Вас ще не додано до жодної організації. Зверніться до координатора.'}
+          </Typography.Text>
+        }
+      />
+    );
+  }
+
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
         <Typography.Title level={2} style={{ margin: 0 }}>
           Автомобілі
         </Typography.Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-          Додати авто
-        </Button>
+        {canMutate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+            Додати авто
+          </Button>
+        )}
       </Space>
       <Space wrap>
         <Input.Search
@@ -141,7 +161,7 @@ export function VehiclesListPage() {
           style: { cursor: 'pointer' },
         })}
       />
-      <VehicleFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      {canMutate && <VehicleFormModal open={modalOpen} onClose={() => setModalOpen(false)} />}
     </Space>
   );
 }

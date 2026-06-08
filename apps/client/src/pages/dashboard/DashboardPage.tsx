@@ -30,6 +30,7 @@ import { useExpensesList } from '../../hooks/useExpenses';
 import { VehicleFormModal } from '../../modals/VehicleFormModal';
 import { ExpenseFormModal } from '../../modals/ExpenseFormModal';
 import { DocumentFormModal } from '../../modals/DocumentFormModal';
+import { useAuth, useOrgRole } from '../../stores/auth.store';
 
 function formatUah(value: number | undefined): string {
   if (value === undefined) return '—';
@@ -90,6 +91,9 @@ export function DashboardPage() {
   const [vehicleOpen, setVehicleOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [docOpen, setDocOpen] = useState(false);
+  const orgRole = useOrgRole();
+  const user = useAuth((s) => s.user);
+  const canMutate = orgRole !== null && orgRole !== 'viewer';
 
   const {
     totalVehicles,
@@ -107,6 +111,30 @@ export function DashboardPage() {
 
   const nonFinalStatuses = (statusCounts ?? []).filter((s) => s.kind !== 'final');
   const finalStatuses = (statusCounts ?? []).filter((s) => s.kind === 'final');
+
+  if (user && user.userRole !== 'superuser' && !user.activeOrgId) {
+    return (
+      <Empty
+        description={
+          <Typography.Text>
+            Вас ще не додано до жодної організації. Зверніться до координатора.
+          </Typography.Text>
+        }
+      />
+    );
+  }
+
+  if (user && user.userRole === 'superuser' && !user.activeOrgId) {
+    return (
+      <Empty
+        description={
+          <Typography.Text>
+            Активна організація не вибрана. Оберіть організацію у верхньому меню.
+          </Typography.Text>
+        }
+      />
+    );
+  }
 
   return (
     <div>
@@ -128,17 +156,19 @@ export function DashboardPage() {
             Огляд активності ініціативи та ключові показники флоту.
           </Typography.Paragraph>
         </div>
-        <Space wrap>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setVehicleOpen(true)}>
-            Додати авто
-          </Button>
-          <Button icon={<DollarOutlined />} onClick={() => setExpenseOpen(true)}>
-            Додати витрату
-          </Button>
-          <Button icon={<FileTextOutlined />} onClick={() => setDocOpen(true)}>
-            Додати документ
-          </Button>
-        </Space>
+        {canMutate && (
+          <Space wrap>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setVehicleOpen(true)}>
+              Додати авто
+            </Button>
+            <Button icon={<DollarOutlined />} onClick={() => setExpenseOpen(true)}>
+              Додати витрату
+            </Button>
+            <Button icon={<FileTextOutlined />} onClick={() => setDocOpen(true)}>
+              Додати документ
+            </Button>
+          </Space>
+        )}
       </div>
       <div style={{ marginBottom: 24 }} />
 
@@ -224,10 +254,7 @@ export function DashboardPage() {
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         {/* Recent expenses */}
         <Col xs={24} lg={16}>
-          <Card
-            title="Останні витрати"
-            extra={<Link to="/expenses">Переглянути всі ↗</Link>}
-          >
+          <Card title="Останні витрати" extra={<Link to="/expenses">Переглянути всі ↗</Link>}>
             <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
               Останні 5 транзакцій за транспортними засобами
             </Typography.Text>
@@ -274,9 +301,7 @@ export function DashboardPage() {
                           <Typography.Text strong>{s.count}</Typography.Text>
                         </div>
                         <Progress
-                          percent={
-                            totalVehicles ? Math.round((s.count / totalVehicles) * 100) : 0
-                          }
+                          percent={totalVehicles ? Math.round((s.count / totalVehicles) * 100) : 0}
                           showInfo={false}
                           strokeColor={s.color}
                           size="small"
@@ -313,27 +338,31 @@ export function DashboardPage() {
         </Col>
       </Row>
 
-      <VehicleFormModal
-        open={vehicleOpen}
-        onClose={() => setVehicleOpen(false)}
-        onCreated={(vehicle) => {
-          notifApi.success({
-            message: 'Авто додано',
-            description: (
-              <Button
-                type="link"
-                style={{ padding: 0 }}
-                onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-              >
-                {vehicle.identifier} — відкрити деталі
-              </Button>
-            ),
-            duration: 6,
-          });
-        }}
-      />
-      <ExpenseFormModal open={expenseOpen} onClose={() => setExpenseOpen(false)} />
-      <DocumentFormModal open={docOpen} onClose={() => setDocOpen(false)} />
+      {canMutate && (
+        <>
+          <VehicleFormModal
+            open={vehicleOpen}
+            onClose={() => setVehicleOpen(false)}
+            onCreated={(vehicle) => {
+              notifApi.success({
+                message: 'Авто додано',
+                description: (
+                  <Button
+                    type="link"
+                    style={{ padding: 0 }}
+                    onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+                  >
+                    {vehicle.identifier} — відкрити деталі
+                  </Button>
+                ),
+                duration: 6,
+              });
+            }}
+          />
+          <ExpenseFormModal open={expenseOpen} onClose={() => setExpenseOpen(false)} />
+          <DocumentFormModal open={docOpen} onClose={() => setDocOpen(false)} />
+        </>
+      )}
     </div>
   );
 }

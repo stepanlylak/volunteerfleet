@@ -60,7 +60,7 @@ import {
 } from '../../hooks/useDocuments';
 import { useDeleteExpense, useVehicleExpenses } from '../../hooks/useExpenses';
 import { useDictionaries } from '../../hooks/useDictionaries';
-import { useAuth } from '../../stores/auth.store';
+import { useAuth, useOrgRole } from '../../stores/auth.store';
 import { documentsApi } from '../../api/documents.api';
 import { exchangeRatesApi } from '../../api/exchange-rates.api';
 import { vehiclesApi } from '../../api/vehicles.api';
@@ -127,9 +127,10 @@ export function VehicleCardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [form] = Form.useForm<PublicFormValues>();
+  const orgRole = useOrgRole();
   const role = useAuth((state) => state.user?.userRole);
-  // TODO(ORG-17): gate by orgRole once the active-org context lands on the client (ORG-14).
-  const isAdmin = role === 'superuser';
+  const isAdmin = role === 'superuser' || orgRole === 'coordinator';
+  const canMutate = orgRole !== null && orgRole !== 'viewer';
   const { data: vehicle, isLoading } = useVehicle(id, isAdmin);
   const { data: history } = useVehicleStatusHistory(id);
   const updateVehicle = useUpdateVehicle();
@@ -323,9 +324,11 @@ export function VehicleCardPage() {
       >
         Звіт по авто
       </Button>
-      <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
-        Редагувати
-      </Button>
+      {canMutate && (
+        <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
+          Редагувати
+        </Button>
+      )}
       {isAdmin && !vehicle.deletedAt ? (
         <Popconfirm
           title="Видалити авто?"
@@ -530,16 +533,18 @@ export function VehicleCardPage() {
                       </Space>
                     ) : null}
                   </Space>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      setEditingExpense(undefined);
-                      setExpenseOpen(true);
-                    }}
-                  >
-                    Додати витрату
-                  </Button>
+                  {canMutate && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        setEditingExpense(undefined);
+                        setExpenseOpen(true);
+                      }}
+                    >
+                      Додати витрату
+                    </Button>
+                  )}
                 </Space>
                 <Table<ExpenseResponse>
                   dataSource={expenses}
@@ -611,29 +616,33 @@ export function VehicleCardPage() {
                           );
                         },
                       },
-                      {
-                        title: '',
-                        key: 'actions',
-                        width: 80,
-                        render: (_, r) => (
-                          <Space>
-                            <Button
-                              size="small"
-                              icon={<EditOutlined />}
-                              onClick={() => {
-                                setEditingExpense(r);
-                                setExpenseOpen(true);
-                              }}
-                            />
-                            <Button
-                              size="small"
-                              danger
-                              icon={<DeleteOutlined />}
-                              onClick={() => void handleDeleteExpense(r)}
-                            />
-                          </Space>
-                        ),
-                      },
+                      ...(canMutate
+                        ? [
+                            {
+                              title: '',
+                              key: 'actions',
+                              width: 80,
+                              render: (_: unknown, r: ExpenseResponse) => (
+                                <Space>
+                                  <Button
+                                    size="small"
+                                    icon={<EditOutlined />}
+                                    onClick={() => {
+                                      setEditingExpense(r);
+                                      setExpenseOpen(true);
+                                    }}
+                                  />
+                                  <Button
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    onClick={() => void handleDeleteExpense(r)}
+                                  />
+                                </Space>
+                              ),
+                            } as ColumnsType<ExpenseResponse>[number],
+                          ]
+                        : []),
                     ] as ColumnsType<ExpenseResponse>
                   }
                 />
@@ -664,16 +673,18 @@ export function VehicleCardPage() {
                       </Tag>
                     ) : null}
                   </Space>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      setEditingDocument(undefined);
-                      setDocOpen(true);
-                    }}
-                  >
-                    Додати документ
-                  </Button>
+                  {canMutate && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        setEditingDocument(undefined);
+                        setDocOpen(true);
+                      }}
+                    >
+                      Додати документ
+                    </Button>
+                  )}
                 </Space>
                 <Table<DocumentResponse>
                   dataSource={filteredDocuments}
@@ -743,7 +754,7 @@ export function VehicleCardPage() {
                       {
                         title: '',
                         key: 'actions',
-                        width: 140,
+                        width: canMutate ? 140 : 60,
                         render: (_, r) => (
                           <Space>
                             {r.kind === 'upload' ? (
@@ -761,25 +772,29 @@ export function VehicleCardPage() {
                                 onClick={() => window.open(r.url ?? '#', '_blank')}
                               />
                             )}
-                            <Button
-                              size="small"
-                              icon={<EditOutlined />}
-                              onClick={() => {
-                                setEditingDocument(r);
-                                setDocOpen(true);
-                              }}
-                            />
-                            <Popconfirm
-                              title="Видалити документ?"
-                              okText="Так"
-                              cancelText="Ні"
-                              onConfirm={async () => {
-                                await deleteDocument.mutateAsync(r.id);
-                                void message.success('Документ видалено');
-                              }}
-                            >
-                              <Button size="small" danger icon={<DeleteOutlined />} />
-                            </Popconfirm>
+                            {canMutate && (
+                              <>
+                                <Button
+                                  size="small"
+                                  icon={<EditOutlined />}
+                                  onClick={() => {
+                                    setEditingDocument(r);
+                                    setDocOpen(true);
+                                  }}
+                                />
+                                <Popconfirm
+                                  title="Видалити документ?"
+                                  okText="Так"
+                                  cancelText="Ні"
+                                  onConfirm={async () => {
+                                    await deleteDocument.mutateAsync(r.id);
+                                    void message.success('Документ видалено');
+                                  }}
+                                >
+                                  <Button size="small" danger icon={<DeleteOutlined />} />
+                                </Popconfirm>
+                              </>
+                            )}
                           </Space>
                         ),
                       },
