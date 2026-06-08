@@ -223,7 +223,11 @@ export function VehicleCardPage() {
     Boolean(vehicle.publicSummary?.trim()) &&
     vehicle.publicCollectedAmountUah !== null &&
     vehicle.publicGoalAmountUah !== null;
-  const publicVehicleUrl = vehicle?.isPublic ? `/public/${vehicle.organizationId}/vehicles/${vehicle.id}` : null;
+  const userObj = useAuth((state) => state.user);
+  const publicVehicleUrl =
+    vehicle?.isPublic && userObj?.activeOrgId
+      ? `/public/${userObj.activeOrgId}/vehicles/${vehicle.id}`
+      : null;
 
   useEffect(() => {
     if (!vehicle) return;

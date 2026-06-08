@@ -17,6 +17,9 @@ import { VehicleCardPage } from './pages/vehicles/VehicleCardPage';
 import { VehicleReportPage } from './pages/VehicleReportPage';
 import { ExpensesListPage } from './pages/expenses/ExpensesListPage';
 import { VehiclesListPage } from './pages/vehicles/VehiclesListPage';
+import { OrganizationsPage } from './pages/admin/OrganizationsPage';
+import { OrganizationMembersPage } from './pages/admin/OrganizationMembersPage';
+import { MyOrganizationPage } from './pages/my-organization/MyOrganizationPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -51,8 +54,11 @@ export const router = createBrowserRouter([
         children: [
           { path: 'users', element: <UsersPage /> },
           { path: 'dictionaries', element: <DictionariesPage /> },
+          { path: 'organizations', element: <OrganizationsPage /> },
+          { path: 'organizations/:id/members', element: <OrganizationMembersPage /> },
         ],
       },
+      { path: 'my-organization', element: <MyOrganizationPage /> },
     ],
   },
   // Public pages for unauthenticated visitors — separate layout without sidebar

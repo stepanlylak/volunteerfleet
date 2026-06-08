@@ -3,6 +3,7 @@ import {
   DollarOutlined,
   DownOutlined,
   LogoutOutlined,
+  SettingOutlined,
   ShopOutlined,
   TeamOutlined,
   ToolOutlined,
@@ -51,7 +52,7 @@ export function AppLayout() {
       setAuth({ user: updatedUser });
       await queryClient.invalidateQueries();
       message.success('Організацію змінено');
-    } catch (err) {
+    } catch {
       message.error('Не вдалося змінити організацію');
     }
   };
@@ -102,10 +103,23 @@ export function AppLayout() {
                 label: <Link to="/admin/users">Користувачі</Link>,
               },
               {
+                key: '/admin/organizations',
+                label: <Link to="/admin/organizations">Організації</Link>,
+              },
+              {
                 key: '/admin/dictionaries',
                 label: <Link to="/admin/dictionaries">Довідники</Link>,
               },
             ],
+          },
+        ]
+      : []),
+    ...(user?.orgRole === 'coordinator'
+      ? [
+          {
+            key: '/my-organization',
+            icon: <SettingOutlined />,
+            label: <Link to="/my-organization">Налаштування організації</Link>,
           },
         ]
       : []),
