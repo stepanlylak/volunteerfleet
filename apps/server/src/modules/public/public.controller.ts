@@ -6,13 +6,15 @@ import type {
   FundingSourceReportQuery,
   IdParam,
   PublicFundingReportResponse,
-  PublicSlugParam,
+  PublicReportParams,
+  PublicVehicleParams,
   PublicVehicleResponse,
 } from '@volunteerfleet/shared';
 import {
   fundingSourceReportQuerySchema,
   idParamSchema,
-  publicSlugParamSchema,
+  publicReportParamsSchema,
+  publicVehicleParamsSchema,
 } from '@volunteerfleet/shared';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { PublicService } from './public.service.js';
@@ -23,22 +25,22 @@ import { PublicService } from './public.service.js';
 export class PublicController {
   constructor(private readonly service: PublicService) {}
 
-  @Get('vehicles/:slug')
+  @Get(':orgId/vehicles/:vehicleId')
   @Header('Access-Control-Allow-Origin', '*')
   vehicle(
-    @Param(new ZodValidationPipe(publicSlugParamSchema)) params: PublicSlugParam,
+    @Param(new ZodValidationPipe(publicVehicleParamsSchema)) params: PublicVehicleParams,
   ): Promise<PublicVehicleResponse> {
-    return this.service.getVehicleBySlug(params.slug);
+    return this.service.getVehicleById(params.orgId, params.vehicleId);
   }
 
-  @Get('reports/funding/:id')
+  @Get(':orgId/reports/funding/:id')
   @Header('Access-Control-Allow-Origin', '*')
   fundingReport(
-    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @Param(new ZodValidationPipe(publicReportParamsSchema)) params: PublicReportParams,
     @Query(new ZodValidationPipe(fundingSourceReportQuerySchema))
     query: FundingSourceReportQuery,
   ): Promise<PublicFundingReportResponse> {
-    return this.service.getFundingReport(params.id, query);
+    return this.service.getFundingReport(params.orgId, params.id, query);
   }
 
   @Get('vehicle-photos/:id/download')

@@ -8,15 +8,15 @@ import { publicApi } from '../../api/public.api';
 import { formatCurrency, formatDate } from '../../utils/format';
 
 export function PublicFundingReportPage() {
-  const { id } = useParams<{ id: string }>();
+  const { orgId, id } = useParams<{ orgId: string; id: string }>();
   const query = {
     dateFrom: dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
     dateTo: dayjs().format('YYYY-MM-DD'),
   };
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['public', 'funding-report', id, query],
-    queryFn: () => publicApi.getFundingReport(id!, query),
-    enabled: Boolean(id),
+    queryKey: ['public', 'funding-report', orgId, id, query],
+    queryFn: () => publicApi.getFundingReport(orgId!, id!, query),
+    enabled: Boolean(orgId && id),
     retry: false,
   });
 
@@ -51,7 +51,7 @@ export function PublicFundingReportPage() {
       key: 'vehicle',
       render: (_, row) =>
         row.vehicle ? (
-          <Link to={`/public/vehicles/${row.vehicle.id}`}>
+          <Link to={`/public/${orgId}/vehicles/${row.vehicle.id}`}>
             {row.vehicle.identifier} · {row.vehicle.brand} {row.vehicle.model}
           </Link>
         ) : (

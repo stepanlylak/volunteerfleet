@@ -16,11 +16,11 @@ import { publicApi } from '../../api/public.api';
 import { formatCurrency, formatDate } from '../../utils/format';
 
 export function PublicVehiclePage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { orgId, vehicleId } = useParams<{ orgId: string; vehicleId: string }>();
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['public', 'vehicle', slug],
-    queryFn: () => publicApi.getVehicle(slug!),
-    enabled: Boolean(slug),
+    queryKey: ['public', 'vehicle', orgId, vehicleId],
+    queryFn: () => publicApi.getVehicle(orgId!, vehicleId!),
+    enabled: Boolean(orgId && vehicleId),
     retry: false,
   });
 

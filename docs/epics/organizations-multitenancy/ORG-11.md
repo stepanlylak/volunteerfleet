@@ -3,10 +3,10 @@ id: ORG-11
 epic: organizations-multitenancy
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [ORG-6, ORG-10]
 parallelizable: false
-branch:
+branch: feat/ORG-11-public-pages
 pr:
 ---
 
