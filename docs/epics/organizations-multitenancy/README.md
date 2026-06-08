@@ -29,7 +29,7 @@
 | [ORG-5](ORG-5.md)   | JWT активної org + cookie-only + switch-org          |  1   | ORG-1, ORG-3, ORG-4 | done   |
 | [ORG-6](ORG-6.md)   | Контекст тенанта: orgScope + same-org валідація      |  1   | ORG-5               | done   |
 | [ORG-7](ORG-7.md)   | Скоуп vehicles (+ photos, status history)            |  2   | ORG-6               | ready  |
-| [ORG-8](ORG-8.md)   | Скоуп expenses + same-org валідація                  |  2   | ORG-6               | ready  |
+| [ORG-8](ORG-8.md)   | Скоуп expenses + same-org валідація                  |  2   | ORG-6               | done   |
 | [ORG-9](ORG-9.md)   | Скоуп documents + same-org валідація                 |  2   | ORG-6               | ready  |
 | [ORG-10](ORG-10.md) | Скоуп dashboard і reports                            |  2   | ORG-6               | ready  |
 | [ORG-11](ORG-11.md) | Публічні сторінки /public/:orgId/\*                  |  2   | ORG-6, ORG-10       | todo   |

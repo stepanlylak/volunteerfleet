@@ -161,7 +161,11 @@ export class VehiclesController {
   ): Promise<ExpenseListResponse> {
     if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     await this.service.findById(params.id, user.activeOrgId);
-    return this.expensesService.list({ ...query, vehicleId: params.id }, user.orgRole);
+    return this.expensesService.list(
+      { ...query, vehicleId: params.id },
+      user.orgRole,
+      user.activeOrgId,
+    );
   }
 
   @Get(':id/documents')
