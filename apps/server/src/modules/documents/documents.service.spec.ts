@@ -78,7 +78,7 @@ describe('DocumentsService', () => {
         {
           sub: otherUserId,
           email: 'v@example.com',
-          role: 'user',
+          userRole: 'user',
           orgRole: 'volunteer',
           iat: 0,
           exp: 0,
@@ -102,7 +102,7 @@ describe('DocumentsService', () => {
       svc.softDelete('doc-id', {
         sub: otherUserId,
         email: 'coordinator@example.com',
-        role: 'user',
+        userRole: 'user',
         orgRole: 'coordinator',
         iat: 0,
         exp: 0,

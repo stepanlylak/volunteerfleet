@@ -8,14 +8,6 @@ export const http = axios.create({
   withCredentials: true,
 });
 
-http.interceptors.request.use((config) => {
-  const token = useAuth.getState().accessToken;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
 http.interceptors.response.use(
   (res) => res,
   async (err: AxiosError) => {
@@ -25,10 +17,9 @@ http.interceptors.response.use(
     if (err.response?.status === 401 && !original._retry && !isRefreshEndpoint) {
       original._retry = true;
       try {
-        const { accessToken } = await authApi.refresh();
-        useAuth.getState().setToken(accessToken);
+        await authApi.refresh();
         const user = await authApi.me();
-        useAuth.getState().setAuth({ user, accessToken });
+        useAuth.getState().setAuth({ user });
         return http(original);
       } catch {
         useAuth.getState().clear();

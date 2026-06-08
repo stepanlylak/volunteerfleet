@@ -17,27 +17,20 @@ function writeAuthSessionHint(value: boolean): void {
 
 export type AuthState = {
   user: AuthUser | null;
-  accessToken: string | null;
   hasSessionHint: boolean;
-  setAuth: (data: { user: AuthUser; accessToken: string }) => void;
-  setToken: (accessToken: string) => void;
+  setAuth: (data: { user: AuthUser }) => void;
   clear: () => void;
 };
 
 export const useAuth = create<AuthState>((set) => ({
   user: null,
-  accessToken: null,
   hasSessionHint: readAuthSessionHint(),
-  setAuth: ({ user, accessToken }) => {
+  setAuth: ({ user }) => {
     writeAuthSessionHint(true);
-    set({ user, accessToken, hasSessionHint: true });
-  },
-  setToken: (accessToken) => {
-    writeAuthSessionHint(true);
-    set({ accessToken, hasSessionHint: true });
+    set({ user, hasSessionHint: true });
   },
   clear: () => {
     writeAuthSessionHint(false);
-    set({ user: null, accessToken: null, hasSessionHint: false });
+    set({ user: null, hasSessionHint: false });
   },
 }));

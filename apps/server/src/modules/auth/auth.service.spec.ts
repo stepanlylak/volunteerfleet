@@ -31,6 +31,7 @@ function makeUser(overrides: Partial<UserRecord> = {}): UserRecord {
     fullName: 'Admin',
     role: 'superuser',
     isActive: true,
+    lastActiveOrgId: null,
     ...overrides,
   };
 }
@@ -84,11 +85,11 @@ describe('AuthService', () => {
     it('returns access token and rotated refresh', async () => {
       users.findByEmail.mockResolvedValue(makeUser({ passwordHash }));
       const result = await svc.login({ email: 'admin@example.com', password: 'correct-horse' });
-      expect(result.response.accessToken).toBeTruthy();
+      expect(result.accessToken).toBeTruthy();
       expect(result.refreshToken).toBeTruthy();
-      const verified = jwt.verify(result.response.accessToken, { secret: ACCESS_SECRET });
+      const verified = jwt.verify(result.accessToken, { secret: ACCESS_SECRET });
       expect(verified.sub).toBe('00000000-0000-0000-0000-000000000001');
-      expect(verified.role).toBe('superuser');
+      expect(verified.userRole).toBe('superuser');
     });
   });
 
@@ -97,11 +98,11 @@ describe('AuthService', () => {
       const user = makeUser({ passwordHash });
       users.findById.mockResolvedValue(user);
       const refreshToken = jwt.sign(
-        { sub: user.id, email: user.email, role: user.role },
+        { sub: user.id, email: user.email, userRole: user.role },
         { secret: REFRESH_SECRET, expiresIn: '30d' },
       );
       const result = await svc.refresh(refreshToken);
-      expect(result.response.accessToken).toBeTruthy();
+      expect(result.accessToken).toBeTruthy();
       expect(result.refreshToken).toBeTruthy();
       expect(result.refreshToken).not.toBe(refreshToken);
     });
@@ -112,7 +113,7 @@ describe('AuthService', () => {
 
     it('throws on invalid signature', async () => {
       const bogus = jwt.sign(
-        { sub: 'x', email: 'x@x', role: 'superuser' },
+        { sub: 'x', email: 'x@x', userRole: 'superuser' },
         { secret: 'other-secret-aaaaaaaaaaaaaaaa' },
       );
       await expect(svc.refresh(bogus)).rejects.toBeInstanceOf(UnauthorizedException);
@@ -122,7 +123,7 @@ describe('AuthService', () => {
       const user = makeUser({ passwordHash, isActive: false });
       users.findById.mockResolvedValue(user);
       const refreshToken = jwt.sign(
-        { sub: user.id, email: user.email, role: user.role },
+        { sub: user.id, email: user.email, userRole: user.role },
         { secret: REFRESH_SECRET, expiresIn: '30d' },
       );
       await expect(svc.refresh(refreshToken)).rejects.toBeInstanceOf(UnauthorizedException);

@@ -72,7 +72,7 @@ export function AppLayout() {
       icon: <ToolOutlined />,
       label: <Link to="/reports">Звіти</Link>,
     },
-    ...(user?.role === 'superuser'
+    ...(user?.userRole === 'superuser'
       ? [
           {
             key: '/admin',

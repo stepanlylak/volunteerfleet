@@ -7,13 +7,6 @@ import type { JwtPayload } from '@volunteerfleet/shared';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 import type { Env } from '../../config/env.schema.js';
 
-function extractBearer(header: string | undefined): string | null {
-  if (!header) return null;
-  const [scheme, token] = header.split(' ');
-  if (scheme?.toLowerCase() !== 'bearer' || !token) return null;
-  return token;
-}
-
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
@@ -30,8 +23,7 @@ export class JwtAuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const req = ctx.switchToHttp().getRequest<Request>();
-    const cookieToken = (req.cookies as Record<string, string> | undefined)?.access_token;
-    const token = extractBearer(req.headers.authorization) ?? cookieToken ?? null;
+    const token = (req.cookies as Record<string, string> | undefined)?.access_token ?? null;
     if (!token) throw new UnauthorizedException('NO_TOKEN');
 
     try {

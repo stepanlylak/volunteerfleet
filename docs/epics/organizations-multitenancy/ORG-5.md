@@ -3,10 +3,10 @@ id: ORG-5
 epic: organizations-multitenancy
 phase: 1
 type: feat
-status: todo
+status: done
 depends_on: [ORG-1, ORG-3, ORG-4]
 parallelizable: false
-branch:
+branch: feat/org-5-jwt-active-org
 pr:
 ---
 

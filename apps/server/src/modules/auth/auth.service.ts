@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
@@ -10,11 +10,16 @@ import type {
   LoginResponse,
   RefreshResponse,
   Role,
+  OrgRole,
 } from '@volunteerfleet/shared';
 import type { Env } from '../../config/env.schema.js';
 import { UsersService, type UserRecord } from '../users/users.service.js';
 
-type IssueArgs = Pick<UserRecord, 'id' | 'email' | 'role'>;
+type IssueArgs = Pick<UserRecord, 'id' | 'email'> & {
+  userRole: Role;
+  activeOrgId: string | null;
+  orgRole: OrgRole | null;
+};
 
 @Injectable()
 export class AuthService {
@@ -34,22 +39,50 @@ export class AuthService {
     return user;
   }
 
-  async login(dto: LoginRequest): Promise<{ response: LoginResponse; refreshToken: string }> {
+  async login(
+    dto: LoginRequest,
+  ): Promise<{ response: LoginResponse; refreshToken: string; accessToken: string }> {
     const user = await this.validateUser(dto.email, dto.password);
-    const accessToken = this.signAccess(user);
-    const refreshToken = this.signRefresh(user);
+    const memberships = await this.users.getUserMemberships(user.id);
+
+    let activeOrgId = user.lastActiveOrgId;
+    let activeMembership = memberships.find((m) => m.organizationId === activeOrgId);
+
+    if (!activeMembership) {
+      activeMembership = memberships[0];
+      activeOrgId = activeMembership?.organizationId ?? null;
+      if (activeOrgId !== user.lastActiveOrgId) {
+        await this.users.setLastActiveOrg(user.id, activeOrgId);
+      }
+    }
+
+    const orgRole = activeMembership?.role ?? null;
+    const issueArgs: IssueArgs = {
+      id: user.id,
+      email: user.email,
+      userRole: user.role,
+      activeOrgId,
+      orgRole,
+    };
+
+    const accessToken = this.signAccess(issueArgs);
+    const refreshToken = this.signRefresh(issueArgs);
     const authUser: AuthUser = {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      role: user.role,
+      userRole: user.role,
+      activeOrgId,
+      orgRole,
+      memberships,
     };
-    return { response: { accessToken, user: authUser }, refreshToken };
+    return { response: { user: authUser }, refreshToken, accessToken };
   }
 
   async refresh(refreshToken: string | undefined): Promise<{
     response: RefreshResponse;
     refreshToken: string;
+    accessToken: string;
   }> {
     if (!refreshToken) throw new UnauthorizedException('NO_REFRESH_TOKEN');
     let payload: JwtPayload;
@@ -64,14 +97,71 @@ export class AuthService {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('USER_INACTIVE');
     }
-    const accessToken = this.signAccess(user);
-    const rotated = this.signRefresh(user);
-    return { response: { accessToken }, refreshToken: rotated };
+
+    const memberships = await this.users.getUserMemberships(user.id);
+    let activeOrgId = user.lastActiveOrgId;
+    let activeMembership = memberships.find((m) => m.organizationId === activeOrgId);
+
+    if (!activeMembership) {
+      activeMembership = memberships[0];
+      activeOrgId = activeMembership?.organizationId ?? null;
+      if (activeOrgId !== user.lastActiveOrgId) {
+        await this.users.setLastActiveOrg(user.id, activeOrgId);
+      }
+    }
+
+    const orgRole = activeMembership?.role ?? null;
+    const issueArgs: IssueArgs = {
+      id: user.id,
+      email: user.email,
+      userRole: user.role,
+      activeOrgId,
+      orgRole,
+    };
+
+    const accessToken = this.signAccess(issueArgs);
+    const rotated = this.signRefresh(issueArgs);
+    return { response: {}, refreshToken: rotated, accessToken };
+  }
+
+  async switchOrg(
+    userId: string,
+    organizationId: string,
+  ): Promise<{ response: RefreshResponse; refreshToken: string; accessToken: string }> {
+    const user = await this.users.findById(userId);
+    if (!user || !user.isActive) throw new UnauthorizedException('USER_INACTIVE');
+
+    const memberships = await this.users.getUserMemberships(user.id);
+    const activeMembership = memberships.find((m) => m.organizationId === organizationId);
+    if (!activeMembership) {
+      throw new ForbiddenException('NOT_A_MEMBER');
+    }
+
+    await this.users.setLastActiveOrg(user.id, organizationId);
+
+    const issueArgs: IssueArgs = {
+      id: user.id,
+      email: user.email,
+      userRole: user.role,
+      activeOrgId: organizationId,
+      orgRole: activeMembership.role,
+    };
+
+    const accessToken = this.signAccess(issueArgs);
+    const rotated = this.signRefresh(issueArgs);
+
+    return { response: {}, refreshToken: rotated, accessToken };
   }
 
   private signAccess(user: IssueArgs): string {
     return this.jwt.sign(
-      { sub: user.id, email: user.email, role: user.role as Role },
+      {
+        sub: user.id,
+        email: user.email,
+        userRole: user.userRole,
+        activeOrgId: user.activeOrgId,
+        orgRole: user.orgRole,
+      },
       {
         secret: this.cfg.get('JWT_ACCESS_SECRET', { infer: true }),
         expiresIn: this.cfg.get('JWT_ACCESS_TTL', { infer: true }),
@@ -81,7 +171,14 @@ export class AuthService {
 
   private signRefresh(user: IssueArgs): string {
     return this.jwt.sign(
-      { sub: user.id, email: user.email, role: user.role as Role, jti: randomUUID() },
+      {
+        sub: user.id,
+        email: user.email,
+        userRole: user.userRole,
+        activeOrgId: user.activeOrgId,
+        orgRole: user.orgRole,
+        jti: randomUUID(),
+      },
       {
         secret: this.cfg.get('JWT_REFRESH_SECRET', { infer: true }),
         expiresIn: this.cfg.get('JWT_REFRESH_TTL', { infer: true }),

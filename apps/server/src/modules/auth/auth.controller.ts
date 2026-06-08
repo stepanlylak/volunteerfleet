@@ -21,12 +21,15 @@ import {
   type RefreshResponse,
   type AuthUser,
   type JwtPayload,
+  switchOrgRequestSchema,
+  type SwitchOrgRequest,
 } from '@volunteerfleet/shared';
 import type { Env } from '../../config/env.schema.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
+import { UnauthorizedException } from '@nestjs/common';
 
 const REFRESH_COOKIE = 'refresh_token';
 const ACCESS_COOKIE = 'access_token';
@@ -56,9 +59,9 @@ export class AuthController {
     @Body(new ZodValidationPipe(loginRequestSchema)) dto: LoginRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<LoginResponse> {
-    const { response, refreshToken } = await this.auth.login(dto);
+    const { response, refreshToken, accessToken } = await this.auth.login(dto);
     res.cookie(REFRESH_COOKIE, refreshToken, this.cookieOptions());
-    res.cookie(ACCESS_COOKIE, response.accessToken, this.accessCookieOptions());
+    res.cookie(ACCESS_COOKIE, accessToken, this.accessCookieOptions());
     return response;
   }
 
@@ -71,9 +74,9 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<RefreshResponse> {
     const refreshToken = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
-    const { response, refreshToken: rotated } = await this.auth.refresh(refreshToken);
+    const { response, refreshToken: rotated, accessToken } = await this.auth.refresh(refreshToken);
     res.cookie(REFRESH_COOKIE, rotated, this.cookieOptions());
-    res.cookie(ACCESS_COOKIE, response.accessToken, this.accessCookieOptions());
+    res.cookie(ACCESS_COOKIE, accessToken, this.accessCookieOptions());
     return response;
   }
 
@@ -91,13 +94,36 @@ export class AuthController {
     if (!jwtUser) throw new NotFoundException('USER_NOT_FOUND');
     const user = await this.users.findById(jwtUser.sub);
     if (!user || !user.isActive) throw new NotFoundException('USER_NOT_FOUND');
+    const memberships = await this.users.getUserMemberships(user.id);
     const authUser: AuthUser = {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      role: user.role,
+      userRole: user.role,
+      activeOrgId: jwtUser.activeOrgId ?? null,
+      orgRole: jwtUser.orgRole ?? null,
+      memberships,
     };
     return authUser;
+  }
+
+  @Post('switch-org')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Switch active organization' })
+  async switchOrg(
+    @CurrentUser() jwtUser: JwtPayload | undefined,
+    @Body(new ZodValidationPipe(switchOrgRequestSchema)) dto: SwitchOrgRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<RefreshResponse> {
+    if (!jwtUser) throw new UnauthorizedException('NO_TOKEN');
+    const {
+      response,
+      refreshToken: rotated,
+      accessToken,
+    } = await this.auth.switchOrg(jwtUser.sub, dto.organizationId);
+    res.cookie(REFRESH_COOKIE, rotated, this.cookieOptions());
+    res.cookie(ACCESS_COOKIE, accessToken, this.accessCookieOptions());
+    return response;
   }
 
   private cookieOptions(maxAgeMs: number = REFRESH_COOKIE_MAX_AGE_MS): CookieOptions {

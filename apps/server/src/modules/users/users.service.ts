@@ -14,7 +14,7 @@ import type {
 } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
-import { users } from '../../db/schema/index.js';
+import { organizationMembers, users } from '../../db/schema/index.js';
 
 export interface UserRecord {
   id: string;
@@ -23,6 +23,7 @@ export interface UserRecord {
   fullName: string;
   role: Role;
   isActive: boolean;
+  lastActiveOrgId: string | null;
 }
 
 @Injectable()
@@ -128,6 +129,7 @@ export class UsersService {
         fullName: users.fullName,
         role: users.role,
         isActive: users.isActive,
+        lastActiveOrgId: users.lastActiveOrgId,
       })
       .from(users)
       .where(and(eq(users.email, normalized), isNull(users.deletedAt)))
@@ -144,11 +146,29 @@ export class UsersService {
         fullName: users.fullName,
         role: users.role,
         isActive: users.isActive,
+        lastActiveOrgId: users.lastActiveOrgId,
       })
       .from(users)
       .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  async getUserMemberships(userId: string) {
+    return this.db
+      .select({
+        organizationId: organizationMembers.organizationId,
+        role: organizationMembers.role,
+      })
+      .from(organizationMembers)
+      .where(eq(organizationMembers.userId, userId));
+  }
+
+  async setLastActiveOrg(userId: string, orgId: string | null): Promise<void> {
+    await this.db
+      .update(users)
+      .set({ lastActiveOrgId: orgId, updatedAt: new Date() })
+      .where(eq(users.id, userId));
   }
 }
 
