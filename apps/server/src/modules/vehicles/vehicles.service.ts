@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { and, asc, desc, eq, exists, ilike, isNull, not, or, SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, ilike, inArray, isNull, not, or, SQL, sql } from 'drizzle-orm';
 import type {
   OrgRole,
   VehicleAlert,
@@ -43,7 +43,7 @@ export class VehiclesService {
     orgRole: OrgRole | null | undefined,
     activeOrgId: string,
   ): Promise<VehicleListResponse> {
-    const { page, pageSize, sort, search, status, hasAlerts, includeDeleted } = query;
+    const { page, pageSize, sort, search, status, statuses, hasAlerts, includeDeleted } = query;
 
     // Only coordinator can see deleted vehicles
     if (includeDeleted && orgRole !== 'coordinator') {
@@ -56,7 +56,9 @@ export class VehiclesService {
       conditions.push(isNull(vehicles.deletedAt));
     }
 
-    if (status) {
+    if (statuses && statuses.length > 0) {
+      conditions.push(inArray(vehicles.status, statuses));
+    } else if (status) {
       conditions.push(eq(vehicles.status, status));
     }
 

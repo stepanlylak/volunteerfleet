@@ -6,6 +6,20 @@ import { authApi } from './auth.api';
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   withCredentials: true,
+  paramsSerializer: (params) => {
+    const parts: string[] = [];
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null) continue;
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(item))}`);
+        }
+      } else {
+        parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+      }
+    }
+    return parts.join('&');
+  },
 });
 
 http.interceptors.response.use(

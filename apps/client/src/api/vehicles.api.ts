@@ -6,6 +6,7 @@ import type {
   VehiclePhotoOrderUpdate,
   VehiclePhotoResponse,
   VehicleResponse,
+  VehicleStatusHistoryEditRequest,
   VehicleStatusHistoryListResponse,
   VehicleTransitionRequest,
   VehicleUpdate,
@@ -52,6 +53,14 @@ export const vehiclesApi = {
   async getStatusHistory(id: string): Promise<VehicleStatusHistoryListResponse> {
     const res = await http.get<VehicleStatusHistoryListResponse>(`/vehicles/${id}/status-history`);
     return res.data;
+  },
+
+  async patchStatusHistory(
+    vehicleId: string,
+    historyId: string,
+    payload: VehicleStatusHistoryEditRequest,
+  ): Promise<void> {
+    await http.patch(`/vehicles/${vehicleId}/status-history/${historyId}`, payload);
   },
 
   async listPhotos(id: string): Promise<VehiclePhotoListResponse> {

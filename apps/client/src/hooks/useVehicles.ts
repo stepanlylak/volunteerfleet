@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   VehicleCreate,
   VehicleListQuery,
+  VehicleStatusHistoryEditRequest,
   VehicleTransitionRequest,
   VehicleUpdate,
 } from '@volunteerfleet/shared';
@@ -47,6 +48,22 @@ export function useVehicleTransition(id: string | undefined) {
       void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicle.id] });
       void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicle.id, 'status-history'] });
       void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+  });
+}
+
+export function useUpdateStatusHistory(vehicleId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      historyId,
+      payload,
+    }: {
+      historyId: string;
+      payload: VehicleStatusHistoryEditRequest;
+    }) => vehiclesApi.patchStatusHistory(vehicleId!, historyId, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicleId, 'status-history'] });
     },
   });
 }

@@ -78,6 +78,12 @@ export type VehicleResponse = z.infer<typeof vehicleResponseSchema>;
 // List query schema (pagination + filters)
 export const vehicleListQuerySchema = pageQuerySchema.extend({
   status: vehicleStatusSchema.optional(),
+  statuses: z
+    .preprocess(
+      (val) => (Array.isArray(val) ? val : val !== undefined ? [val] : undefined),
+      z.array(vehicleStatusSchema).optional(),
+    )
+    .optional(),
   search: z.string().optional(),
   hasAlerts: z.coerce.boolean().optional(),
   includeDeleted: z.coerce.boolean().default(false),

@@ -22,7 +22,6 @@ import {
   Image,
   Input,
   InputNumber,
-  List,
   Modal,
   Popconfirm,
   Row,
@@ -34,6 +33,7 @@ import {
   Table,
   Tabs,
   Tag,
+  Timeline,
   Typography,
   message,
 } from 'antd';
@@ -41,10 +41,16 @@ import type { ColumnsType } from 'antd/es/table';
 import { useQueries } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { Currency, DocumentResponse, ExpenseResponse } from '@volunteerfleet/shared';
+import type {
+  Currency,
+  DocumentResponse,
+  ExpenseResponse,
+  VehicleStatusHistory,
+} from '@volunteerfleet/shared';
 import { vehicleUpdateSchema } from '@volunteerfleet/shared';
 import { DocumentFormModal } from '../../modals/DocumentFormModal';
 import { ExpenseFormModal } from '../../modals/ExpenseFormModal';
+import { StatusHistoryEditModal } from '../../modals/StatusHistoryEditModal';
 import { StatusTransitionModal } from '../../modals/StatusTransitionModal';
 import { VehicleFormModal } from '../../modals/VehicleFormModal';
 import {
@@ -140,6 +146,7 @@ export function VehicleCardPage() {
   const restoreVehicle = useRestoreVehicle();
   const [editOpen, setEditOpen] = useState(false);
   const [transitionOpen, setTransitionOpen] = useState(false);
+  const [historyEditEntry, setHistoryEditEntry] = useState<VehicleStatusHistory | undefined>();
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseResponse | undefined>();
   const [docOpen, setDocOpen] = useState(false);
@@ -795,34 +802,98 @@ export function VehicleCardPage() {
           {
             key: 'history',
             label: 'Історія статусів',
-            children: (
-              <List
-                dataSource={history?.items ?? []}
-                locale={{ emptyText: 'Історія поки порожня' }}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={
-                        <Space wrap>
-                          <Tag>
-                            {item.oldStatus
-                              ? VEHICLE_STATUS_CONFIG[item.oldStatus]?.label
-                              : 'Старт'}
-                          </Tag>
-                          <Typography.Text>→</Typography.Text>
-                          <Tag color="blue">
-                            {VEHICLE_STATUS_CONFIG[item.newStatus]?.label ?? '—'}
-                          </Tag>
+            children:
+              (history?.items ?? []).length === 0 ? (
+                <Empty description="Історія поки порожня" />
+              ) : (
+                <Timeline
+                  items={(history?.items ?? []).map((item) => {
+                    const cfg = VEHICLE_STATUS_CONFIG[item.newStatus];
+                    const docs: { label: string; docId: string | null }[] = [
+                      { label: 'Техпаспорт', docId: item.registrationDocId ?? null },
+                      { label: 'Митна декларація', docId: item.customsDeclarationDocId ?? null },
+                      {
+                        label: 'Митна декларація з печатками',
+                        docId: item.stampedCustomsDeclarationDocId ?? null,
+                      },
+                      { label: 'Акт (чернетка)', docId: item.transferActDraftDocId ?? null },
+                      { label: 'Підписаний акт', docId: item.transferActSignedDocId ?? null },
+                      { label: 'Акт повернення', docId: item.returnActDocId ?? null },
+                    ].filter((d) => d.docId !== null);
+                    return {
+                      color: cfg?.color ?? 'blue',
+                      children: (
+                        <Space direction="vertical" size={2}>
+                          <Space wrap size="small">
+                            <Tag>
+                              {item.oldStatus
+                                ? VEHICLE_STATUS_CONFIG[item.oldStatus]?.label
+                                : 'Старт'}
+                            </Tag>
+                            <Typography.Text>→</Typography.Text>
+                            <Tag color={cfg?.color ?? 'blue'}>{cfg?.label ?? '—'}</Tag>
+                          </Space>
+                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {dayjs(item.transitionDate).format('DD.MM.YYYY')} (перехід) ·{' '}
+                            {dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')} ·{' '}
+                            {item.changedBy.fullName}
+                          </Typography.Text>
+                          {item.purchasePrice !== null && (
+                            <Typography.Text style={{ fontSize: 12 }}>
+                              Ціна:{' '}
+                              {formatCurrency(
+                                item.purchasePrice,
+                                (item.purchaseCurrency as Parameters<typeof formatCurrency>[1]) ??
+                                  'UAH',
+                              )}
+                            </Typography.Text>
+                          )}
+                          {item.repairNote && (
+                            <Typography.Text style={{ fontSize: 12 }}>
+                              Ремонт: {item.repairNote}
+                            </Typography.Text>
+                          )}
+                          {item.lostReason && (
+                            <Typography.Text style={{ fontSize: 12 }}>
+                              Причина: {item.lostReason}
+                            </Typography.Text>
+                          )}
+                          {item.note && (
+                            <Typography.Text style={{ fontSize: 12 }}>
+                              Примітка: {item.note}
+                            </Typography.Text>
+                          )}
+                          {docs.length > 0 && (
+                            <Space wrap size="small">
+                              {docs.map((d) => (
+                                <Button
+                                  key={d.docId}
+                                  size="small"
+                                  icon={<PaperClipOutlined />}
+                                  href={documentsApi.getDownloadUrl(d.docId!, '')}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {d.label}
+                                </Button>
+                              ))}
+                            </Space>
+                          )}
+                          {canMutate && (
+                            <Button
+                              size="small"
+                              icon={<EditOutlined />}
+                              onClick={() => setHistoryEditEntry(item)}
+                            >
+                              Редагувати
+                            </Button>
+                          )}
                         </Space>
-                      }
-                      description={`${dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')} · ${
-                        item.changedBy.fullName
-                      }${item.note ? ` · ${item.note}` : ''}`}
-                    />
-                  </List.Item>
-                )}
-              />
-            ),
+                      ),
+                    };
+                  })}
+                />
+              ),
           },
           ...(isAdmin
             ? [
@@ -881,6 +952,14 @@ export function VehicleCardPage() {
         lastHistoryEntry={history?.items[0]}
         onClose={() => setTransitionOpen(false)}
       />
+      {historyEditEntry && (
+        <StatusHistoryEditModal
+          open={Boolean(historyEditEntry)}
+          vehicleId={vehicle.id}
+          entry={historyEditEntry}
+          onClose={() => setHistoryEditEntry(undefined)}
+        />
+      )}
       <VehicleFormModal open={editOpen} vehicleId={vehicle.id} onClose={() => setEditOpen(false)} />
       <ExpenseFormModal
         open={expenseOpen}

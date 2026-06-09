@@ -3,10 +3,10 @@ id: VSF-11
 epic: vehicle-status-flow
 phase: 2
 type: feat
-status: ready
+status: done
 depends_on: [VSF-9, VSF-16]
 parallelizable: false
-branch: feat/vsf-11-status-history-timeline
+branch: feat/vsf-11-12-history-timeline-filters
 pr:
 ---
 
