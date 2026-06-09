@@ -5,9 +5,6 @@ import type {
   FundingSource,
   FundingSourceCreate,
   FundingSourceUpdate,
-  VehicleStatus,
-  VehicleStatusCreate,
-  VehicleStatusUpdate,
 } from '@volunteerfleet/shared';
 import { http } from './client';
 

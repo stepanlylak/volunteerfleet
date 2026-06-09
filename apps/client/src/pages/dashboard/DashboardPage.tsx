@@ -295,7 +295,7 @@ export function DashboardPage() {
                 {(totalVehicles ?? 0) > 0 && (
                   <>
                     {nonFinalStatuses.map((s) => (
-                      <div key={s.statusId} style={{ marginBottom: 10 }}>
+                      <div key={s.status} style={{ marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography.Text>{s.statusName}</Typography.Text>
                           <Typography.Text strong>{s.count}</Typography.Text>
@@ -313,7 +313,7 @@ export function DashboardPage() {
                       <>
                         <Divider style={{ margin: '8px 0' }} />
                         {finalStatuses.map((s) => (
-                          <div key={s.statusId} style={{ marginBottom: 10 }}>
+                          <div key={s.status} style={{ marginBottom: 10 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <Typography.Text>{s.statusName}</Typography.Text>
                               <Typography.Text strong>{s.count}</Typography.Text>

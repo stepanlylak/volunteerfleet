@@ -5,8 +5,7 @@ const NOW = new Date('2026-05-15T12:00:00.000Z');
 
 function makeStatusRow(
   overrides: {
-    statusId?: string;
-    statusName?: string;
+    status?: string;
     kind?: 'in_work' | 'final' | 'other';
     color?: string;
     sortOrder?: number;
@@ -14,8 +13,7 @@ function makeStatusRow(
   } = {},
 ) {
   return {
-    statusId: '11111111-1111-1111-1111-111111111111',
-    statusName: 'тест',
+    status: 'new',
     kind: 'in_work' as const,
     color: '#1677ff',
     sortOrder: 10,
@@ -41,11 +39,11 @@ describe('DashboardService', () => {
     const statusRows = [
       makeStatusRow({ kind: 'in_work', count: 3 }),
       makeStatusRow({
-        statusId: '22222222-2222-2222-2222-222222222222',
+        status: 'paid',
         kind: 'in_work',
         count: 2,
       }),
-      makeStatusRow({ statusId: '33333333-3333-3333-3333-333333333333', kind: 'final', count: 5 }),
+      makeStatusRow({ status: 'transferred', kind: 'final', count: 5 }),
     ];
 
     let callIndex = 0;

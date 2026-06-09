@@ -307,6 +307,7 @@ export function ExpenseFormModal({
       await linkDocument.mutateAsync({
         name: link.name,
         url: link.url,
+        documentType: 'other',
         vehicleId: targetVehicleId,
         expenseId,
       });

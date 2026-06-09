@@ -8,11 +8,6 @@ const vehicleYearSchema = z.number().int().min(1900).max(2100).optional().nullab
 const vehicleVinSchema = z.string().trim().max(64).optional().nullable();
 const vehicleDescriptionSchema = z.string().trim().max(2000).optional().nullable();
 const startDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const borderCrossingDateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .optional()
-  .nullable();
 
 // Public fields
 const publicSummarySchema = z.string().trim().max(5000).optional().nullable();
@@ -100,6 +95,24 @@ export const vehicleStatusHistorySchema = z.object({
   changedBy: vehicleUserInfoSchema,
   note: z.string().nullable(),
   changedAt: z.string(),
+  transitionDate: z.string().optional(),
+
+  purchasePrice: z.number().nullable().optional(),
+  purchaseCurrency: z.enum(['UAH', 'USD', 'EUR']).nullable().optional(),
+  purchaseRate: z.number().nullable().optional(),
+  purchaseRateSource: z.enum(['default', 'manual']).nullable().optional(),
+  isLocalPurchase: z.boolean().nullable().optional(),
+
+  repairNote: z.string().nullable().optional(),
+  isRegisteredAtServiceCenter: z.boolean().nullable().optional(),
+  lostReason: z.string().nullable().optional(),
+
+  registrationDocId: uuidSchema.nullable().optional(),
+  customsDeclarationDocId: uuidSchema.nullable().optional(),
+  stampedCustomsDeclarationDocId: uuidSchema.nullable().optional(),
+  transferActDraftDocId: uuidSchema.nullable().optional(),
+  transferActSignedDocId: uuidSchema.nullable().optional(),
+  returnActDocId: uuidSchema.nullable().optional(),
 });
 export type VehicleStatusHistory = z.infer<typeof vehicleStatusHistorySchema>;
 

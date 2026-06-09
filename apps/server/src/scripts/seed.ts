@@ -10,11 +10,7 @@ import {
   organizations,
   users,
 } from '../db/schema/index.js';
-import {
-  SEED_EXPENSE_CATEGORY_IDS,
-  SEED_FUNDING_SOURCE_IDS,
-  SEED_ORG_IDS,
-} from './seed-ids.js';
+import { SEED_EXPENSE_CATEGORY_IDS, SEED_FUNDING_SOURCE_IDS, SEED_ORG_IDS } from './seed-ids.js';
 
 interface ExpenseCategorySeed {
   id: string;
@@ -29,49 +25,6 @@ interface FundingSourceSeed {
   description: string | null;
   organizationId: string;
 }
-
-const VEHICLE_STATUSES: VehicleStatusSeed[] = [
-  {
-    id: SEED_VEHICLE_STATUS_IDS.found,
-    name: 'Знайдено',
-    sortOrder: 10,
-    isDefault: true,
-    kind: 'in_work',
-    color: '#1677ff',
-  },
-  {
-    id: SEED_VEHICLE_STATUS_IDS.purchased,
-    name: 'Куплено',
-    sortOrder: 20,
-    isDefault: false,
-    kind: 'in_work',
-    color: '#faad14',
-  },
-  {
-    id: SEED_VEHICLE_STATUS_IDS.repairing,
-    name: 'В ремонті',
-    sortOrder: 30,
-    isDefault: false,
-    kind: 'in_work',
-    color: '#ff7a45',
-  },
-  {
-    id: SEED_VEHICLE_STATUS_IDS.ready,
-    name: 'Готове',
-    sortOrder: 40,
-    isDefault: false,
-    kind: 'in_work',
-    color: '#13c2c2',
-  },
-  {
-    id: SEED_VEHICLE_STATUS_IDS.transferred,
-    name: 'Передано',
-    sortOrder: 50,
-    isDefault: false,
-    kind: 'final',
-    color: '#52c41a',
-  },
-];
 
 const EXPENSE_CATEGORIES: ExpenseCategorySeed[] = [
   { id: SEED_EXPENSE_CATEGORY_IDS.purchase, name: 'Купівля авто', sortOrder: 10 },

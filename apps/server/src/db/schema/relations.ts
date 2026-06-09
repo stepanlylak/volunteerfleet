@@ -123,6 +123,36 @@ export const vehicleStatusHistoryRelations = relations(vehicleStatusHistory, ({ 
     fields: [vehicleStatusHistory.changedBy],
     references: [users.id],
   }),
+  registrationDoc: one(documents, {
+    fields: [vehicleStatusHistory.registrationDocId],
+    references: [documents.id],
+    relationName: 'registrationDoc',
+  }),
+  customsDeclarationDoc: one(documents, {
+    fields: [vehicleStatusHistory.customsDeclarationDocId],
+    references: [documents.id],
+    relationName: 'customsDeclarationDoc',
+  }),
+  stampedCustomsDeclarationDoc: one(documents, {
+    fields: [vehicleStatusHistory.stampedCustomsDeclarationDocId],
+    references: [documents.id],
+    relationName: 'stampedCustomsDeclarationDoc',
+  }),
+  transferActDraftDoc: one(documents, {
+    fields: [vehicleStatusHistory.transferActDraftDocId],
+    references: [documents.id],
+    relationName: 'transferActDraftDoc',
+  }),
+  transferActSignedDoc: one(documents, {
+    fields: [vehicleStatusHistory.transferActSignedDocId],
+    references: [documents.id],
+    relationName: 'transferActSignedDoc',
+  }),
+  returnActDoc: one(documents, {
+    fields: [vehicleStatusHistory.returnActDocId],
+    references: [documents.id],
+    relationName: 'returnActDoc',
+  }),
 }));
 
 export const expenseCategoriesRelations = relations(expenseCategories, ({ many }) => ({

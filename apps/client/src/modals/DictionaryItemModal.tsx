@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ColorPicker, Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
+import { Form, Input, InputNumber, Modal, Select, message } from 'antd';
 import type { ExpenseCategory, FundingSource } from '@volunteerfleet/shared';
 import {
   expenseCategoryCreateSchema,
@@ -40,7 +40,7 @@ function titleFor(type: DictionaryType) {
   return 'джерело фінансування';
 }
 
-function sortOrderSchemaFor(type: DictionaryType) {
+function sortOrderSchema() {
   return expenseCategoryCreateSchema.shape.sortOrder;
 }
 
@@ -57,9 +57,6 @@ export function DictionaryItemModal({ open, type, item, onClose }: DictionaryIte
     } else {
       form.setFieldsValue({
         sortOrder: 0,
-        isDefault: false,
-        kind: 'other',
-        color: '#8c8c8c',
         type: 'donor',
         description: null,
       });
@@ -112,35 +109,10 @@ export function DictionaryItemModal({ open, type, item, onClose }: DictionaryIte
           <Form.Item
             name="sortOrder"
             label="Порядок"
-            rules={[{ validator: zodValidator(sortOrderSchemaFor(type)) }]}
+            rules={[{ validator: zodValidator(sortOrderSchema()) }]}
           >
             <InputNumber min={0} max={32767} style={{ width: '100%' }} />
           </Form.Item>
-        ) : null}
-        {type === 'vehicle-statuses' ? (
-          <>
-            <Form.Item name="isDefault" label="За замовчуванням" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-            <Form.Item name="kind" label="Тип">
-              <Select
-                options={[
-                  { value: 'in_work', label: 'У роботі' },
-                  { value: 'final', label: 'Кінцевий' },
-                  { value: 'other', label: 'Інший' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item
-              name="color"
-              label="Колір"
-              getValueFromEvent={(color: { toHexString: () => string }) =>
-                color.toHexString().slice(0, 7)
-              }
-            >
-              <ColorPicker format="hex" showText disabledAlpha />
-            </Form.Item>
-          </>
         ) : null}
         {type === 'funding-sources' ? (
           <>

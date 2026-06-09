@@ -372,11 +372,10 @@ export function VehicleCardPage() {
           label: config.label,
         }))}
         onBlur={() => setStatusEditing(false)}
-        onChange={async (status) => {
+        onChange={(status) => {
           setStatusEditing(false);
-          if (status === vehicle.status) return;
-          await updateVehicle.mutateAsync({ id: vehicle.id, payload: { status } });
-          message.success('Статус оновлено');
+          // TODO: VSF-6 — статус змінюється через POST /vehicles/:id/transition
+          console.log('Selected status:', status);
         }}
       />
     ) : (
@@ -387,7 +386,7 @@ export function VehicleCardPage() {
           if (isAdmin && !vehicle.deletedAt) setStatusEditing(true);
         }}
       >
-        {vehicle.status?.name ?? '—'}
+        {VEHICLE_STATUS_CONFIG[vehicle.status]?.label ?? '—'}
         {isAdmin && !vehicle.deletedAt ? <EditOutlined style={{ marginLeft: 6 }} /> : null}
       </Tag>
     );
@@ -815,9 +814,15 @@ export function VehicleCardPage() {
                     <List.Item.Meta
                       title={
                         <Space wrap>
-                          <Tag>{item.oldStatus?.name ?? 'Старт'}</Tag>
+                          <Tag>
+                            {item.oldStatus
+                              ? VEHICLE_STATUS_CONFIG[item.oldStatus]?.label
+                              : 'Старт'}
+                          </Tag>
                           <Typography.Text>→</Typography.Text>
-                          <Tag color="blue">{item.newStatus?.name ?? '—'}</Tag>
+                          <Tag color="blue">
+                            {VEHICLE_STATUS_CONFIG[item.newStatus]?.label ?? '—'}
+                          </Tag>
                         </Space>
                       }
                       description={`${dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')} · ${

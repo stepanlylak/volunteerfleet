@@ -1,11 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { pgTable, smallint, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { fundingSourceTypeEnum } from './enums.js';
 import { organizations } from './organizations.js';
 

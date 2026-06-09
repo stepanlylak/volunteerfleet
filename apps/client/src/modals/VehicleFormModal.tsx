@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from 'antd';
+import { DatePicker, Form, Input, InputNumber, Modal, message } from 'antd';
 import dayjs from 'dayjs';
 import {
   vehicleCreateSchema,
   vehicleUpdateSchema,
-  VEHICLE_STATUS_CONFIG,
-  VEHICLE_STATUSES,
   type VehicleCreate,
   type VehicleResponse,
 } from '@volunteerfleet/shared';
@@ -46,7 +44,7 @@ function optionalText(value: string | null | undefined) {
 export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: VehicleFormModalProps) {
   const [form] = Form.useForm<VehicleFormValues>();
   const isEdit = Boolean(vehicleId);
-  const { data: vehicle, isFetching } = useVehicle(open && vehicleId ? vehicleId : undefined, true);
+  const { data: vehicle } = useVehicle(open && vehicleId ? vehicleId : undefined, true);
   const { data: photosData, isLoading: photosLoading } = useVehiclePhotos(
     open && vehicleId ? vehicleId : undefined,
   );
@@ -73,7 +71,6 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
         year: vehicle.year,
         vin: vehicle.vin,
         borderCrossingDate: vehicle.borderCrossingDate ? dayjs(vehicle.borderCrossingDate) : null,
-        status: vehicle.status,
         description: vehicle.description,
       });
     }
@@ -203,18 +200,6 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
         </Form.Item>
         <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
           <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
-        </Form.Item>
-        <Form.Item
-          name="status"
-          label="Статус"
-          rules={[{ validator: zodValidator(vehicleCreateSchema.shape.status) }]}
-        >
-          <Select>
-            options={(dictionaries?.vehicleStatuses ?? []).map((status) => ({
-              value: status.id,
-              label: status.name,
-            }))}
-          />
         </Form.Item>
         <Form.Item
           name="description"

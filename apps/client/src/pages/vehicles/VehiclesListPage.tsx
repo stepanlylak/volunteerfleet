@@ -5,7 +5,11 @@ import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import { VEHICLE_STATUS_CONFIG, type VehicleResponse, type VehicleStatus } from '@volunteerfleet/shared';
+import {
+  VEHICLE_STATUS_CONFIG,
+  type VehicleResponse,
+  type VehicleStatus,
+} from '@volunteerfleet/shared';
 import { VehicleFormModal } from '../../modals/VehicleFormModal';
 import { useVehicles } from '../../hooks/useVehicles';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
@@ -15,7 +19,7 @@ export function VehiclesListPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<string | undefined>();
+  const [status, setStatus] = useState<VehicleStatus | undefined>();
   const [sort, setSort] = useState('createdAt:desc');
   const [modalOpen, setModalOpen] = useState(false);
   const orgRole = useOrgRole();
@@ -62,7 +66,9 @@ export function VehiclesListPage() {
         title: 'Статус',
         dataIndex: 'status',
         render: (status: VehicleStatus) => (
-          <Tag color={VEHICLE_STATUS_CONFIG[status].color}>{VEHICLE_STATUS_CONFIG[status].label}</Tag>
+          <Tag color={VEHICLE_STATUS_CONFIG[status].color}>
+            {VEHICLE_STATUS_CONFIG[status].label}
+          </Tag>
         ),
       },
       {

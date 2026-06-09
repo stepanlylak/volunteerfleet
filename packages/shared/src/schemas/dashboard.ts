@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { vehicleStatusSchema, VEHICLE_STATUS_DASHBOARD_GROUP } from './vehicle-status.js';
+import { vehicleStatusSchema } from './vehicle-status.js';
 
 export const dashboardStatusCountSchema = z.object({
   status: vehicleStatusSchema,

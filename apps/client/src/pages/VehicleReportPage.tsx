@@ -13,11 +13,12 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useParams } from 'react-router-dom';
-import type {
-  DocumentResponse,
-  ExpenseCategoryBreakdown,
-  ExpenseCurrencyBreakdown,
-  ExpenseResponse,
+import {
+  VEHICLE_STATUS_CONFIG,
+  type DocumentResponse,
+  type ExpenseCategoryBreakdown,
+  type ExpenseCurrencyBreakdown,
+  type ExpenseResponse,
 } from '@volunteerfleet/shared';
 import { ReportSection } from '../components/reports/ReportSection';
 import { ReportToolbar } from '../components/reports/ReportToolbar';
@@ -98,7 +99,7 @@ export function VehicleReportPage() {
               </Descriptions.Item>
               <Descriptions.Item label="Рік">{vehicle.year ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Статус">
-                <Tag>{vehicle.status?.name ?? '—'}</Tag>
+                <Tag>{VEHICLE_STATUS_CONFIG[vehicle.status]?.label ?? '—'}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="VIN">{vehicle.vin ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Опис">{vehicle.description ?? '—'}</Descriptions.Item>
@@ -140,7 +141,8 @@ export function VehicleReportPage() {
               children: (
                 <Space direction="vertical" size={0}>
                   <span>
-                    {item.oldStatus?.name ?? 'Старт'} → {item.newStatus?.name ?? '—'}
+                    {item.oldStatus ? VEHICLE_STATUS_CONFIG[item.oldStatus]?.label : 'Старт'} →{' '}
+                    {VEHICLE_STATUS_CONFIG[item.newStatus]?.label ?? '—'}
                   </span>
                   <Typography.Text type="secondary">
                     {formatDate(item.changedAt)} · {item.changedBy.fullName}
