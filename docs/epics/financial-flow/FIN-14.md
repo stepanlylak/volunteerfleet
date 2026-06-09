@@ -3,7 +3,7 @@ id: FIN-14
 epic: financial-flow
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [FIN-13]
 parallelizable: false
 branch: feat/fin-14-vehicle-finance-tab
