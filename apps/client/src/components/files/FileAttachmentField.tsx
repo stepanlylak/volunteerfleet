@@ -24,7 +24,7 @@ import { useState } from 'react';
 export interface FileAttachmentExistingItem {
   id: string;
   name: string;
-  kind?: 'upload' | 'link' | 'photo';
+  kind?: 'upload' | 'link';
   mimeType?: string | null;
   sizeBytes?: number | null;
   url?: string | null;

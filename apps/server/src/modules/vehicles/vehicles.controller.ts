@@ -38,10 +38,6 @@ import type {
   VehicleGallerySetCover,
   VehicleGalleryUpdate,
   VehicleListQuery,
-  VehiclePhotoListResponse,
-  VehiclePhotoOrderUpdate,
-  VehiclePhotoResponse,
-  VehiclePhotoUploadMetadata,
   VehicleListResponse,
   VehicleResponse,
   VehicleStatusHistoryListResponse,
@@ -62,8 +58,6 @@ import {
   vehicleGallerySetCoverSchema,
   vehicleGalleryUpdateSchema,
   vehicleListQuerySchema,
-  vehiclePhotoOrderUpdateSchema,
-  vehiclePhotoUploadMetadataSchema,
   vehicleUpdateSchema,
   vehicleTransitionRequestSchema,
   vehicleStatusHistoryEditRequestSchema,
@@ -82,7 +76,6 @@ import { DocumentsService } from '../documents/documents.service.js';
 import { ExpensesService } from '../expenses/expenses.service.js';
 import { VehicleGalleriesService } from './vehicle-galleries.service.js';
 import { VehicleGalleryItemsService } from './vehicle-gallery-items.service.js';
-import { VehiclePhotosService } from './vehicle-photos.service.js';
 import { VehicleTransitionService } from './vehicle-transition.service.js';
 import { VehiclesService } from './vehicles.service.js';
 
@@ -94,7 +87,6 @@ export class VehiclesController {
     private readonly transitionService: VehicleTransitionService,
     private readonly expensesService: ExpensesService,
     private readonly documentsService: DocumentsService,
-    private readonly photosService: VehiclePhotosService,
     private readonly galleriesService: VehicleGalleriesService,
     private readonly galleryItemsService: VehicleGalleryItemsService,
     private readonly cfg: ConfigService<Env, true>,
@@ -447,80 +439,5 @@ export class VehiclesController {
       ...(contentLength != null ? { 'Content-Length': String(contentLength) } : {}),
     });
     return new StreamableFile(body);
-  }
-
-  @Get(':id/photos')
-  @OrgRoles('coordinator', 'volunteer', 'viewer')
-  async getPhotos(
-    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
-    @CurrentUser() user: JwtPayload | undefined,
-  ): Promise<VehiclePhotoListResponse> {
-    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
-    return this.photosService.list(params.id, user.activeOrgId);
-  }
-
-  @Post(':id/photos')
-  @OrgRoles('coordinator', 'volunteer')
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: memoryStorage(),
-      limits: { fileSize: 26214400 },
-    }),
-  )
-  uploadPhoto(
-    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
-    @UploadedFile() file: Express.Multer.File | undefined,
-    @Body(new ZodValidationPipe(vehiclePhotoUploadMetadataSchema)) dto: VehiclePhotoUploadMetadata,
-    @CurrentUser() user: JwtPayload | undefined,
-  ): Promise<VehiclePhotoResponse> {
-    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
-    return this.photosService.upload(
-      params.id,
-      file,
-      dto,
-      user.sub,
-      this.cfg.get('MAX_UPLOAD_BYTES', { infer: true }),
-      user.activeOrgId,
-    );
-  }
-
-  @Patch(':id/photos/order')
-  @OrgRoles('coordinator', 'volunteer')
-  reorderPhotos(
-    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
-    @Body(new ZodValidationPipe(vehiclePhotoOrderUpdateSchema)) dto: VehiclePhotoOrderUpdate,
-    @CurrentUser() user: JwtPayload | undefined,
-  ): Promise<VehiclePhotoListResponse> {
-    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
-    return this.photosService.reorder(params.id, dto, user.sub, user.activeOrgId);
-  }
-
-  @Get(':id/photos/:photoId/download')
-  @OrgRoles('coordinator', 'volunteer', 'viewer')
-  async downloadPhoto(
-    @Param('photoId') photoId: string,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StreamableFile> {
-    const { body, contentType, contentLength } =
-      await this.photosService.getDownloadStream(photoId);
-    res.set({
-      'Content-Type': contentType,
-      'Cache-Control': 'private, max-age=300',
-      ...(contentLength != null ? { 'Content-Length': String(contentLength) } : {}),
-    });
-    return new StreamableFile(body);
-  }
-
-  @Delete(':id/photos/:photoId')
-  @OrgRoles('coordinator', 'volunteer')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async removePhoto(
-    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
-    @Param('photoId') photoId: string,
-    @CurrentUser() user: JwtPayload | undefined,
-  ): Promise<void> {
-    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
-    await this.photosService.remove(params.id, photoId, user, user.activeOrgId);
   }
 }

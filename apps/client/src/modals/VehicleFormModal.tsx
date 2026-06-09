@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { DatePicker, Form, Input, InputNumber, Modal, message } from 'antd';
 import dayjs from 'dayjs';
 import {
@@ -7,20 +7,7 @@ import {
   type VehicleCreate,
   type VehicleResponse,
 } from '@volunteerfleet/shared';
-import { vehiclesApi } from '../api/vehicles.api';
-import {
-  FileAttachmentField,
-  type FileAttachmentExistingItem,
-  type FileAttachmentNewFile,
-} from '../components/files/FileAttachmentField';
-import {
-  useCreateVehicle,
-  useDeleteVehiclePhotoForVehicle,
-  useUpdateVehicle,
-  useUploadVehiclePhotoForVehicle,
-  useVehicle,
-  useVehiclePhotos,
-} from '../hooks/useVehicles';
+import { useCreateVehicle, useUpdateVehicle, useVehicle } from '../hooks/useVehicles';
 import { zodToAntdFields, zodValidator } from '../utils/zod-antd';
 
 interface VehicleFormModalProps {
@@ -34,9 +21,6 @@ type VehicleFormValues = Omit<VehicleCreate, 'startDate'> & {
   startDate: dayjs.Dayjs;
 };
 
-const MAX_PHOTO_SIZE_BYTES = 26_214_400;
-const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
-
 function optionalText(value: string | null | undefined) {
   return value?.trim() ? value.trim() : null;
 }
@@ -45,20 +29,11 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
   const [form] = Form.useForm<VehicleFormValues>();
   const isEdit = Boolean(vehicleId);
   const { data: vehicle } = useVehicle(open && vehicleId ? vehicleId : undefined, true);
-  const { data: photosData, isLoading: photosLoading } = useVehiclePhotos(
-    open && vehicleId ? vehicleId : undefined,
-  );
   const createVehicle = useCreateVehicle();
   const updateVehicle = useUpdateVehicle();
-  const uploadPhoto = useUploadVehiclePhotoForVehicle();
-  const deletePhoto = useDeleteVehiclePhotoForVehicle();
-  const [newPhotoFiles, setNewPhotoFiles] = useState<FileAttachmentNewFile[]>([]);
-  const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
-    setNewPhotoFiles([]);
-    setRemovedPhotoIds([]);
     if (!vehicleId) {
       form.resetFields();
       form.setFieldValue('startDate', dayjs());
@@ -77,18 +52,6 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
     }
   }, [form, open, vehicle, vehicleId]);
 
-  const photos = photosData?.items ?? [];
-  const visiblePhotoCount = photos.filter((photo) => !removedPhotoIds.includes(photo.id)).length;
-  const photoItems: FileAttachmentExistingItem[] = photos.map((photo, index) => ({
-    id: photo.id,
-    name: `Фото ${index + 1}`,
-    kind: 'photo',
-    mimeType: photo.mimeType,
-    sizeBytes: photo.sizeBytes,
-    previewUrl: vehicleId ? vehiclesApi.getPhotoDownloadUrl(vehicleId, photo.id) : undefined,
-    downloadUrl: vehicleId ? vehiclesApi.getPhotoDownloadUrl(vehicleId, photo.id) : undefined,
-  }));
-
   const handleFinish = async (values: VehicleFormValues) => {
     const normalized = {
       ...values,
@@ -105,51 +68,23 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
     }
 
     try {
-      let savedVehicle: VehicleResponse;
       if (isEdit && vehicleId) {
-        savedVehicle = await updateVehicle.mutateAsync({ id: vehicleId, payload: parsed.data });
-        await syncPhotos(savedVehicle.id, visiblePhotoCount);
+        await updateVehicle.mutateAsync({ id: vehicleId, payload: parsed.data });
         message.success('Авто оновлено');
       } else {
-        savedVehicle = await createVehicle.mutateAsync(parsed.data as VehicleCreate);
-        await syncPhotos(savedVehicle.id, 0);
+        const savedVehicle = await createVehicle.mutateAsync(parsed.data as VehicleCreate);
         message.success('Авто створено');
         onCreated?.(savedVehicle);
       }
-      setNewPhotoFiles([]);
-      setRemovedPhotoIds([]);
       onClose();
-    } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 400) message.error('Перевищено ліміт 10 фото');
-      else if (status === 413) message.error('Фото надто велике');
-      else if (status === 415) message.error('Тип фото не підтримується');
-      else message.error('Не вдалося зберегти авто');
+    } catch {
+      message.error('Не вдалося зберегти авто');
     }
   };
 
-  const syncPhotos = async (targetVehicleId: string, nextSortOrderStart: number) => {
-    for (const photoId of removedPhotoIds) {
-      await deletePhoto.mutateAsync({ vehicleId: targetVehicleId, photoId });
-    }
-
-    for (const [index, item] of newPhotoFiles.entries()) {
-      const formData = new FormData();
-      formData.append('file', item.file);
-      formData.append('sortOrder', String(nextSortOrderStart + index));
-      await uploadPhoto.mutateAsync({ vehicleId: targetVehicleId, formData });
-    }
-  };
-
-  const isPending =
-    createVehicle.isPending ||
-    updateVehicle.isPending ||
-    uploadPhoto.isPending ||
-    deletePhoto.isPending;
+  const isPending = createVehicle.isPending || updateVehicle.isPending;
 
   const handleCancel = () => {
-    setNewPhotoFiles([]);
-    setRemovedPhotoIds([]);
     onClose();
   };
 
@@ -212,30 +147,6 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
           rules={[{ validator: zodValidator(vehicleCreateSchema.shape.description) }]}
         >
           <Input.TextArea rows={4} />
-        </Form.Item>
-        <Form.Item label="Фото автомобіля">
-          <FileAttachmentField
-            acceptedMimeTypes={ALLOWED_PHOTO_MIME_TYPES}
-            allowLinks={false}
-            editableNewFileNames={false}
-            emptyText="Фото авто ще не додано"
-            existingItems={isEdit ? photoItems : []}
-            getNewFileDisplayName={(_item, index, existingFileCount) =>
-              `Фото ${existingFileCount + index + 1}`
-            }
-            loading={photosLoading}
-            maxFiles={10}
-            maxFilesErrorMessage="Можна додати не більше 10 фото авто"
-            maxSizeBytes={MAX_PHOTO_SIZE_BYTES}
-            maxSizeErrorMessage="Фото перевищує 25 МБ"
-            mimeTypeErrorMessage="Підтримуються лише JPG, PNG, WebP або HEIC"
-            newFiles={newPhotoFiles}
-            onNewFilesChange={setNewPhotoFiles}
-            removedExistingIds={removedPhotoIds}
-            onRemovedExistingIdsChange={setRemovedPhotoIds}
-            uploadHint="JPG, PNG, WebP або HEIC — до 25 МБ, максимум 10 фото"
-            uploadText="Натисніть або перетягніть фото"
-          />
         </Form.Item>
       </Form>
     </Modal>

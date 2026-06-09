@@ -31,14 +31,6 @@ export function useVehicleStatusHistory(id: string | undefined) {
   });
 }
 
-export function useVehiclePhotos(id: string | undefined) {
-  return useQuery({
-    queryKey: ['vehicles', id, 'photos'],
-    queryFn: () => vehiclesApi.listPhotos(id!),
-    enabled: Boolean(id),
-  });
-}
-
 export function useVehicleTransition(id: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -125,58 +117,6 @@ export function useRestoreVehicle() {
       void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicle.id] });
       void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
-    },
-  });
-}
-
-export function useUploadVehiclePhoto(vehicleId: string | undefined) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (formData: FormData) => vehiclesApi.uploadPhoto(vehicleId!, formData),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicleId, 'photos'] });
-    },
-  });
-}
-
-export function useUploadVehiclePhotoForVehicle() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ vehicleId, formData }: { vehicleId: string; formData: FormData }) =>
-      vehiclesApi.uploadPhoto(vehicleId, formData),
-    onSuccess: (_photo, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ['vehicles', variables.vehicleId, 'photos'] });
-    },
-  });
-}
-
-export function useReorderVehiclePhotos(vehicleId: string | undefined) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (photoIds: string[]) => vehiclesApi.reorderPhotos(vehicleId!, { photoIds }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicleId, 'photos'] });
-    },
-  });
-}
-
-export function useDeleteVehiclePhoto(vehicleId: string | undefined) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (photoId: string) => vehiclesApi.removePhoto(vehicleId!, photoId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicleId, 'photos'] });
-    },
-  });
-}
-
-export function useDeleteVehiclePhotoForVehicle() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ vehicleId, photoId }: { vehicleId: string; photoId: string }) =>
-      vehiclesApi.removePhoto(vehicleId, photoId),
-    onSuccess: (_result, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ['vehicles', variables.vehicleId, 'photos'] });
     },
   });
 }

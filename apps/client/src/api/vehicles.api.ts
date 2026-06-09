@@ -2,9 +2,6 @@ import type {
   VehicleCreate,
   VehicleListQuery,
   VehicleListResponse,
-  VehiclePhotoListResponse,
-  VehiclePhotoOrderUpdate,
-  VehiclePhotoResponse,
   VehicleResponse,
   VehicleStatusHistoryEditRequest,
   VehicleStatusHistoryListResponse,
@@ -67,35 +64,6 @@ export const vehiclesApi = {
     await http.delete(`/vehicles/${vehicleId}/status-history/last`, {
       params: { expectedLastHistoryId },
     });
-  },
-
-  async listPhotos(id: string): Promise<VehiclePhotoListResponse> {
-    const res = await http.get<VehiclePhotoListResponse>(`/vehicles/${id}/photos`);
-    return res.data;
-  },
-
-  async uploadPhoto(id: string, formData: FormData): Promise<VehiclePhotoResponse> {
-    const res = await http.post<VehiclePhotoResponse>(`/vehicles/${id}/photos`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return res.data;
-  },
-
-  async reorderPhotos(
-    id: string,
-    payload: VehiclePhotoOrderUpdate,
-  ): Promise<VehiclePhotoListResponse> {
-    const res = await http.patch<VehiclePhotoListResponse>(`/vehicles/${id}/photos/order`, payload);
-    return res.data;
-  },
-
-  async removePhoto(id: string, photoId: string): Promise<void> {
-    await http.delete(`/vehicles/${id}/photos/${photoId}`);
-  },
-
-  getPhotoDownloadUrl(id: string, photoId: string): string {
-    const base = import.meta.env.VITE_API_URL || '/api/v1';
-    return `${base}/vehicles/${id}/photos/${photoId}/download`;
   },
 
   getMainCoverUrl(itemId: string): string {
