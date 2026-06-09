@@ -10,6 +10,7 @@ import {
   isValidTransition,
   type VehicleTransitionRequest,
   type VehicleResponse,
+  type VehicleStatusHistoryEditRequest,
 } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
@@ -277,4 +278,183 @@ export class VehicleTransitionService {
     });
   }
 
+  async editStatusHistory(
+    vehicleId: string,
+    historyId: string,
+    dto: VehicleStatusHistoryEditRequest,
+    organizationId: string,
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      const vehicle = await tx.query.vehicles.findFirst({
+        where: and(
+          eq(vehicles.id, vehicleId),
+          eq(vehicles.organizationId, organizationId),
+          isNull(vehicles.deletedAt),
+        ),
+      });
+
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle ${vehicleId} not found`);
+      }
+
+      const history = await tx.query.vehicleStatusHistory.findFirst({
+        where: eq(vehicleStatusHistory.id, historyId),
+      });
+
+      if (!history || history.vehicleId !== vehicleId) {
+        throw new NotFoundException(`History ${historyId} not found`);
+      }
+
+      if (history.newStatus !== dto.targetStatus) {
+        throw new BadRequestException(
+          `targetStatus must match existing new_status (${history.newStatus})`,
+        );
+      }
+
+      const allHistories = await tx.query.vehicleStatusHistory.findMany({
+        where: eq(vehicleStatusHistory.vehicleId, vehicleId),
+        orderBy: [asc(vehicleStatusHistory.changedAt)],
+      });
+
+      const historyIndex = allHistories.findIndex((h) => h.id === historyId);
+      if (historyIndex > 0) {
+        const prev = allHistories[historyIndex - 1];
+        if (prev && dto.transitionDate < prev.transitionDate) {
+          throw new BadRequestException(
+            'Transition date cannot be earlier than previous transition date',
+          );
+        }
+      }
+      if (historyIndex < allHistories.length - 1) {
+        const next = allHistories[historyIndex + 1];
+        if (next && dto.transitionDate > next.transitionDate) {
+          throw new BadRequestException(
+            'Transition date cannot be later than next transition date',
+          );
+        }
+      }
+
+      const docChecks: { id: string; type: string }[] = [];
+      if ('registrationDocId' in dto && dto.registrationDocId) {
+        docChecks.push({ id: dto.registrationDocId, type: 'registration_certificate' });
+      }
+      if ('customsDeclarationDocId' in dto && dto.customsDeclarationDocId) {
+        docChecks.push({ id: dto.customsDeclarationDocId, type: 'customs_declaration' });
+      }
+      if ('stampedCustomsDeclarationDocId' in dto && dto.stampedCustomsDeclarationDocId) {
+        docChecks.push({
+          id: dto.stampedCustomsDeclarationDocId,
+          type: 'stamped_customs_declaration',
+        });
+      }
+      if ('transferActDraftDocId' in dto && dto.transferActDraftDocId) {
+        docChecks.push({ id: dto.transferActDraftDocId, type: 'transfer_act_draft' });
+      }
+      if ('transferActSignedDocId' in dto && dto.transferActSignedDocId) {
+        docChecks.push({ id: dto.transferActSignedDocId, type: 'transfer_act_signed' });
+      }
+      if ('returnActDocId' in dto && dto.returnActDocId) {
+        docChecks.push({ id: dto.returnActDocId, type: 'return_act' });
+      }
+
+      for (const check of docChecks) {
+        const doc = await tx.query.documents.findFirst({
+          where: and(
+            eq(documents.id, check.id),
+            eq(documents.organizationId, organizationId),
+            eq(documents.vehicleId, vehicleId),
+            isNull(documents.deletedAt),
+            eq(documents.documentType, check.type as 'other'),
+          ),
+        });
+        if (!doc) {
+          throw new BadRequestException(
+            `Document ${check.id} not found, deleted, or invalid type/vehicle`,
+          );
+        }
+      }
+
+      if (history.oldStatus === 'returned' && dto.targetStatus === 'transferred') {
+        const prevTransfer = allHistories
+          .slice(0, historyIndex)
+          .reverse()
+          .find((h) => h.newStatus === 'transferred');
+        if (
+          prevTransfer &&
+          'transferActSignedDocId' in dto &&
+          dto.transferActSignedDocId &&
+          dto.transferActSignedDocId === prevTransfer.transferActSignedDocId
+        ) {
+          throw new BadRequestException('Cannot reuse previous transfer act for a new transfer');
+        }
+      }
+
+      const updateValues: Partial<typeof vehicleStatusHistory.$inferInsert> = {
+        note: dto.note || null,
+        transitionDate: dto.transitionDate,
+      };
+
+      if (dto.targetStatus === 'paid') {
+        const d = dto as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (d.purchasePrice) {
+          updateValues.purchasePrice = d.purchasePrice.toString();
+          updateValues.purchaseCurrency = d.purchaseCurrency;
+          updateValues.purchaseRateSource = d.purchaseRateSource;
+
+          if (d.purchaseRateSource === 'default' && d.purchaseCurrency !== 'UAH') {
+            const defaultRate = this.exchangeRatesService.getRate(
+              new Date(d.transitionDate),
+              d.purchaseCurrency,
+            );
+            updateValues.purchaseRate = defaultRate.toString();
+          } else if (d.purchaseCurrency === 'UAH') {
+            updateValues.purchaseRate = '1';
+          } else {
+            updateValues.purchaseRate = d.purchaseRate.toString();
+          }
+        }
+        updateValues.isLocalPurchase = d.isLocalPurchase ?? false;
+        updateValues.registrationDocId = d.registrationDocId || null;
+      } else if (dto.targetStatus === 'in_transit') {
+        updateValues.customsDeclarationDocId =
+          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+            .customsDeclarationDocId || null;
+      } else if (dto.targetStatus === 'arrived') {
+        updateValues.registrationDocId =
+          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+            .registrationDocId || null;
+        updateValues.stampedCustomsDeclarationDocId =
+          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+            .stampedCustomsDeclarationDocId || null;
+      } else if (dto.targetStatus === 'in_repair') {
+        updateValues.repairNote =
+          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */.repairNote ||
+          null;
+      } else if (dto.targetStatus === 'ready') {
+        updateValues.transferActDraftDocId =
+          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+            .transferActDraftDocId || null;
+      } else if (dto.targetStatus === 'transferred') {
+        updateValues.transferActSignedDocId =
+          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+            .transferActSignedDocId || null;
+        updateValues.isRegisteredAtServiceCenter =
+          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+            .isRegisteredAtServiceCenter ?? false;
+      } else if (dto.targetStatus === 'returned') {
+        updateValues.returnActDocId =
+          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+            .returnActDocId || null;
+      } else if (dto.targetStatus === 'lost') {
+        updateValues.lostReason = (
+          dto as any
+        ) /* eslint-disable-line @typescript-eslint/no-explicit-any */.lostReason;
+      }
+
+      await tx
+        .update(vehicleStatusHistory)
+        .set(updateValues)
+        .where(eq(vehicleStatusHistory.id, historyId));
+    });
+  }
 }

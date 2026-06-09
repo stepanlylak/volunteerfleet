@@ -47,10 +47,12 @@ import {
   vehiclePhotoUploadMetadataSchema,
   vehicleUpdateSchema,
   vehicleTransitionRequestSchema,
+  vehicleStatusHistoryEditRequestSchema,
   type IdParam,
   type VehicleDocumentsQuery,
   type VehicleExpensesQuery,
   type VehicleTransitionRequest,
+  type VehicleStatusHistoryEditRequest,
 } from '@volunteerfleet/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { OrgRoles } from '../../common/decorators/org-roles.decorator.js';
@@ -189,6 +191,19 @@ export class VehiclesController {
     );
   }
 
+  @Patch(':id/status-history/:historyId')
+  @OrgRoles('coordinator', 'volunteer')
+  async editStatusHistory(
+    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @Param('historyId') historyId: string,
+    @Body(new ZodValidationPipe(vehicleStatusHistoryEditRequestSchema))
+    dto: VehicleStatusHistoryEditRequest,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<void> {
+    if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.transitionService.editStatusHistory(params.id, historyId, dto, user.activeOrgId);
+  }
 
   @Get(':id/expenses')
   @OrgRoles('coordinator', 'volunteer', 'viewer')
