@@ -1,32 +1,29 @@
 import { z } from 'zod';
 import { CURRENCIES } from '../constants/currencies.js';
-import { uuidSchema } from './common.js';
-import { expenseCategorySchema, fundingSourceSchema } from './dictionary.js';
+import { positiveMinorAmountSchema, uuidSchema } from './common.js';
+import { financialCategorySchema } from './dictionary.js';
 import { pageQuerySchema, pageResultSchema } from './pagination.js';
 
 export const currencySchema = z.enum(CURRENCIES);
 export const rateSourceSchema = z.enum(['default', 'manual']);
 
 const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const moneySchema = z.number().positive();
 const rateSchema = z.number().positive();
-const nullableUuidSchema = uuidSchema.optional().nullable();
 
 const expenseMutableFields = {
-  vehicleId: nullableUuidSchema,
+  vehicleId: uuidSchema,
   expenseDate: dateOnlySchema,
-  amount: moneySchema,
+  amountMinor: positiveMinorAmountSchema,
   currency: currencySchema,
   rate: rateSchema.optional(),
   categoryId: uuidSchema,
-  fundingSourceId: uuidSchema,
   description: z.string().trim().max(2000).optional().nullable(),
 };
 
-export const expenseCreateSchema = z.object(expenseMutableFields);
+export const expenseCreateSchema = z.object(expenseMutableFields).strict();
 export type ExpenseCreate = z.infer<typeof expenseCreateSchema>;
 
-export const expenseUpdateSchema = z.object(expenseMutableFields).partial();
+export const expenseUpdateSchema = z.object(expenseMutableFields).partial().strict();
 export type ExpenseUpdate = z.infer<typeof expenseUpdateSchema>;
 
 export const expenseUserInfoSchema = z.object({
@@ -45,17 +42,15 @@ export type ExpenseVehicleSummary = z.infer<typeof expenseVehicleSummarySchema>;
 
 export const expenseResponseSchema = z.object({
   id: uuidSchema,
-  vehicleId: uuidSchema.nullable(),
-  vehicle: expenseVehicleSummarySchema.optional().nullable(),
+  vehicleId: uuidSchema,
+  vehicle: expenseVehicleSummarySchema,
   expenseDate: dateOnlySchema,
-  amount: z.number(),
+  amountMinor: positiveMinorAmountSchema,
   currency: currencySchema,
   rate: z.number(),
   rateSource: rateSourceSchema,
   categoryId: uuidSchema,
-  category: expenseCategorySchema,
-  fundingSourceId: uuidSchema,
-  fundingSource: fundingSourceSchema,
+  category: financialCategorySchema,
   description: z.string().nullable(),
   createdBy: expenseUserInfoSchema,
   updatedBy: expenseUserInfoSchema,
@@ -69,7 +64,6 @@ export type ExpenseResponse = z.infer<typeof expenseResponseSchema>;
 export const expenseListQuerySchema = pageQuerySchema.extend({
   vehicleId: uuidSchema.optional(),
   categoryId: uuidSchema.optional(),
-  fundingSourceId: uuidSchema.optional(),
   dateFrom: dateOnlySchema.optional(),
   dateTo: dateOnlySchema.optional(),
   currency: currencySchema.optional(),

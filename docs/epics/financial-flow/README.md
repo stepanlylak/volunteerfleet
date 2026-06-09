@@ -35,25 +35,25 @@
 
 ## Індекс
 
-| #                   | Назва                                                       | Фаза | Залежності          | Статус |
-| ------------------- | ----------------------------------------------------------- | :--: | ------------------- | ------ |
-| [FIN-1](FIN-1.md)   | Shared financial contracts                                  |  0   | —                   | todo   |
-| [FIN-17](FIN-17.md) | Гроші як цілі мінорні одиниці (центи/копійки)               |  0   | FIN-1               | todo   |
-| [FIN-2](FIN-2.md)   | Схема `donors` + `organization_donors`                      |  0   | FIN-1               | todo   |
-| [FIN-3](FIN-3.md)   | Схема `donations`                                           |  0   | FIN-2               | todo   |
-| [FIN-4](FIN-4.md)   | `financial_categories`, видалення `funding_sources`, міграція |  0   | FIN-2, FIN-3        | todo   |
-| [FIN-5](FIN-5.md)   | Donors API                                                  |  1   | FIN-4               | todo   |
-| [FIN-6](FIN-6.md)   | Donations CRUD                                              |  1   | FIN-5               | todo   |
-| [FIN-7](FIN-7.md)   | Expense flow без funding source                             |  1   | FIN-4               | todo   |
-| [FIN-8](FIN-8.md)   | Unified financial journal і balance                         |  1   | FIN-6, FIN-7        | todo   |
-| [FIN-9](FIN-9.md)   | Cleanup старих reports + reporting-ready queries            |  1   | FIN-8               | todo   |
-| [FIN-10](FIN-10.md) | Reusable money fields                                       |  2   | FIN-6, FIN-7        | todo   |
-| [FIN-11](FIN-11.md) | Donor picker і сторінка донорів                             |  2   | FIN-5               | todo   |
-| [FIN-12](FIN-12.md) | Donation form                                               |  2   | FIN-6, FIN-10, FIN-11 | todo |
-| [FIN-13](FIN-13.md) | Finance page                                                |  2   | FIN-8, FIN-12       | todo   |
-| [FIN-14](FIN-14.md) | Finance tab у картці авто                                   |  2   | FIN-13              | todo   |
-| [FIN-15](FIN-15.md) | Document details modal                                      |  2   | FIN-7               | todo   |
-| [FIN-16](FIN-16.md) | Наскрізні тести і документація                              |  3   | FIN-9, FIN-14, FIN-15 | todo |
+| #                   | Назва                                                         | Фаза | Залежності            | Статус |
+| ------------------- | ------------------------------------------------------------- | :--: | --------------------- | ------ |
+| [FIN-1](FIN-1.md)   | Shared financial contracts                                    |  0   | —                     | done   |
+| [FIN-17](FIN-17.md) | Гроші як цілі мінорні одиниці (центи/копійки)                 |  0   | FIN-1                 | ready  |
+| [FIN-2](FIN-2.md)   | Схема `donors` + `organization_donors`                        |  0   | FIN-1                 | ready  |
+| [FIN-3](FIN-3.md)   | Схема `donations`                                             |  0   | FIN-2                 | todo   |
+| [FIN-4](FIN-4.md)   | `financial_categories`, видалення `funding_sources`, міграція |  0   | FIN-2, FIN-3          | todo   |
+| [FIN-5](FIN-5.md)   | Donors API                                                    |  1   | FIN-4                 | todo   |
+| [FIN-6](FIN-6.md)   | Donations CRUD                                                |  1   | FIN-5                 | todo   |
+| [FIN-7](FIN-7.md)   | Expense flow без funding source                               |  1   | FIN-4                 | todo   |
+| [FIN-8](FIN-8.md)   | Unified financial journal і balance                           |  1   | FIN-6, FIN-7          | todo   |
+| [FIN-9](FIN-9.md)   | Cleanup старих reports + reporting-ready queries              |  1   | FIN-8                 | todo   |
+| [FIN-10](FIN-10.md) | Reusable money fields                                         |  2   | FIN-6, FIN-7          | todo   |
+| [FIN-11](FIN-11.md) | Donor picker і сторінка донорів                               |  2   | FIN-5                 | todo   |
+| [FIN-12](FIN-12.md) | Donation form                                                 |  2   | FIN-6, FIN-10, FIN-11 | todo   |
+| [FIN-13](FIN-13.md) | Finance page                                                  |  2   | FIN-8, FIN-12         | todo   |
+| [FIN-14](FIN-14.md) | Finance tab у картці авто                                     |  2   | FIN-13                | todo   |
+| [FIN-15](FIN-15.md) | Document details modal                                        |  2   | FIN-7                 | todo   |
+| [FIN-16](FIN-16.md) | Наскрізні тести і документація                                |  3   | FIN-9, FIN-14, FIN-15 | todo   |
 
 ## Критичний шлях
 
