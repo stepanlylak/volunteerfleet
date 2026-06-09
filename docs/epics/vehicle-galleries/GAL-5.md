@@ -3,10 +3,10 @@ id: GAL-5
 epic: vehicle-galleries
 phase: 1
 type: feat
-status: ready
+status: done
 depends_on: [GAL-4]
 parallelizable: false
-branch:
+branch: feat/gal-5-reorder-cover-move-delete
 pr:
 ---
 

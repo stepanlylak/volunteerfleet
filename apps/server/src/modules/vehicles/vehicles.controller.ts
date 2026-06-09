@@ -28,11 +28,14 @@ import type {
   JwtPayload,
   VehicleCreate,
   VehicleGalleryCreate,
+  VehicleGalleryItemMove,
+  VehicleGalleryItemOrderUpdate,
   VehicleGalleryItemResponse,
   VehicleGalleryItemUpdate,
   VehicleGalleryItemUploadMetadata,
   VehicleGalleryListResponse,
   VehicleGalleryResponse,
+  VehicleGallerySetCover,
   VehicleGalleryUpdate,
   VehicleListQuery,
   VehiclePhotoListResponse,
@@ -50,10 +53,13 @@ import {
   idParamSchema,
   vehicleCreateSchema,
   vehicleGalleryCreateSchema,
+  vehicleGalleryItemMoveSchema,
+  vehicleGalleryItemOrderUpdateSchema,
   vehicleGalleryItemParamsSchema,
   vehicleGalleryItemUpdateSchema,
   vehicleGalleryItemUploadMetadataSchema,
   vehicleGalleryParamsSchema,
+  vehicleGallerySetCoverSchema,
   vehicleGalleryUpdateSchema,
   vehicleListQuerySchema,
   vehiclePhotoOrderUpdateSchema,
@@ -333,6 +339,41 @@ export class VehiclesController {
     );
   }
 
+  @Patch(':id/galleries/:galleryId/items/order')
+  @OrgRoles('coordinator', 'volunteer')
+  reorderGalleryItems(
+    @Param(new ZodValidationPipe(vehicleGalleryParamsSchema)) params: VehicleGalleryParams,
+    @Body(new ZodValidationPipe(vehicleGalleryItemOrderUpdateSchema))
+    dto: VehicleGalleryItemOrderUpdate,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<VehicleGalleryItemResponse[]> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.galleryItemsService.reorder(
+      params.id,
+      params.galleryId,
+      dto,
+      user.sub,
+      user.activeOrgId,
+    );
+  }
+
+  @Patch(':id/galleries/:galleryId/cover')
+  @OrgRoles('coordinator', 'volunteer')
+  setGalleryCover(
+    @Param(new ZodValidationPipe(vehicleGalleryParamsSchema)) params: VehicleGalleryParams,
+    @Body(new ZodValidationPipe(vehicleGallerySetCoverSchema)) dto: VehicleGallerySetCover,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<VehicleGalleryResponse> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.galleryItemsService.setCover(
+      params.id,
+      params.galleryId,
+      dto,
+      user.sub,
+      user.activeOrgId,
+    );
+  }
+
   @Patch(':id/galleries/:galleryId/items/:itemId')
   @OrgRoles('coordinator', 'volunteer')
   updateGalleryItemCaption(
@@ -346,6 +387,41 @@ export class VehiclesController {
       params.galleryId,
       params.itemId,
       dto,
+      user.sub,
+      user.activeOrgId,
+    );
+  }
+
+  @Post(':id/galleries/:galleryId/items/:itemId/move')
+  @OrgRoles('coordinator', 'volunteer')
+  moveGalleryItem(
+    @Param(new ZodValidationPipe(vehicleGalleryItemParamsSchema)) params: VehicleGalleryItemParams,
+    @Body(new ZodValidationPipe(vehicleGalleryItemMoveSchema)) dto: VehicleGalleryItemMove,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<VehicleGalleryItemResponse> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.galleryItemsService.move(
+      params.id,
+      params.galleryId,
+      params.itemId,
+      dto,
+      user.sub,
+      user.activeOrgId,
+    );
+  }
+
+  @Delete(':id/galleries/:galleryId/items/:itemId')
+  @OrgRoles('coordinator', 'volunteer')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeGalleryItem(
+    @Param(new ZodValidationPipe(vehicleGalleryItemParamsSchema)) params: VehicleGalleryItemParams,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<void> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.galleryItemsService.softDelete(
+      params.id,
+      params.galleryId,
+      params.itemId,
       user.sub,
       user.activeOrgId,
     );
