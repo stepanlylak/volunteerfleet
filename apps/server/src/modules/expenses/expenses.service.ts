@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, desc, eq, gte, inArray, isNull, lte, or, SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, lte, SQL, sql } from 'drizzle-orm';
 import { BASE_CURRENCY, minorAmountSchema, type Currency } from '@volunteerfleet/shared';
 import type {
   ExpenseCreate,
@@ -156,13 +156,15 @@ export class ExpensesService {
     userId: string,
     organizationId: string,
   ): Promise<ExpenseResponse> {
-    if (input.vehicleId) {
-      const vehicle = await this.db.query.vehicles.findFirst({
-        where: and(eq(vehicles.id, input.vehicleId), eq(vehicles.organizationId, organizationId)),
-      });
-      if (!vehicle) {
-        throw new NotFoundException(`Vehicle ${input.vehicleId} not found in this organization`);
-      }
+    const vehicle = await this.db.query.vehicles.findFirst({
+      where: and(
+        eq(vehicles.id, input.vehicleId),
+        eq(vehicles.organizationId, organizationId),
+        isNull(vehicles.deletedAt),
+      ),
+    });
+    if (!vehicle) {
+      throw new NotFoundException(`Vehicle ${input.vehicleId} not found in this organization`);
     }
 
     const rateInfo = this.resolveCreateRate(input);
@@ -171,7 +173,7 @@ export class ExpensesService {
       .insert(expenses)
       .values({
         organizationId,
-        vehicleId: input.vehicleId ?? null,
+        vehicleId: input.vehicleId,
         expenseDate: input.expenseDate,
         amountMinor: input.amountMinor,
         currency: input.currency,
@@ -304,7 +306,7 @@ export class ExpensesService {
   }
 
   private hasJoinedActiveVehicle(): SQL<unknown> {
-    return or(isNull(expenses.vehicleId), isNull(vehicles.deletedAt))!;
+    return isNull(vehicles.deletedAt);
   }
 
   private responseRelations() {

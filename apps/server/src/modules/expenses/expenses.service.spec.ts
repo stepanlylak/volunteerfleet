@@ -149,6 +149,42 @@ describe('ExpensesService', () => {
     expect(insertedValues).toMatchObject({ rate: '1.000000', rateSource: 'default' });
   });
 
+  it('throws 404 when vehicle does not belong to the organization on create', async () => {
+    db.query.vehicles.findFirst.mockResolvedValue(undefined);
+
+    await expect(
+      svc.create(
+        {
+          vehicleId: '33333333-3333-3333-3333-333333333333',
+          expenseDate: '2026-05-21',
+          amountMinor: 10_000,
+          currency: 'UAH',
+          categoryId: '44444444-4444-4444-4444-444444444444',
+        },
+        userId,
+        orgId,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('throws 404 when vehicle is deleted (inactive) on create', async () => {
+    db.query.vehicles.findFirst.mockResolvedValue(undefined);
+
+    await expect(
+      svc.create(
+        {
+          vehicleId: '33333333-3333-3333-3333-333333333333',
+          expenseDate: '2026-05-21',
+          amountMinor: 10_000,
+          currency: 'UAH',
+          categoryId: '44444444-4444-4444-4444-444444444444',
+        },
+        userId,
+        orgId,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('soft deletes existing expense', async () => {
     db.query.expenses.findFirst.mockResolvedValue({ id: 'expense-id' });
     db.update.mockReturnValue({
