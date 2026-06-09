@@ -3,10 +3,10 @@ id: GAL-4
 epic: vehicle-galleries
 phase: 1
 type: feat
-status: ready
+status: done
 depends_on: [GAL-3]
 parallelizable: false
-branch:
+branch: feat/gal-4-gallery-items
 pr:
 ---
 
