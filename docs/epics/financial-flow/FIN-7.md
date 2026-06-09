@@ -3,7 +3,7 @@ id: FIN-7
 epic: financial-flow
 phase: 1
 type: feat
-status: todo
+status: ready
 depends_on: [FIN-4]
 parallelizable: true
 branch: feat/fin-7-expense-without-funding

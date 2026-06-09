@@ -5,8 +5,6 @@ import { VehicleTransitionService } from './vehicle-transition.service.js';
 describe('VehicleTransitionService', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let db: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let exchangeRatesService: any;
   let vehiclesService: unknown;
   let svc: VehicleTransitionService;
 
@@ -44,19 +42,11 @@ describe('VehicleTransitionService', () => {
       }),
     };
 
-    exchangeRatesService = {
-      getRate: vi.fn().mockReturnValue(40.5),
-    };
-
     vehiclesService = {
       findById: vi.fn().mockResolvedValue({ id: vehicleId, status: 'paid' }),
     };
 
-    svc = new VehicleTransitionService(
-      db as never,
-      exchangeRatesService as never,
-      vehiclesService as never,
-    );
+    svc = new VehicleTransitionService(db as never, vehiclesService as never);
   });
 
   it('throws BadRequestException for invalid transition matrix', async () => {
@@ -86,16 +76,12 @@ describe('VehicleTransitionService', () => {
       expectedCurrentStatus: 'new',
       targetStatus: 'paid',
       transitionDate: '2026-05-21',
-      purchasePrice: 1000,
-      purchaseCurrency: 'USD',
-      purchaseRateSource: 'default',
       isLocalPurchase: true,
       note: 'test note',
     } as unknown as import('@volunteerfleet/shared').VehicleTransitionRequest);
 
     expect(db.update).toHaveBeenCalled();
     expect(db.insert).toHaveBeenCalled();
-    expect(exchangeRatesService.getRate).toHaveBeenCalledWith(expect.any(Date), 'USD');
   });
 
   it('throws BadRequestException if paid -> arrived is attempted but not a local purchase', async () => {

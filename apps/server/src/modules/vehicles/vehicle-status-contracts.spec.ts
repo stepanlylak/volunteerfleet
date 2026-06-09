@@ -35,10 +35,6 @@ describe('vehicle status transition contracts', () => {
       expectedCurrentStatus: 'new',
       targetStatus: 'paid',
       transitionDate: '2026-06-09',
-      purchasePrice: 5000,
-      purchaseCurrency: 'USD',
-      purchaseRate: 41.25,
-      purchaseRateSource: 'manual',
     });
     const transferred = vehicleTransitionRequestSchema.parse({
       expectedCurrentStatus: 'ready',
@@ -58,10 +54,6 @@ describe('vehicle status transition contracts', () => {
       expectedCurrentStatus: 'new',
       targetStatus: 'paid',
       transitionDate: '2026-06-09',
-      purchasePrice: 5000,
-      purchaseCurrency: 'USD',
-      purchaseRate: 41.25,
-      purchaseRateSource: 'manual',
     },
     {
       expectedCurrentStatus: 'paid',
@@ -110,9 +102,6 @@ describe('vehicle status transition contracts', () => {
       targetStatus: 'paid',
       transitionDate: '2026-06-09',
       purchasePrice: 5000,
-      purchaseCurrency: 'USD',
-      purchaseRate: 41.25,
-      purchaseRateSource: 'manual',
       lostReason: 'This field belongs to the lost transition',
     });
 

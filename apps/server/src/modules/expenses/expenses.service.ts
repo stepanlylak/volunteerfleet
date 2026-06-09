@@ -12,13 +12,7 @@ import type {
 } from '@volunteerfleet/shared';
 import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
-import {
-  expenseCategories,
-  expenses,
-  fundingSources,
-  users,
-  vehicles,
-} from '../../db/schema/index.js';
+import { expenses, financialCategories, users, vehicles } from '../../db/schema/index.js';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service.js';
 
 const EXPENSE_SORT_WHITELIST = [
@@ -37,8 +31,7 @@ interface SortItem {
 
 type ExpenseRow = typeof expenses.$inferSelect & {
   vehicle?: Pick<typeof vehicles.$inferSelect, 'id' | 'identifier' | 'brand' | 'model'> | null;
-  category?: typeof expenseCategories.$inferSelect;
-  fundingSource?: typeof fundingSources.$inferSelect;
+  category?: typeof financialCategories.$inferSelect;
   createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   updatedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   deletedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'> | null;
@@ -62,7 +55,6 @@ export class ExpensesService {
       sort,
       vehicleId,
       categoryId,
-      fundingSourceId,
       dateFrom,
       dateTo,
       currency,
@@ -79,7 +71,6 @@ export class ExpensesService {
     }
     if (vehicleId) conditions.push(eq(expenses.vehicleId, vehicleId));
     if (categoryId) conditions.push(eq(expenses.categoryId, categoryId));
-    if (fundingSourceId) conditions.push(eq(expenses.fundingSourceId, fundingSourceId));
     if (dateFrom) conditions.push(gte(expenses.expenseDate, dateFrom));
     if (dateTo) conditions.push(lte(expenses.expenseDate, dateTo));
     if (currency) conditions.push(eq(expenses.currency, currency));
@@ -187,7 +178,6 @@ export class ExpensesService {
         rate: rateInfo.rate.toFixed(6),
         rateSource: rateInfo.rateSource,
         categoryId: input.categoryId,
-        fundingSourceId: input.fundingSourceId,
         description: input.description ?? null,
         createdBy: userId,
         updatedBy: userId,
@@ -233,9 +223,6 @@ export class ExpensesService {
     if (input.amountMinor !== undefined) updateValues.amountMinor = input.amountMinor;
     if (input.currency !== undefined) updateValues.currency = input.currency;
     if (input.categoryId !== undefined) updateValues.categoryId = input.categoryId;
-    if (input.fundingSourceId !== undefined) {
-      updateValues.fundingSourceId = input.fundingSourceId;
-    }
     if (input.description !== undefined) updateValues.description = input.description;
 
     if (input.currency === BASE_CURRENCY) {
@@ -324,7 +311,6 @@ export class ExpensesService {
     return {
       vehicle: { columns: { id: true, identifier: true, brand: true, model: true } },
       category: true,
-      fundingSource: true,
       createdByUser: { columns: { id: true, fullName: true } },
       updatedByUser: { columns: { id: true, fullName: true } },
       deletedByUser: { columns: { id: true, fullName: true } },

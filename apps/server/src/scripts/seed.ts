@@ -3,23 +3,23 @@ import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import { createDb, createPool } from '../db/client.js';
-import { expenseCategories, users } from '../db/schema/index.js';
-import { SEED_EXPENSE_CATEGORY_IDS } from './seed-ids.js';
+import { financialCategories, users } from '../db/schema/index.js';
+import { SEED_FINANCIAL_CATEGORY_IDS } from './seed-ids.js';
 
-interface ExpenseCategorySeed {
+interface FinancialCategorySeed {
   id: string;
   name: string;
   sortOrder: number;
 }
 
-const EXPENSE_CATEGORIES: ExpenseCategorySeed[] = [
-  { id: SEED_EXPENSE_CATEGORY_IDS.purchase, name: 'Купівля авто', sortOrder: 10 },
-  { id: SEED_EXPENSE_CATEGORY_IDS.repair, name: 'Ремонт', sortOrder: 20 },
-  { id: SEED_EXPENSE_CATEGORY_IDS.fuel, name: 'Паливо', sortOrder: 30 },
-  { id: SEED_EXPENSE_CATEGORY_IDS.parts, name: 'Запчастини', sortOrder: 40 },
-  { id: SEED_EXPENSE_CATEGORY_IDS.logistics, name: 'Логістика', sortOrder: 50 },
-  { id: SEED_EXPENSE_CATEGORY_IDS.documents, name: 'Документи', sortOrder: 60 },
-  { id: SEED_EXPENSE_CATEGORY_IDS.other, name: 'Інше', sortOrder: 70 },
+const FINANCIAL_CATEGORIES: FinancialCategorySeed[] = [
+  { id: SEED_FINANCIAL_CATEGORY_IDS.purchase, name: 'Купівля авто', sortOrder: 10 },
+  { id: SEED_FINANCIAL_CATEGORY_IDS.repair, name: 'Ремонт', sortOrder: 20 },
+  { id: SEED_FINANCIAL_CATEGORY_IDS.fuel, name: 'Паливо', sortOrder: 30 },
+  { id: SEED_FINANCIAL_CATEGORY_IDS.parts, name: 'Запчастини', sortOrder: 40 },
+  { id: SEED_FINANCIAL_CATEGORY_IDS.logistics, name: 'Логістика', sortOrder: 50 },
+  { id: SEED_FINANCIAL_CATEGORY_IDS.documents, name: 'Документи', sortOrder: 60 },
+  { id: SEED_FINANCIAL_CATEGORY_IDS.general, name: 'Загальні потреби', sortOrder: 70 },
 ];
 
 function requireEnv(key: string): string {
@@ -60,9 +60,9 @@ async function seedSuperuser(db: ReturnType<typeof createDb>): Promise<void> {
 // Global reference data is insert-only by id: missing rows are created, existing
 // rows are left untouched. This keeps the seed safe to run on every container
 // start without resetting admin edits.
-async function seedExpenseCategories(db: ReturnType<typeof createDb>): Promise<void> {
-  await db.insert(expenseCategories).values(EXPENSE_CATEGORIES).onConflictDoNothing();
-  console.log('[seed] expense_categories ensured');
+async function seedFinancialCategories(db: ReturnType<typeof createDb>): Promise<void> {
+  await db.insert(financialCategories).values(FINANCIAL_CATEGORIES).onConflictDoNothing();
+  console.log('[seed] financial_categories ensured');
 }
 
 async function main(): Promise<void> {
@@ -72,7 +72,7 @@ async function main(): Promise<void> {
 
   try {
     await seedSuperuser(db);
-    await seedExpenseCategories(db);
+    await seedFinancialCategories(db);
     console.log('[seed] done');
   } finally {
     await pool.end();

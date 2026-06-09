@@ -1,35 +1,27 @@
 import { NotFoundException } from '@nestjs/common';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { FundingSourcesService } from './funding-sources.service.js';
+import { FinancialCategoriesService } from './financial-categories.service.js';
 
-function makeRow(
-  overrides: Partial<{
-    id: string;
-    name: string;
-    type: 'donor' | 'fundraiser' | 'initiative' | 'other';
-    description: string | null;
-  }> = {},
-) {
+function makeRow(overrides: Partial<{ id: string; name: string; sortOrder: number }> = {}) {
   const now = new Date('2026-05-21T10:00:00.000Z');
   return {
-    id: '33333333-3333-3333-3333-333333333333',
-    name: 'Загальний збір',
-    type: 'fundraiser' as const,
-    description: null,
+    id: '22222222-2222-2222-2222-222222222222',
+    name: 'Ремонт',
+    sortOrder: 20,
     createdAt: now,
     updatedAt: now,
     ...overrides,
   };
 }
 
-describe('FundingSourcesService', () => {
+describe('FinancialCategoriesService', () => {
   let db: {
     select: ReturnType<typeof vi.fn>;
     insert: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
-  let svc: FundingSourcesService;
+  let svc: FinancialCategoriesService;
 
   beforeEach(() => {
     db = {
@@ -38,10 +30,10 @@ describe('FundingSourcesService', () => {
       update: vi.fn(),
       delete: vi.fn(),
     };
-    svc = new FundingSourcesService(db as never);
+    svc = new FinancialCategoriesService(db as never);
   });
 
-  it('list returns rows', async () => {
+  it('list returns mapped rows', async () => {
     db.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         orderBy: vi.fn().mockResolvedValue([makeRow()]),
@@ -49,29 +41,21 @@ describe('FundingSourcesService', () => {
     });
     const result = await svc.list();
     expect(result).toHaveLength(1);
-    expect(result[0]!.type).toBe('fundraiser');
+    expect(result[0]!.name).toBe('Ремонт');
   });
 
-  it('create normalizes optional description to null', async () => {
-    const valuesMock = vi.fn().mockReturnValue({
-      returning: vi.fn().mockResolvedValue([makeRow({ name: 'Donor A', type: 'donor' })]),
+  it('create returns mapped row', async () => {
+    const row = makeRow({ name: 'Паливо', sortOrder: 30 });
+    db.insert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([row]),
+      }),
     });
-    db.insert.mockReturnValue({ values: valuesMock });
-    const result = await svc.create({
-      name: 'Donor A',
-      type: 'donor',
-      organizationId: '11111111-1111-1111-1111-111111111111',
-    });
-    expect(valuesMock).toHaveBeenCalledWith({
-      name: 'Donor A',
-      type: 'donor',
-      organizationId: '11111111-1111-1111-1111-111111111111',
-      description: null,
-    });
-    expect(result.name).toBe('Donor A');
+    const result = await svc.create({ name: 'Паливо', sortOrder: 30 });
+    expect(result).toMatchObject({ name: 'Паливо', sortOrder: 30 });
   });
 
-  it('update throws NotFound', async () => {
+  it('update throws NotFound when missing', async () => {
     db.update.mockReturnValue({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
@@ -80,6 +64,15 @@ describe('FundingSourcesService', () => {
       }),
     });
     await expect(svc.update('id', { name: 'x' })).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('remove succeeds when row existed', async () => {
+    db.delete.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: 'x' }]),
+      }),
+    });
+    await expect(svc.remove('id')).resolves.toBeUndefined();
   });
 
   it('remove throws NotFound when no row', async () => {

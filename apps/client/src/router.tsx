@@ -8,10 +8,7 @@ import { ForbiddenPage } from './pages/forbidden/ForbiddenPage';
 import { LoginPage } from './pages/login/LoginPage';
 import { NotFoundPage } from './pages/not-found/NotFoundPage';
 import { DictionariesPage } from './pages/admin/DictionariesPage';
-import { FundingSourceReportPage } from './pages/FundingSourceReportPage';
-import { PublicFundingReportPage } from './pages/public/PublicFundingReportPage';
 import { PublicVehiclePage } from './pages/public/PublicVehiclePage';
-import { ReportsIndexPage } from './pages/ReportsIndexPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { VehicleCardPage } from './pages/vehicles/VehicleCardPage';
 import { VehicleReportPage } from './pages/VehicleReportPage';
@@ -38,11 +35,7 @@ export const router = createBrowserRouter([
       { path: 'expenses', element: <ExpensesListPage /> },
       {
         path: 'reports',
-        children: [
-          { index: true, element: <ReportsIndexPage /> },
-          { path: 'vehicle/:id', element: <VehicleReportPage /> },
-          { path: 'funding/:id', element: <FundingSourceReportPage /> },
-        ],
+        children: [{ path: 'vehicle/:id', element: <VehicleReportPage /> }],
       },
       {
         path: 'admin',
@@ -65,10 +58,7 @@ export const router = createBrowserRouter([
   {
     path: '/public',
     element: <PublicLayout />,
-    children: [
-      { path: ':orgId/vehicles/:vehicleId', element: <PublicVehiclePage /> },
-      { path: ':orgId/reports/funding/:id', element: <PublicFundingReportPage /> },
-    ],
+    children: [{ path: ':orgId/vehicles/:vehicleId', element: <PublicVehiclePage /> }],
   },
   // Error pages
   { path: '/403', element: <ForbiddenPage /> },

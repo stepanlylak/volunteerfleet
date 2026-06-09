@@ -10,7 +10,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { expenseCategories, fundingSources } from './dictionaries.js';
+import { financialCategories } from './dictionaries.js';
 import { currencyCodeEnum, rateSourceEnum } from './enums.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
@@ -25,9 +25,11 @@ export const expenses = pgTable(
     organizationId: uuid('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'restrict' }),
-    vehicleId: uuid('vehicle_id').references(() => vehicles.id, {
-      onDelete: 'restrict',
-    }),
+    vehicleId: uuid('vehicle_id')
+      .notNull()
+      .references(() => vehicles.id, {
+        onDelete: 'restrict',
+      }),
     expenseDate: date('expense_date').notNull(),
     amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
     currency: currencyCodeEnum('currency').notNull(),
@@ -35,10 +37,7 @@ export const expenses = pgTable(
     rateSource: rateSourceEnum('rate_source').notNull(),
     categoryId: uuid('category_id')
       .notNull()
-      .references(() => expenseCategories.id, { onDelete: 'restrict' }),
-    fundingSourceId: uuid('funding_source_id')
-      .notNull()
-      .references(() => fundingSources.id, { onDelete: 'restrict' }),
+      .references(() => financialCategories.id, { onDelete: 'restrict' }),
     description: text('description'),
     createdBy: uuid('created_by')
       .notNull()
@@ -62,7 +61,6 @@ export const expenses = pgTable(
     organizationIdx: index('expenses_organization_id_idx').on(table.organizationId),
     vehicleIdx: index('expenses_vehicle_id_idx').on(table.vehicleId),
     expenseDateIdx: index('expenses_expense_date_idx').on(table.expenseDate),
-    fundingSourceIdx: index('expenses_funding_source_id_idx').on(table.fundingSourceId),
     categoryIdx: index('expenses_category_id_idx').on(table.categoryId),
   }),
 );

@@ -1,23 +1,17 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { Readable } from 'stream';
 import { and, asc, eq, isNull } from 'drizzle-orm';
-import type {
-  FundingSourceReportQuery,
-  PublicFundingReportResponse,
-  PublicVehicleResponse,
-} from '@volunteerfleet/shared';
+import type { PublicVehicleResponse } from '@volunteerfleet/shared';
 import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
 import { vehiclePhotos, vehicles } from '../../db/schema/index.js';
 import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
-import { ReportsService } from '../reports/reports.service.js';
 import { VehiclePhotosService } from '../vehicles/vehicle-photos.service.js';
 
 @Injectable()
 export class PublicService {
   constructor(
     @Inject(DB) private readonly db: Database,
-    private readonly reports: ReportsService,
     private readonly photos: VehiclePhotosService,
   ) {}
 
@@ -51,32 +45,6 @@ export class PublicService {
     photoId: string,
   ): Promise<{ body: Readable; contentType: string; contentLength?: number }> {
     return this.photos.getDownloadStream(photoId, true);
-  }
-
-  async getFundingReport(
-    orgId: string,
-    fundingSourceId: string,
-    query: FundingSourceReportQuery,
-  ): Promise<PublicFundingReportResponse> {
-    const report = await this.reports.getPublicFundingSourceReport(fundingSourceId, query);
-
-    if (report.fundingSource.organizationId !== orgId) {
-      throw new NotFoundException('PUBLIC_REPORT_NOT_FOUND');
-    }
-
-    return {
-      fundingSource: {
-        id: report.fundingSource.id,
-        name: report.fundingSource.name,
-        type: report.fundingSource.type,
-        description: report.fundingSource.description,
-      },
-      dateFrom: report.dateFrom,
-      dateTo: report.dateTo,
-      totalUahMinor: report.totalUahMinor,
-      byCategory: report.byCategory,
-      byVehicle: report.byVehicle.filter((row) => row.vehicle != null),
-    };
   }
 
   private async getPublicPhotos(vehicleId: string): Promise<PublicVehicleResponse['photos']> {

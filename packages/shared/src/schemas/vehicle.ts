@@ -105,10 +105,6 @@ export const vehicleStatusHistorySchema = z.object({
   changedAt: z.string(),
   transitionDate: z.string(),
 
-  purchasePrice: z.number().nullable(),
-  purchaseCurrency: z.enum(['UAH', 'USD', 'EUR']).nullable(),
-  purchaseRate: z.number().nullable(),
-  purchaseRateSource: z.enum(['default', 'manual']).nullable(),
   isLocalPurchase: z.boolean().nullable(),
 
   isRegisteredAtServiceCenter: z.boolean().nullable(),

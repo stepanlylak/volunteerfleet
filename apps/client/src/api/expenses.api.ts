@@ -13,7 +13,6 @@ export interface ExpensesListParams {
   sort?: string;
   vehicleId?: string;
   categoryId?: string;
-  fundingSourceId?: string;
   dateFrom?: string;
   dateTo?: string;
 }

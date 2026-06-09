@@ -15,14 +15,12 @@ import {
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
 import { vehicles, vehicleStatusHistory, documents } from '../../db/schema/index.js';
-import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service.js';
 import { VehiclesService } from './vehicles.service.js';
 
 @Injectable()
 export class VehicleTransitionService {
   constructor(
     @Inject(DB) private readonly db: Database,
-    private readonly exchangeRatesService: ExchangeRatesService,
     private readonly vehiclesService: VehiclesService,
   ) {}
 
@@ -159,23 +157,6 @@ export class VehicleTransitionService {
       // Handle specific status fields
       if (dto.targetStatus === 'paid') {
         const d = dto;
-        if (d.purchasePrice) {
-          historyValues.purchasePrice = d.purchasePrice.toString();
-          historyValues.purchaseCurrency = d.purchaseCurrency;
-          historyValues.purchaseRateSource = d.purchaseRateSource;
-
-          if (d.purchaseRateSource === 'default' && d.purchaseCurrency !== 'UAH') {
-            const defaultRate = this.exchangeRatesService.getRate(
-              new Date(d.transitionDate),
-              d.purchaseCurrency,
-            );
-            historyValues.purchaseRate = defaultRate.toString();
-          } else if (d.purchaseCurrency === 'UAH') {
-            historyValues.purchaseRate = '1';
-          } else {
-            historyValues.purchaseRate = d.purchaseRate.toString();
-          }
-        }
         historyValues.isLocalPurchase = d.isLocalPurchase ?? false;
         historyValues.registrationDocId = d.registrationDocId || null;
       } else if (dto.targetStatus === 'in_transit') {
@@ -400,26 +381,8 @@ export class VehicleTransitionService {
       };
 
       if (dto.targetStatus === 'paid') {
-        const d = dto as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-        if (d.purchasePrice) {
-          updateValues.purchasePrice = d.purchasePrice.toString();
-          updateValues.purchaseCurrency = d.purchaseCurrency;
-          updateValues.purchaseRateSource = d.purchaseRateSource;
-
-          if (d.purchaseRateSource === 'default' && d.purchaseCurrency !== 'UAH') {
-            const defaultRate = this.exchangeRatesService.getRate(
-              new Date(d.transitionDate),
-              d.purchaseCurrency,
-            );
-            updateValues.purchaseRate = defaultRate.toString();
-          } else if (d.purchaseCurrency === 'UAH') {
-            updateValues.purchaseRate = '1';
-          } else {
-            updateValues.purchaseRate = d.purchaseRate.toString();
-          }
-        }
-        updateValues.isLocalPurchase = d.isLocalPurchase ?? false;
-        updateValues.registrationDocId = d.registrationDocId || null;
+        updateValues.isLocalPurchase = dto.isLocalPurchase ?? false;
+        updateValues.registrationDocId = dto.registrationDocId || null;
       } else if (dto.targetStatus === 'in_transit') {
         updateValues.customsDeclarationDocId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */

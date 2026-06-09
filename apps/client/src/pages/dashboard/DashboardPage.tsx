@@ -75,11 +75,6 @@ const expenseColumns: ColumnsType<ExpenseResponse> = [
     align: 'right',
     render: (value: number, row: ExpenseResponse) => formatCurrency(value, row.currency),
   },
-  {
-    title: 'Джерело',
-    dataIndex: ['fundingSource', 'name'],
-    render: (v: string) => v ?? '—',
-  },
 ];
 
 export function DashboardPage() {

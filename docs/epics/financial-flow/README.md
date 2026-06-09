@@ -41,10 +41,10 @@
 | [FIN-17](FIN-17.md) | Гроші як цілі мінорні одиниці (центи/копійки)                 |  0   | FIN-1                 | done   |
 | [FIN-2](FIN-2.md)   | Схема `donors` + `organization_donors`                        |  0   | FIN-1                 | done   |
 | [FIN-3](FIN-3.md)   | Схема `donations`                                             |  0   | FIN-2                 | done   |
-| [FIN-4](FIN-4.md)   | `financial_categories`, видалення `funding_sources`, міграція |  0   | FIN-2, FIN-3          | ready  |
-| [FIN-5](FIN-5.md)   | Donors API                                                    |  1   | FIN-4                 | todo   |
+| [FIN-4](FIN-4.md)   | `financial_categories`, видалення `funding_sources`, міграція |  0   | FIN-2, FIN-3          | done   |
+| [FIN-5](FIN-5.md)   | Donors API                                                    |  1   | FIN-4                 | ready  |
 | [FIN-6](FIN-6.md)   | Donations CRUD                                                |  1   | FIN-5                 | todo   |
-| [FIN-7](FIN-7.md)   | Expense flow без funding source                               |  1   | FIN-4                 | todo   |
+| [FIN-7](FIN-7.md)   | Expense flow без funding source                               |  1   | FIN-4                 | ready  |
 | [FIN-8](FIN-8.md)   | Unified financial journal і balance                           |  1   | FIN-6, FIN-7          | todo   |
 | [FIN-9](FIN-9.md)   | Cleanup старих reports + reporting-ready queries              |  1   | FIN-8                 | todo   |
 | [FIN-10](FIN-10.md) | Reusable money fields                                         |  2   | FIN-6, FIN-7          | todo   |
