@@ -3,7 +3,8 @@ id: FIN-5
 epic: financial-flow
 phase: 1
 type: feat
-status: ready
+status: done
+branch: feat/fin-phase-1
 depends_on: [FIN-4]
 parallelizable: false
 branch: feat/fin-5-donors-api
