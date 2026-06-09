@@ -3,7 +3,7 @@ id: FIN-2
 epic: financial-flow
 phase: 0
 type: feat
-status: ready
+status: done
 depends_on: [FIN-1]
 parallelizable: false
 branch: feat/fin-phase-0

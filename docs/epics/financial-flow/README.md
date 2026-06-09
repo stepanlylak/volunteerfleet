@@ -39,8 +39,8 @@
 | ------------------- | ------------------------------------------------------------- | :--: | --------------------- | ------ |
 | [FIN-1](FIN-1.md)   | Shared financial contracts                                    |  0   | —                     | done   |
 | [FIN-17](FIN-17.md) | Гроші як цілі мінорні одиниці (центи/копійки)                 |  0   | FIN-1                 | done   |
-| [FIN-2](FIN-2.md)   | Схема `donors` + `organization_donors`                        |  0   | FIN-1                 | ready  |
-| [FIN-3](FIN-3.md)   | Схема `donations`                                             |  0   | FIN-2                 | todo   |
+| [FIN-2](FIN-2.md)   | Схема `donors` + `organization_donors`                        |  0   | FIN-1                 | done   |
+| [FIN-3](FIN-3.md)   | Схема `donations`                                             |  0   | FIN-2                 | ready  |
 | [FIN-4](FIN-4.md)   | `financial_categories`, видалення `funding_sources`, міграція |  0   | FIN-2, FIN-3          | todo   |
 | [FIN-5](FIN-5.md)   | Donors API                                                    |  1   | FIN-4                 | todo   |
 | [FIN-6](FIN-6.md)   | Donations CRUD                                                |  1   | FIN-5                 | todo   |
