@@ -78,7 +78,6 @@ describe('vehicle status transition contracts', () => {
       expectedCurrentStatus: 'arrived',
       targetStatus: 'in_repair',
       transitionDate: '2026-06-12',
-      repairNote: null,
     },
     {
       expectedCurrentStatus: 'in_repair',

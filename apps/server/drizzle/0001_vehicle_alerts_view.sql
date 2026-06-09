@@ -27,6 +27,14 @@ CREATE OR REPLACE VIEW "vehicle_alerts_view" AS (
    AND h_target.new_status = 'arrived'
   WHERE v.deleted_at IS NULL
     AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')
+    AND EXISTS (
+      SELECT 1
+      FROM vehicle_status_history p
+      WHERE p.vehicle_id = v.id
+        AND p.organization_id = v.organization_id
+        AND p.new_status = 'paid'
+        AND p.is_local_purchase = false
+    )
     AND NOT EXISTS (
       SELECT 1
       FROM vehicle_status_history h
