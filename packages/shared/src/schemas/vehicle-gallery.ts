@@ -20,6 +20,14 @@ export const vehicleGalleryNameSchema = nonEmptyString.max(255);
 const galleryDescriptionSchema = optionalNormalizedText(2000);
 const itemCaptionSchema = optionalNormalizedText(2000);
 
+export const vehicleGalleryParamsSchema = z
+  .object({
+    id: uuidSchema,
+    galleryId: uuidSchema,
+  })
+  .strict();
+export type VehicleGalleryParams = z.infer<typeof vehicleGalleryParamsSchema>;
+
 export const vehicleGalleryCreateSchema = z
   .object({
     name: vehicleGalleryNameSchema,

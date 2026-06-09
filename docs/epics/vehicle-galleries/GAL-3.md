@@ -3,10 +3,10 @@ id: GAL-3
 epic: vehicle-galleries
 phase: 1
 type: feat
-status: ready
+status: done
 depends_on: [GAL-2]
 parallelizable: false
-branch:
+branch: feat/gal-3-gallery-crud
 pr:
 ---
 
