@@ -3,10 +3,10 @@ id: FIN-17
 epic: financial-flow
 phase: 0
 type: refactor
-status: todo
+status: ready
 depends_on: [FIN-1]
 parallelizable: false
-branch: refactor/fin-17-money-minor-units
+branch: feat/fin-phase-0
 pr:
 ---
 

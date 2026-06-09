@@ -3,10 +3,10 @@ id: FIN-2
 epic: financial-flow
 phase: 0
 type: feat
-status: todo
+status: ready
 depends_on: [FIN-1]
 parallelizable: false
-branch: feat/fin-2-donors-schema
+branch: feat/fin-phase-0
 pr:
 ---
 

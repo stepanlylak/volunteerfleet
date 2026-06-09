@@ -6,24 +6,37 @@ export type FundingSourceType = (typeof FUNDING_SOURCE_TYPES)[number];
 
 const sortOrderSchema = z.number().int().min(0).max(32767);
 
-// expense_categories
-export const expenseCategoryCreateSchema = z.object({
+export const financialCategoryCreateSchema = z.object({
   name: nonEmptyString.max(128),
   sortOrder: sortOrderSchema.default(0),
 });
-export type ExpenseCategoryCreate = z.infer<typeof expenseCategoryCreateSchema>;
+export type FinancialCategoryCreate = z.infer<typeof financialCategoryCreateSchema>;
 
-export const expenseCategoryUpdateSchema = expenseCategoryCreateSchema.partial();
-export type ExpenseCategoryUpdate = z.infer<typeof expenseCategoryUpdateSchema>;
+export const financialCategoryUpdateSchema = financialCategoryCreateSchema.partial();
+export type FinancialCategoryUpdate = z.infer<typeof financialCategoryUpdateSchema>;
 
-export const expenseCategorySchema = z.object({
+export const financialCategorySchema = z.object({
   id: uuidSchema,
   name: z.string(),
   sortOrder: z.number().int(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
-export type ExpenseCategory = z.infer<typeof expenseCategorySchema>;
+export type FinancialCategory = z.infer<typeof financialCategorySchema>;
+
+export const financialCategorySummarySchema = financialCategorySchema.pick({
+  id: true,
+  name: true,
+});
+export type FinancialCategorySummary = z.infer<typeof financialCategorySummarySchema>;
+
+// Compatibility aliases until the dictionary API is renamed in FIN-4.
+export const expenseCategoryCreateSchema = financialCategoryCreateSchema;
+export type ExpenseCategoryCreate = FinancialCategoryCreate;
+export const expenseCategoryUpdateSchema = financialCategoryUpdateSchema;
+export type ExpenseCategoryUpdate = FinancialCategoryUpdate;
+export const expenseCategorySchema = financialCategorySchema;
+export type ExpenseCategory = FinancialCategory;
 
 // funding_sources
 export const fundingSourceTypeSchema = z.enum(FUNDING_SOURCE_TYPES);

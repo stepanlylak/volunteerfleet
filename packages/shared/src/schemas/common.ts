@@ -4,6 +4,13 @@ export const uuidSchema = z.string().uuid();
 
 export const nonEmptyString = z.string().trim().min(1);
 
+export const minorAmountSchema = z.number().int().brand<'MinorAmount'>();
+export type MinorAmount = z.infer<typeof minorAmountSchema>;
+
+export const positiveMinorAmountSchema = minorAmountSchema.refine((value) => value > 0, {
+  message: 'Amount must be positive',
+});
+
 export const idParamSchema = z.object({
   id: uuidSchema,
 });
