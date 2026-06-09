@@ -11,6 +11,7 @@ import { DonationsModule } from './modules/donations/donations.module.js';
 import { DonorsModule } from './modules/donors/donors.module.js';
 import { ExchangeRatesModule } from './modules/exchange-rates/exchange-rates.module.js';
 import { ExpensesModule } from './modules/expenses/expenses.module.js';
+import { FinancialEntriesModule } from './modules/financial-entries/financial-entries.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { OrganizationsModule } from './modules/organizations/organizations.module.js';
 import { PublicModule } from './modules/public/public.module.js';
@@ -38,6 +39,7 @@ import { AppController } from './app.controller.js';
     DocumentsModule,
     DonorsModule,
     DonationsModule,
+    FinancialEntriesModule,
     ReportsModule,
     OrganizationsModule,
     PublicModule,
