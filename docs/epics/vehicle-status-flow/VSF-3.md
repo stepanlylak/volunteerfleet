@@ -3,7 +3,7 @@ id: VSF-3
 epic: vehicle-status-flow
 phase: 0
 type: feat
-status: todo
+status: done
 depends_on: [VSF-1]
 parallelizable: true
 branch: feat/vsf-3-vehicles-status-enum

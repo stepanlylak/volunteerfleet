@@ -3,7 +3,7 @@ id: VSF-4
 epic: vehicle-status-flow
 phase: 0
 type: feat
-status: todo
+status: done
 depends_on: [VSF-1, VSF-2, VSF-3]
 parallelizable: false
 branch: feat/vsf-4-status-history-extend

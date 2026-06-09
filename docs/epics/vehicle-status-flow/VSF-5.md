@@ -3,7 +3,7 @@ id: VSF-5
 epic: vehicle-status-flow
 phase: 0
 type: refactor
-status: todo
+status: done
 depends_on: [VSF-3, VSF-4]
 parallelizable: false
 branch: refactor/vsf-5-drop-vehicle-statuses
