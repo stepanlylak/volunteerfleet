@@ -148,7 +148,6 @@ export function VehicleCardPage() {
     'expense',
   ]);
   const [documentExpenseIdFilter, setDocumentExpenseIdFilter] = useState<string | null>(null);
-  const [statusEditing, setStatusEditing] = useState(false);
 
   const { data: expensesData, isLoading: expensesLoading } = useVehicleExpenses(id);
   const deleteExpense = useDeleteExpense(id);
@@ -358,38 +357,11 @@ export function VehicleCardPage() {
     </Space>
   );
 
-  const statusTag =
-    isAdmin && !vehicle.deletedAt && statusEditing ? (
-      <Select
-        size="small"
-        autoFocus
-        defaultOpen
-        style={{ minWidth: 160 }}
-        value={vehicle.status}
-        loading={updateVehicle.isPending}
-        options={Object.entries(VEHICLE_STATUS_CONFIG).map(([value, config]) => ({
-          value,
-          label: config.label,
-        }))}
-        onBlur={() => setStatusEditing(false)}
-        onChange={(status) => {
-          setStatusEditing(false);
-          // TODO: VSF-6 — статус змінюється через POST /vehicles/:id/transition
-          console.log('Selected status:', status);
-        }}
-      />
-    ) : (
-      <Tag
-        color={vehicle.deletedAt ? 'red' : (VEHICLE_STATUS_CONFIG[vehicle.status].color ?? 'blue')}
-        style={isAdmin && !vehicle.deletedAt ? { cursor: 'pointer' } : undefined}
-        onClick={() => {
-          if (isAdmin && !vehicle.deletedAt) setStatusEditing(true);
-        }}
-      >
-        {VEHICLE_STATUS_CONFIG[vehicle.status]?.label ?? '—'}
-        {isAdmin && !vehicle.deletedAt ? <EditOutlined style={{ marginLeft: 6 }} /> : null}
-      </Tag>
-    );
+  const statusTag = (
+    <Tag color={vehicle.deletedAt ? 'red' : VEHICLE_STATUS_CONFIG[vehicle.status].color}>
+      {VEHICLE_STATUS_CONFIG[vehicle.status].label}
+    </Tag>
+  );
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -890,6 +862,7 @@ export function VehicleCardPage() {
         open={expenseOpen}
         vehicleId={vehicle.id}
         vehicleBorderCrossingDate={vehicle.borderCrossingDate}
+        vehicleStartDate={vehicle.startDate}
         expense={editingExpense}
         onClose={() => {
           setExpenseOpen(false);

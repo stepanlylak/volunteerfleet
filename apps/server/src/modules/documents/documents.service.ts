@@ -194,6 +194,7 @@ export class DocumentsService {
         organizationId,
         name: input.name,
         kind: 'upload',
+        documentType: input.documentType,
         fileKey: key,
         url: null,
         mimeType: mime,
@@ -291,6 +292,7 @@ export class DocumentsService {
         organizationId,
         name: input.name,
         kind: 'link',
+        documentType: input.documentType,
         fileKey: null,
         url: input.url,
         mimeType: null,
@@ -364,6 +366,7 @@ export class DocumentsService {
       updatedAt: new Date(),
     };
     if (input.name !== undefined) updateValues.name = input.name;
+    if (input.documentType !== undefined) updateValues.documentType = input.documentType;
 
     if (input.vehicleId !== undefined && input.vehicleId !== null) {
       const vehicle = await this.db.query.vehicles.findFirst({

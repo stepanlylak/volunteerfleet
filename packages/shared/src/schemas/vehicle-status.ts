@@ -33,17 +33,18 @@ export const VEHICLE_STATUS_CONFIG: Record<
   lost: { label: 'Втрачено', color: '#ff4d4f', sortOrder: 90 },
 };
 
-export const VEHICLE_STATUS_DASHBOARD_GROUP: Record<VehicleStatus, 'in_work' | 'final' | 'other'> = {
-  new: 'in_work',
-  paid: 'in_work',
-  in_transit: 'in_work',
-  arrived: 'in_work',
-  in_repair: 'in_work',
-  ready: 'in_work',
-  returned: 'in_work',
-  transferred: 'final',
-  lost: 'other',
-};
+export const VEHICLE_STATUS_DASHBOARD_GROUP: Record<VehicleStatus, 'in_work' | 'final' | 'other'> =
+  {
+    new: 'in_work',
+    paid: 'in_work',
+    in_transit: 'in_work',
+    arrived: 'in_work',
+    in_repair: 'in_work',
+    ready: 'in_work',
+    returned: 'in_work',
+    transferred: 'final',
+    lost: 'other',
+  };
 
 export const ALLOWED_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
   new: ['paid', 'lost'],
@@ -66,12 +67,14 @@ export const vehicleStatusSchema = z.enum(VEHICLE_STATUSES);
 const currencyCodeSchema = z.enum(['UAH', 'USD', 'EUR']);
 const rateSourceSchema = z.enum(['default', 'manual']);
 
-const baseTransitionSchema = z.object({
-  expectedCurrentStatus: vehicleStatusSchema,
-  targetStatus: vehicleStatusSchema,
-  transitionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  note: z.string().max(2000).optional().nullable(),
-});
+const baseTransitionSchema = z
+  .object({
+    expectedCurrentStatus: vehicleStatusSchema,
+    targetStatus: vehicleStatusSchema,
+    transitionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    note: z.string().max(2000).optional().nullable(),
+  })
+  .strict();
 
 const purchasePriceFields = {
   purchasePrice: z.number().positive(),
@@ -83,50 +86,70 @@ const purchasePriceFields = {
 const documentRefField = (description: string) =>
   uuidSchema.optional().nullable().describe(description);
 
-export const transitionToPaidSchema = baseTransitionSchema.extend({
-  targetStatus: z.literal('paid'),
-  ...purchasePriceFields,
-  isLocalPurchase: z.boolean().default(false),
-  registrationDocId: documentRefField('Техпаспорт'),
-});
+export const transitionToPaidSchema = baseTransitionSchema
+  .extend({
+    targetStatus: z.literal('paid'),
+    ...purchasePriceFields,
+    isLocalPurchase: z.boolean().default(false),
+    registrationDocId: documentRefField('Техпаспорт'),
+  })
+  .strict();
 
-export const transitionToInTransitSchema = baseTransitionSchema.extend({
-  targetStatus: z.literal('in_transit'),
-  customsDeclarationDocId: documentRefField('Митна декларація'),
-});
+export const transitionToInTransitSchema = baseTransitionSchema
+  .extend({
+    targetStatus: z.literal('in_transit'),
+    customsDeclarationDocId: documentRefField('Митна декларація'),
+  })
+  .strict();
 
-export const transitionToArrivedSchema = baseTransitionSchema.extend({
-  targetStatus: z.literal('arrived'),
-  borderCrossingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  registrationDocId: documentRefField('Техпаспорт'),
-  stampedCustomsDeclarationDocId: documentRefField('Скан митної декларації з печатками'),
-});
+export const transitionToArrivedSchema = baseTransitionSchema
+  .extend({
+    targetStatus: z.literal('arrived'),
+    borderCrossingDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional()
+      .nullable(),
+    registrationDocId: documentRefField('Техпаспорт'),
+    stampedCustomsDeclarationDocId: documentRefField('Скан митної декларації з печатками'),
+  })
+  .strict();
 
-export const transitionToInRepairSchema = baseTransitionSchema.extend({
-  targetStatus: z.literal('in_repair'),
-  repairNote: z.string().max(2000).optional().nullable(),
-});
+export const transitionToInRepairSchema = baseTransitionSchema
+  .extend({
+    targetStatus: z.literal('in_repair'),
+    repairNote: z.string().max(2000).optional().nullable(),
+  })
+  .strict();
 
-export const transitionToReadySchema = baseTransitionSchema.extend({
-  targetStatus: z.literal('ready'),
-  transferActDraftDocId: documentRefField('Акт приймання-передачі (чернетка)'),
-});
+export const transitionToReadySchema = baseTransitionSchema
+  .extend({
+    targetStatus: z.literal('ready'),
+    transferActDraftDocId: documentRefField('Акт приймання-передачі (чернетка)'),
+  })
+  .strict();
 
-export const transitionToTransferredSchema = baseTransitionSchema.extend({
-  targetStatus: z.literal('transferred'),
-  transferActSignedDocId: documentRefField('Підписаний акт приймання-передачі'),
-  isRegisteredAtServiceCenter: z.boolean().default(false),
-});
+export const transitionToTransferredSchema = baseTransitionSchema
+  .extend({
+    targetStatus: z.literal('transferred'),
+    transferActSignedDocId: documentRefField('Підписаний акт приймання-передачі'),
+    isRegisteredAtServiceCenter: z.boolean().default(false),
+  })
+  .strict();
 
-export const transitionToReturnedSchema = baseTransitionSchema.extend({
-  targetStatus: z.literal('returned'),
-  returnActDocId: documentRefField('Акт повернення'),
-});
+export const transitionToReturnedSchema = baseTransitionSchema
+  .extend({
+    targetStatus: z.literal('returned'),
+    returnActDocId: documentRefField('Акт повернення'),
+  })
+  .strict();
 
-export const transitionToLostSchema = baseTransitionSchema.extend({
-  targetStatus: z.literal('lost'),
-  lostReason: z.string().min(1).max(2000),
-});
+export const transitionToLostSchema = baseTransitionSchema
+  .extend({
+    targetStatus: z.literal('lost'),
+    lostReason: z.string().min(1).max(2000),
+  })
+  .strict();
 
 export const vehicleTransitionRequestSchema = z.discriminatedUnion('targetStatus', [
   transitionToPaidSchema,

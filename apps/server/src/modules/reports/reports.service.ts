@@ -448,6 +448,21 @@ export class ReportsService {
       changedBy: this.toVehicleUserInfo(row.changedByUser),
       note: row.note,
       changedAt: row.changedAt.toISOString(),
+      transitionDate: row.transitionDate,
+      purchasePrice: row.purchasePrice === null ? null : Number(row.purchasePrice),
+      purchaseCurrency: row.purchaseCurrency,
+      purchaseRate: row.purchaseRate === null ? null : Number(row.purchaseRate),
+      purchaseRateSource: row.purchaseRateSource,
+      isLocalPurchase: row.isLocalPurchase,
+      repairNote: row.repairNote,
+      isRegisteredAtServiceCenter: row.isRegisteredAtServiceCenter,
+      lostReason: row.lostReason,
+      registrationDocId: row.registrationDocId,
+      customsDeclarationDocId: row.customsDeclarationDocId,
+      stampedCustomsDeclarationDocId: row.stampedCustomsDeclarationDocId,
+      transferActDraftDocId: row.transferActDraftDocId,
+      transferActSignedDocId: row.transferActSignedDocId,
+      returnActDocId: row.returnActDocId,
     };
   }
 

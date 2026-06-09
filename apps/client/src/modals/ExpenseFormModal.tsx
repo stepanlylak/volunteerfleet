@@ -43,6 +43,7 @@ interface ExpenseFormModalProps {
   open: boolean;
   vehicleId?: string;
   vehicleBorderCrossingDate?: string | null;
+  vehicleStartDate?: string;
   expense?: ExpenseResponse;
   onClose: () => void;
   onCreated?: (expense: ExpenseResponse) => void;
@@ -78,6 +79,7 @@ export function ExpenseFormModal({
   open,
   vehicleId,
   vehicleBorderCrossingDate,
+  vehicleStartDate,
   expense,
   onClose,
   onCreated,
@@ -118,6 +120,8 @@ export function ExpenseFormModal({
     latestExpenseData?.items[0]?.expenseDate ??
     selectedVehicle?.borderCrossingDate ??
     vehicleBorderCrossingDate ??
+    selectedVehicle?.startDate ??
+    vehicleStartDate ??
     dayjs().format('YYYY-MM-DD');
 
   const createExpense = useCreateExpense(effectiveVehicleId);

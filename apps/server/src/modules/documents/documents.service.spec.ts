@@ -12,12 +12,19 @@ const orgId = '66666666-6666-6666-6666-666666666666';
 
 describe('DocumentsService', () => {
   let db: {
+    insert: ReturnType<typeof vi.fn>;
     select: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     query: {
       documents: {
         findFirst: ReturnType<typeof vi.fn>;
         findMany: ReturnType<typeof vi.fn>;
+      };
+      expenses: {
+        findFirst: ReturnType<typeof vi.fn>;
+      };
+      vehicles: {
+        findFirst: ReturnType<typeof vi.fn>;
       };
     };
   };
@@ -26,12 +33,19 @@ describe('DocumentsService', () => {
 
   beforeEach(() => {
     db = {
+      insert: vi.fn(),
       select: vi.fn(),
       update: vi.fn(),
       query: {
         documents: {
           findFirst: vi.fn(),
           findMany: vi.fn(),
+        },
+        expenses: {
+          findFirst: vi.fn(),
+        },
+        vehicles: {
+          findFirst: vi.fn(),
         },
       },
     };
@@ -117,6 +131,75 @@ describe('DocumentsService', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('persists documentType updates', async () => {
+    const set = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: 'doc-id' }]),
+      }),
+    });
+    db.update.mockReturnValue({ set });
+    db.query.documents.findFirst
+      .mockResolvedValueOnce({
+        id: 'doc-id',
+        createdBy: ownerId,
+        kind: 'link',
+      })
+      .mockResolvedValueOnce(makeDocumentRow('doc-id', 'Document'));
+
+    await svc.update(
+      'doc-id',
+      { documentType: 'customs_declaration' },
+      {
+        sub: ownerId,
+        email: 'owner@example.com',
+        userRole: 'user',
+        orgRole: 'volunteer',
+        iat: 0,
+        exp: 0,
+      },
+      orgId,
+    );
+
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({ documentType: 'customs_declaration' }),
+    );
+  });
+
+  it('persists documentType when creating a link document', async () => {
+    const values = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: 'doc-id' }]),
+    });
+    db.insert.mockReturnValue({ values });
+    db.query.vehicles.findFirst.mockResolvedValue({ id: 'vehicle-id' });
+    db.query.documents.findFirst.mockResolvedValue({
+      ...makeDocumentRow('doc-id', 'Return act'),
+      kind: 'link',
+      documentType: 'return_act',
+      fileKey: null,
+      url: 'https://example.com/return-act',
+      mimeType: null,
+      sizeBytes: null,
+    });
+
+    await svc.createLink(
+      {
+        name: 'Return act',
+        url: 'https://example.com/return-act',
+        documentType: 'return_act',
+        vehicleId: '44846ea1-f39a-4574-9f4f-92b5ae208045',
+        expenseId: null,
+      },
+      ownerId,
+      orgId,
+    );
+
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentType: 'return_act',
+      }),
+    );
+  });
+
   it('accepts whitelisted MIME types', () => {
     expect(() => svc.assertAllowedUploadForTest('application/pdf', 1024, 26214400)).not.toThrow();
   });
@@ -161,6 +244,7 @@ function makeDocumentRow(id: string, name: string) {
     id,
     name,
     kind: 'upload',
+    documentType: 'other',
     fileKey: `documents/${id}/file.pdf`,
     url: null,
     mimeType: 'application/pdf',

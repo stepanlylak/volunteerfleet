@@ -30,8 +30,8 @@ interface VehicleFormModalProps {
   onCreated?: (vehicle: VehicleResponse) => void;
 }
 
-type VehicleFormValues = Omit<VehicleCreate, 'borderCrossingDate'> & {
-  borderCrossingDate?: dayjs.Dayjs | null;
+type VehicleFormValues = Omit<VehicleCreate, 'startDate'> & {
+  startDate: dayjs.Dayjs;
 };
 
 const MAX_PHOTO_SIZE_BYTES = 26_214_400;
@@ -61,6 +61,7 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
     setRemovedPhotoIds([]);
     if (!vehicleId) {
       form.resetFields();
+      form.setFieldValue('startDate', dayjs());
       return;
     }
     if (vehicle) {
@@ -70,7 +71,7 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
         model: vehicle.model,
         year: vehicle.year,
         vin: vehicle.vin,
-        borderCrossingDate: vehicle.borderCrossingDate ? dayjs(vehicle.borderCrossingDate) : null,
+        startDate: dayjs(vehicle.startDate),
         description: vehicle.description,
       });
     }
@@ -93,7 +94,7 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
       ...values,
       year: values.year ?? null,
       vin: optionalText(values.vin),
-      borderCrossingDate: values.borderCrossingDate?.format('YYYY-MM-DD') ?? null,
+      startDate: values.startDate.format('YYYY-MM-DD'),
       description: optionalText(values.description),
     };
     const parsed = (isEdit ? vehicleUpdateSchema : vehicleCreateSchema).safeParse(normalized);
@@ -198,7 +199,11 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
         >
           <Input />
         </Form.Item>
-        <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
+        <Form.Item
+          name="startDate"
+          label="Початкова дата"
+          rules={[{ required: true, message: 'Вкажіть початкову дату' }]}
+        >
           <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
         </Form.Item>
         <Form.Item

@@ -162,6 +162,7 @@ export class VehiclesService {
         newStatus: vehicle.status,
         changedBy: userId,
         note: null,
+        transitionDate: input.startDate,
       });
 
       return vehicle;
@@ -221,7 +222,6 @@ export class VehiclesService {
 
       const updatedVehicle = updated[0];
       if (!updatedVehicle) throw new NotFoundException(`Vehicle ${id} not found`);
-
 
       return updatedVehicle;
     });
@@ -304,6 +304,21 @@ export class VehiclesService {
       changedBy: { id: r.changedByUser.id, fullName: r.changedByUser.fullName },
       note: r.note,
       changedAt: r.changedAt.toISOString(),
+      transitionDate: r.transitionDate,
+      purchasePrice: r.purchasePrice === null ? null : Number(r.purchasePrice),
+      purchaseCurrency: r.purchaseCurrency,
+      purchaseRate: r.purchaseRate === null ? null : Number(r.purchaseRate),
+      purchaseRateSource: r.purchaseRateSource,
+      isLocalPurchase: r.isLocalPurchase,
+      repairNote: r.repairNote,
+      isRegisteredAtServiceCenter: r.isRegisteredAtServiceCenter,
+      lostReason: r.lostReason,
+      registrationDocId: r.registrationDocId,
+      customsDeclarationDocId: r.customsDeclarationDocId,
+      stampedCustomsDeclarationDocId: r.stampedCustomsDeclarationDocId,
+      transferActDraftDocId: r.transferActDraftDocId,
+      transferActSignedDocId: r.transferActSignedDocId,
+      returnActDocId: r.returnActDocId,
     }));
 
     return { items, total: items.length };

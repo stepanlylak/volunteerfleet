@@ -16,12 +16,7 @@ import {
   users,
   vehicles,
 } from '../db/schema/index.js';
-import {
-  SEED_EXPENSE_CATEGORY_IDS,
-  SEED_FUNDING_SOURCE_IDS,
-  SEED_ORG_IDS,
-} from './seed-ids.js';
-import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
+import { SEED_EXPENSE_CATEGORY_IDS, SEED_FUNDING_SOURCE_IDS, SEED_ORG_IDS } from './seed-ids.js';
 
 type OrgKey = 'A' | 'B';
 
@@ -211,16 +206,27 @@ async function getFundingSourceId(db: ReturnType<typeof createDb>): Promise<stri
   return row.id;
 }
 
-const STATUS_NAME_TO_ENUM: Record<string, 'new' | 'paid' | 'in_transit' | 'arrived' | 'in_repair' | 'ready' | 'transferred' | 'returned' | 'lost'> = {
-  'нове': 'new',
-  'оплачено': 'paid',
+const STATUS_NAME_TO_ENUM: Record<
+  string,
+  | 'new'
+  | 'paid'
+  | 'in_transit'
+  | 'arrived'
+  | 'in_repair'
+  | 'ready'
+  | 'transferred'
+  | 'returned'
+  | 'lost'
+> = {
+  нове: 'new',
+  оплачено: 'paid',
   'в дорозі': 'in_transit',
-  'прибуло': 'arrived',
+  прибуло: 'arrived',
   'в ремонті': 'in_repair',
-  'готове': 'ready',
-  'передано': 'transferred',
-  'повернено': 'returned',
-  'втрачено': 'lost',
+  готове: 'ready',
+  передано: 'transferred',
+  повернено: 'returned',
+  втрачено: 'lost',
 };
 
 interface VehicleSeedSpec {

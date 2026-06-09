@@ -4,7 +4,11 @@ import type { DashboardStats } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
 import { documents, expenses, vehicles } from '../../db/schema/index.js';
-import { VEHICLE_STATUSES, VEHICLE_STATUS_DASHBOARD_GROUP, VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
+import {
+  VEHICLE_STATUSES,
+  VEHICLE_STATUS_DASHBOARD_GROUP,
+  VEHICLE_STATUS_CONFIG,
+} from '@volunteerfleet/shared';
 
 @Injectable()
 export class DashboardService {
