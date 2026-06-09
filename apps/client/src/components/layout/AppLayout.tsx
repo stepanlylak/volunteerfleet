@@ -61,7 +61,7 @@ export function AppLayout() {
     '/dashboard',
     '/vehicles',
     '/donors',
-    '/expenses',
+    '/finances',
     '/admin/users',
     '/admin/dictionaries',
   ];
@@ -87,9 +87,9 @@ export function AppLayout() {
       label: <Link to="/donors">Донори</Link>,
     },
     {
-      key: '/expenses',
+      key: '/finances',
       icon: <DollarOutlined />,
-      label: <Link to="/expenses">Витрати</Link>,
+      label: <Link to="/finances">Фінанси</Link>,
     },
     ...(user?.userRole === 'superuser'
       ? [

@@ -28,6 +28,11 @@ export const donationsApi = {
     return res.data;
   },
 
+  async get(id: string): Promise<DonationResponse> {
+    const res = await http.get<DonationResponse>(`/donations/${id}`);
+    return res.data;
+  },
+
   async update(id: string, payload: DonationUpdate): Promise<DonationResponse> {
     const res = await http.patch<DonationResponse>(`/donations/${id}`, payload);
     return res.data;

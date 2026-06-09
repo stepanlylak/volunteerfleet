@@ -12,7 +12,7 @@ import { PublicVehiclePage } from './pages/public/PublicVehiclePage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { VehicleCardPage } from './pages/vehicles/VehicleCardPage';
 import { VehicleReportPage } from './pages/VehicleReportPage';
-import { ExpensesListPage } from './pages/expenses/ExpensesListPage';
+import { FinancesPage } from './pages/finances/FinancesPage';
 import { VehiclesListPage } from './pages/vehicles/VehiclesListPage';
 import { OrganizationsPage } from './pages/admin/OrganizationsPage';
 import { OrganizationMembersPage } from './pages/admin/OrganizationMembersPage';
@@ -34,7 +34,8 @@ export const router = createBrowserRouter([
       { path: 'vehicles', element: <VehiclesListPage /> },
       { path: 'vehicles/:id', element: <VehicleCardPage /> },
       { path: 'donors', element: <DonorsPage /> },
-      { path: 'expenses', element: <ExpensesListPage /> },
+      { path: 'expenses', element: <Navigate to="/finances" replace /> },
+      { path: 'finances', element: <FinancesPage /> },
       {
         path: 'reports',
         children: [{ path: 'vehicle/:id', element: <VehicleReportPage /> }],
