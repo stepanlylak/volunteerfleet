@@ -1,13 +1,23 @@
 import { sql } from 'drizzle-orm';
-import { bigint, index, pgTable, smallint, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
+import { vehicleGalleryItemTypeEnum } from './enums.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
 import { vehicles } from './vehicles.js';
+import { vehicleGalleries } from './vehicle-galleries.js';
 
-// Legacy flat photo model, superseded by vehicle_galleries/vehicle_gallery_items.
-// Kept until GAL-4 moves runtime off it; removed entirely in GAL-11.
-export const vehiclePhotos = pgTable(
-  'vehicle_photos',
+export const vehicleGalleryItems = pgTable(
+  'vehicle_gallery_items',
   {
     id: uuid('id')
       .primaryKey()
@@ -18,10 +28,16 @@ export const vehiclePhotos = pgTable(
     vehicleId: uuid('vehicle_id')
       .notNull()
       .references(() => vehicles.id, { onDelete: 'restrict' }),
+    galleryId: uuid('gallery_id')
+      .notNull()
+      .references(() => vehicleGalleries.id, { onDelete: 'restrict' }),
+    type: vehicleGalleryItemTypeEnum('type').notNull(),
     fileKey: varchar('file_key', { length: 512 }).notNull(),
+    originalName: varchar('original_name', { length: 255 }).notNull(),
     mimeType: varchar('mime_type', { length: 128 }).notNull(),
     sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
-    sortOrder: smallint('sort_order').notNull().default(0),
+    caption: text('caption'),
+    sortOrder: integer('sort_order').notNull().default(0),
     createdBy: uuid('created_by')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
@@ -37,8 +53,17 @@ export const vehiclePhotos = pgTable(
     deletedBy: uuid('deleted_by').references(() => users.id, { onDelete: 'restrict' }),
   },
   (table) => ({
-    organizationIdx: index('vehicle_photos_organization_id_idx').on(table.organizationId),
-    vehicleIdx: index('vehicle_photos_vehicle_id_idx').on(table.vehicleId),
-    orderIdx: index('vehicle_photos_vehicle_order_idx').on(table.vehicleId, table.sortOrder),
+    orgVehicleGalleryIdx: index('vehicle_gallery_items_org_vehicle_gallery_idx').on(
+      table.organizationId,
+      table.vehicleId,
+      table.galleryId,
+    ),
+    galleryOrderIdx: index('vehicle_gallery_items_gallery_order_idx').on(
+      table.galleryId,
+      table.sortOrder,
+    ),
+    galleryOrderUniqueActive: uniqueIndex('vehicle_gallery_items_gallery_order_active_unique')
+      .on(table.galleryId, table.sortOrder)
+      .where(sql`${table.deletedAt} IS NULL`),
   }),
 );

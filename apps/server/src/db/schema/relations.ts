@@ -8,6 +8,8 @@ import { vehicleStatusHistory } from './vehicle-status-history.js';
 import { expenses } from './expenses.js';
 import { documents } from './documents.js';
 import { vehiclePhotos } from './vehicle-photos.js';
+import { vehicleGalleries } from './vehicle-galleries.js';
+import { vehicleGalleryItems } from './vehicle-gallery-items.js';
 import { donors, organizationDonors } from './donors.js';
 import { donations } from './donations.js';
 
@@ -29,6 +31,12 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   createdVehiclePhotos: many(vehiclePhotos, { relationName: 'createdBy' }),
   updatedVehiclePhotos: many(vehiclePhotos, { relationName: 'updatedBy' }),
   deletedVehiclePhotos: many(vehiclePhotos, { relationName: 'deletedBy' }),
+  createdVehicleGalleries: many(vehicleGalleries, { relationName: 'createdBy' }),
+  updatedVehicleGalleries: many(vehicleGalleries, { relationName: 'updatedBy' }),
+  deletedVehicleGalleries: many(vehicleGalleries, { relationName: 'deletedBy' }),
+  createdVehicleGalleryItems: many(vehicleGalleryItems, { relationName: 'createdBy' }),
+  updatedVehicleGalleryItems: many(vehicleGalleryItems, { relationName: 'updatedBy' }),
+  deletedVehicleGalleryItems: many(vehicleGalleryItems, { relationName: 'deletedBy' }),
   statusHistoryChanges: many(vehicleStatusHistory),
   createdOrganizations: many(organizations, { relationName: 'createdBy' }),
   organizationMemberships: many(organizationMembers),
@@ -52,6 +60,8 @@ export const organizationsRelations = relations(organizations, ({ one, many }) =
   expenses: many(expenses),
   documents: many(documents),
   vehiclePhotos: many(vehiclePhotos),
+  vehicleGalleries: many(vehicleGalleries),
+  vehicleGalleryItems: many(vehicleGalleryItems),
   statusHistory: many(vehicleStatusHistory),
   donors: many(organizationDonors),
   donations: many(donations),
@@ -125,6 +135,72 @@ export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
   donations: many(donations),
   documents: many(documents),
   photos: many(vehiclePhotos),
+  galleries: many(vehicleGalleries),
+  galleryItems: many(vehicleGalleryItems),
+}));
+
+export const vehicleGalleriesRelations = relations(vehicleGalleries, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [vehicleGalleries.organizationId],
+    references: [organizations.id],
+  }),
+  vehicle: one(vehicles, {
+    fields: [vehicleGalleries.vehicleId],
+    references: [vehicles.id],
+  }),
+  coverItem: one(vehicleGalleryItems, {
+    fields: [vehicleGalleries.coverItemId],
+    references: [vehicleGalleryItems.id],
+    relationName: 'galleryCoverItem',
+  }),
+  items: many(vehicleGalleryItems, { relationName: 'galleryItems' }),
+  createdByUser: one(users, {
+    fields: [vehicleGalleries.createdBy],
+    references: [users.id],
+    relationName: 'createdBy',
+  }),
+  updatedByUser: one(users, {
+    fields: [vehicleGalleries.updatedBy],
+    references: [users.id],
+    relationName: 'updatedBy',
+  }),
+  deletedByUser: one(users, {
+    fields: [vehicleGalleries.deletedBy],
+    references: [users.id],
+    relationName: 'deletedBy',
+  }),
+}));
+
+export const vehicleGalleryItemsRelations = relations(vehicleGalleryItems, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [vehicleGalleryItems.organizationId],
+    references: [organizations.id],
+  }),
+  vehicle: one(vehicles, {
+    fields: [vehicleGalleryItems.vehicleId],
+    references: [vehicles.id],
+  }),
+  gallery: one(vehicleGalleries, {
+    fields: [vehicleGalleryItems.galleryId],
+    references: [vehicleGalleries.id],
+    relationName: 'galleryItems',
+  }),
+  coverOfGalleries: many(vehicleGalleries, { relationName: 'galleryCoverItem' }),
+  createdByUser: one(users, {
+    fields: [vehicleGalleryItems.createdBy],
+    references: [users.id],
+    relationName: 'createdBy',
+  }),
+  updatedByUser: one(users, {
+    fields: [vehicleGalleryItems.updatedBy],
+    references: [users.id],
+    relationName: 'updatedBy',
+  }),
+  deletedByUser: one(users, {
+    fields: [vehicleGalleryItems.deletedBy],
+    references: [users.id],
+    relationName: 'deletedBy',
+  }),
 }));
 
 export const vehiclePhotosRelations = relations(vehiclePhotos, ({ one }) => ({

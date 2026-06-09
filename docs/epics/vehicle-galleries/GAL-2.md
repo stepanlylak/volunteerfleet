@@ -3,10 +3,10 @@ id: GAL-2
 epic: vehicle-galleries
 phase: 0
 type: feat
-status: ready
+status: done
 depends_on: [GAL-1]
 parallelizable: false
-branch:
+branch: feat/gal-2-gallery-db-schema
 pr:
 ---
 
