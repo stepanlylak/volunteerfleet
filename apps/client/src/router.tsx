@@ -17,6 +17,7 @@ import { VehiclesListPage } from './pages/vehicles/VehiclesListPage';
 import { OrganizationsPage } from './pages/admin/OrganizationsPage';
 import { OrganizationMembersPage } from './pages/admin/OrganizationMembersPage';
 import { MyOrganizationPage } from './pages/my-organization/MyOrganizationPage';
+import { DonorsPage } from './pages/donors/DonorsPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'vehicles', element: <VehiclesListPage /> },
       { path: 'vehicles/:id', element: <VehicleCardPage /> },
+      { path: 'donors', element: <DonorsPage /> },
       { path: 'expenses', element: <ExpensesListPage /> },
       {
         path: 'reports',
