@@ -3,7 +3,7 @@ id: FIN-10
 epic: financial-flow
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [FIN-6, FIN-7]
 parallelizable: false
 branch: feat/fin-10-reusable-money-fields

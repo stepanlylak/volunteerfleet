@@ -23,7 +23,7 @@ import { useVehicles } from '../hooks/useVehicles';
 import type { FinancialCategory } from '@volunteerfleet/shared';
 import type { DocumentDetachAction } from '../utils/documentDetachConfirm';
 import { confirmDocumentDetachAction } from '../utils/documentDetachConfirm';
-import { AmountCurrencyRateField } from '../components/AmountCurrencyRateField';
+import { MoneyFields } from '../components/MoneyFields';
 
 interface ExpenseFormModalProps {
   open: boolean;
@@ -358,7 +358,7 @@ export function ExpenseFormModal({
           />
         </Form.Item>
 
-        <AmountCurrencyRateField
+        <MoneyFields
           form={form}
           currency={currency}
           rate={rate}
