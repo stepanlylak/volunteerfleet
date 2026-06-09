@@ -8,6 +8,13 @@
       "when": 1780968357154,
       "tag": "0000_wealthy_catseye",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781000000000,
+      "tag": "0001_vehicle_alerts_view",
+      "breakpoints": true
     }
   ]
 }

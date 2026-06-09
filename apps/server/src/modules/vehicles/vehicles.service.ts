@@ -1,7 +1,8 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { and, asc, desc, eq, ilike, isNull, not, or, SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, ilike, isNull, not, or, SQL, sql } from 'drizzle-orm';
 import type {
   OrgRole,
+  VehicleAlert,
   VehicleCreate,
   VehicleListQuery,
   VehicleListResponse,
@@ -12,7 +13,8 @@ import type {
 } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
-import { vehicles, vehicleStatusHistory } from '../../db/schema/index.js';
+import { vehicleAlertsView, vehicles, vehicleStatusHistory } from '../../db/schema/index.js';
+import { VehicleAlertService } from './vehicle-alert.service.js';
 
 const VEHICLE_SORT_WHITELIST = [
   'identifier',
@@ -31,14 +33,17 @@ interface SortItem {
 
 @Injectable()
 export class VehiclesService {
-  constructor(@Inject(DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    private readonly alertService: VehicleAlertService,
+  ) {}
 
   async list(
     query: VehicleListQuery,
     orgRole: OrgRole | null | undefined,
     activeOrgId: string,
   ): Promise<VehicleListResponse> {
-    const { page, pageSize, sort, search, status, includeDeleted } = query;
+    const { page, pageSize, sort, search, status, hasAlerts, includeDeleted } = query;
 
     // Only coordinator can see deleted vehicles
     if (includeDeleted && orgRole !== 'coordinator') {
@@ -53,6 +58,16 @@ export class VehiclesService {
 
     if (status) {
       conditions.push(eq(vehicles.status, status));
+    }
+
+    if (hasAlerts !== undefined) {
+      const hasAlertsExpr = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(vehicleAlertsView)
+          .where(eq(vehicleAlertsView.vehicleId, vehicles.id)),
+      );
+      conditions.push(hasAlerts ? hasAlertsExpr : not(hasAlertsExpr));
     }
 
     if (search) {
@@ -98,7 +113,8 @@ export class VehiclesService {
       },
     });
 
-    const items = rows.map((r) => this.toResponse(r));
+    const alertsByVehicle = await this.alertService.getAlertsForVehicles(rows.map((r) => r.id));
+    const items = rows.map((r) => this.toResponse(r, alertsByVehicle.get(r.id) ?? []));
     const totalPages = Math.ceil(total / pageSize);
 
     return { items, page, pageSize, total, totalPages };
@@ -131,7 +147,8 @@ export class VehiclesService {
       throw new NotFoundException(`Vehicle ${id} not found`);
     }
 
-    return this.toResponse(row);
+    const alerts = await this.alertService.getAlertsForVehicle(row.id);
+    return this.toResponse(row, alerts);
   }
 
   async create(
@@ -355,6 +372,7 @@ export class VehiclesService {
       updatedByUser?: { id: string; fullName: string };
       deletedByUser?: { id: string; fullName: string } | null;
     },
+    alerts: VehicleAlert[] = [],
   ): VehicleResponse {
     return {
       id: row.id,
@@ -379,6 +397,7 @@ export class VehiclesService {
       updatedAt: row.updatedAt.toISOString(),
       deletedAt: row.deletedAt?.toISOString() ?? null,
       deletedBy: row.deletedByUser ? this.toUserInfo(row.deletedByUser) : null,
+      alerts,
     };
   }
 }

@@ -51,7 +51,12 @@ describe('VehiclesService (VSF-7)', () => {
       }),
     };
 
-    svc = new VehiclesService(db as never);
+    const alertService = {
+      getAlertsForVehicle: vi.fn().mockResolvedValue([]),
+      getAlertsForVehicles: vi.fn().mockResolvedValue(new Map()),
+    };
+
+    svc = new VehiclesService(db as never, alertService as never);
     vi.spyOn(svc, 'findById').mockResolvedValue({
       id: vehicleId,
       status: 'new',
