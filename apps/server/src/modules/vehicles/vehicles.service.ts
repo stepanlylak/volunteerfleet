@@ -224,11 +224,11 @@ export class VehiclesService {
     if (input.description !== undefined) updateValues.description = input.description;
     if (input.isPublic !== undefined) updateValues.isPublic = input.isPublic;
     if (input.publicSummary !== undefined) updateValues.publicSummary = input.publicSummary;
-    if (input.publicCollectedAmountUah !== undefined) {
-      updateValues.publicCollectedAmountUah = input.publicCollectedAmountUah?.toString() ?? null;
+    if (input.publicCollectedAmountUahMinor !== undefined) {
+      updateValues.publicCollectedAmountUahMinor = input.publicCollectedAmountUahMinor ?? null;
     }
-    if (input.publicGoalAmountUah !== undefined) {
-      updateValues.publicGoalAmountUah = input.publicGoalAmountUah?.toString() ?? null;
+    if (input.publicGoalAmountUahMinor !== undefined) {
+      updateValues.publicGoalAmountUahMinor = input.publicGoalAmountUahMinor ?? null;
     }
 
     const result = await this.db.transaction(async (tx) => {
@@ -389,10 +389,8 @@ export class VehiclesService {
       description: row.description,
       isPublic: row.isPublic,
       publicSummary: row.publicSummary,
-      publicCollectedAmountUah: row.publicCollectedAmountUah
-        ? Number(row.publicCollectedAmountUah)
-        : null,
-      publicGoalAmountUah: row.publicGoalAmountUah ? Number(row.publicGoalAmountUah) : null,
+      publicCollectedAmountUahMinor: row.publicCollectedAmountUahMinor,
+      publicGoalAmountUahMinor: row.publicGoalAmountUahMinor,
       createdBy: this.toUserInfoRequired(row.createdByUser ?? { id: '', fullName: '' }),
       updatedBy: this.toUserInfoRequired(row.updatedByUser ?? { id: '', fullName: '' }),
       createdAt: row.createdAt.toISOString(),

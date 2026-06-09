@@ -53,7 +53,7 @@ export class DashboardService {
     const { dateFrom, dateTo } = this.currentMonthRange();
     const expenseResult = await this.db
       .select({
-        totalUah: sql<string>`coalesce(sum(${expenses.amount} * ${expenses.rate}), 0)`,
+        totalUahMinor: sql<string>`coalesce(sum(round(${expenses.amountMinor} * ${expenses.rate})), 0)::bigint`,
       })
       .from(expenses)
       .where(
@@ -65,7 +65,7 @@ export class DashboardService {
           lte(expenses.expenseDate, dateTo),
         ),
       );
-    const monthlyExpenseUah = Number(expenseResult[0]?.totalUah ?? 0);
+    const monthlyExpenseUahMinor = Number(expenseResult[0]?.totalUahMinor ?? 0);
 
     const docsTotalResult = await this.db
       .select({ count: sql<number>`count(*)::int` })
@@ -107,7 +107,7 @@ export class DashboardService {
         color: row.color,
         sortOrder: row.sortOrder,
       })),
-      monthlyExpenseUah,
+      monthlyExpenseUahMinor,
       documentsTotal,
       documentsThisMonth,
     };

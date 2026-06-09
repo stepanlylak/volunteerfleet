@@ -2,21 +2,21 @@ import { z } from 'zod';
 import { currencySchema, expenseResponseSchema } from './expense.js';
 import { documentResponseSchema } from './document.js';
 import { fundingSourceSchema } from './dictionary.js';
-import { uuidSchema } from './common.js';
+import { minorAmountSchema, uuidSchema } from './common.js';
 import { vehicleResponseSchema, vehicleStatusHistorySchema } from './vehicle.js';
 
 const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const expenseCurrencyBreakdownSchema = z.object({
   currency: currencySchema,
-  totalInCurrency: z.number(),
-  totalUah: z.number(),
+  totalInCurrencyMinor: minorAmountSchema,
+  totalUahMinor: minorAmountSchema,
 });
 export type ExpenseCurrencyBreakdown = z.infer<typeof expenseCurrencyBreakdownSchema>;
 
 export const expenseCategoryBreakdownSchema = z.object({
   category: z.string(),
-  totalUah: z.number(),
+  totalUahMinor: minorAmountSchema,
 });
 export type ExpenseCategoryBreakdown = z.infer<typeof expenseCategoryBreakdownSchema>;
 
@@ -29,13 +29,13 @@ export const vehicleExpenseBreakdownSchema = z.object({
       model: z.string(),
     })
     .nullable(),
-  totalUah: z.number(),
+  totalUahMinor: minorAmountSchema,
 });
 export type VehicleExpenseBreakdown = z.infer<typeof vehicleExpenseBreakdownSchema>;
 
 export const vehicleReportResponseSchema = z.object({
   vehicle: vehicleResponseSchema,
-  totalUah: z.number(),
+  totalUahMinor: minorAmountSchema,
   byCurrency: z.array(expenseCurrencyBreakdownSchema),
   byCategory: z.array(expenseCategoryBreakdownSchema),
   statusHistory: z.array(vehicleStatusHistorySchema),
@@ -59,7 +59,7 @@ export const fundingSourceReportResponseSchema = z.object({
   fundingSource: fundingSourceSchema,
   dateFrom: dateOnlySchema.nullable(),
   dateTo: dateOnlySchema.nullable(),
-  totalUah: z.number(),
+  totalUahMinor: minorAmountSchema,
   byCategory: z.array(expenseCategoryBreakdownSchema),
   byVehicle: z.array(vehicleExpenseBreakdownSchema),
   expenses: z.array(expenseResponseSchema),

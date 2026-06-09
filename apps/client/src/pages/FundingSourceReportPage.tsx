@@ -30,7 +30,7 @@ export function FundingSourceReportPage() {
   if (isLoading) return <Skeleton active />;
   if (!data) return <Empty description="Звіт не знайдено" />;
 
-  const maxCategory = Math.max(...data.byCategory.map((row) => row.totalUah), 1);
+  const maxCategory = Math.max(...data.byCategory.map((row) => row.totalUahMinor), 1);
 
   const categoryColumns: ColumnsType<ExpenseCategoryBreakdown> = [
     { title: 'Категорія', dataIndex: 'category' },
@@ -40,7 +40,7 @@ export function FundingSourceReportPage() {
       width: 220,
       render: (_, row) => (
         <Progress
-          percent={Math.round((row.totalUah / maxCategory) * 100)}
+          percent={Math.round((row.totalUahMinor / maxCategory) * 100)}
           showInfo={false}
           strokeColor="#1677ff"
         />
@@ -48,7 +48,7 @@ export function FundingSourceReportPage() {
     },
     {
       title: 'Сума UAH',
-      dataIndex: 'totalUah',
+      dataIndex: 'totalUahMinor',
       align: 'right',
       render: (value: number) => formatCurrency(value, 'UAH'),
     },
@@ -69,7 +69,7 @@ export function FundingSourceReportPage() {
     },
     {
       title: 'Сума UAH',
-      dataIndex: 'totalUah',
+      dataIndex: 'totalUahMinor',
       align: 'right',
       render: (value: number) => formatCurrency(value, 'UAH'),
     },
@@ -90,13 +90,13 @@ export function FundingSourceReportPage() {
       title: 'Сума',
       key: 'amount',
       align: 'right',
-      render: (_, row) => formatCurrency(row.amount, row.currency),
+      render: (_, row) => formatCurrency(row.amountMinor, row.currency),
     },
     {
       title: 'UAH',
       key: 'uah',
       align: 'right',
-      render: (_, row) => formatCurrency(row.amount * row.rate, 'UAH'),
+      render: (_, row) => formatCurrency(Math.round(row.amountMinor * row.rate), 'UAH'),
     },
   ];
 
@@ -124,7 +124,7 @@ export function FundingSourceReportPage() {
         </Typography.Title>
 
         <ReportSection title="Зведення">
-          <Statistic title="Загальна сума" value={data.totalUah} precision={2} suffix="₴" />
+          <Statistic title="Загальна сума" value={formatCurrency(data.totalUahMinor, 'UAH')} />
         </ReportSection>
 
         <ReportSection title="Розбивка по категоріях">

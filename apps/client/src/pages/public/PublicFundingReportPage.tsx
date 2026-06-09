@@ -25,7 +25,7 @@ export function PublicFundingReportPage() {
     return <Result status="404" title="Сторінка не знайдена або недоступна" />;
   }
 
-  const maxCategory = Math.max(...data.byCategory.map((row) => row.totalUah), 1);
+  const maxCategory = Math.max(...data.byCategory.map((row) => row.totalUahMinor), 1);
 
   const categoryColumns: ColumnsType<ExpenseCategoryBreakdown> = [
     { title: 'Категорія', dataIndex: 'category' },
@@ -34,12 +34,12 @@ export function PublicFundingReportPage() {
       key: 'progress',
       width: 220,
       render: (_, row) => (
-        <Progress percent={Math.round((row.totalUah / maxCategory) * 100)} showInfo={false} />
+        <Progress percent={Math.round((row.totalUahMinor / maxCategory) * 100)} showInfo={false} />
       ),
     },
     {
       title: 'Сума',
-      dataIndex: 'totalUah',
+      dataIndex: 'totalUahMinor',
       align: 'right',
       render: (value: number) => formatCurrency(value, 'UAH'),
     },
@@ -60,7 +60,7 @@ export function PublicFundingReportPage() {
     },
     {
       title: 'Сума',
-      dataIndex: 'totalUah',
+      dataIndex: 'totalUahMinor',
       align: 'right',
       render: (value: number) => formatCurrency(value, 'UAH'),
     },
@@ -76,7 +76,7 @@ export function PublicFundingReportPage() {
         </Typography.Text>
       </div>
 
-      <Statistic title="Загальна сума" value={data.totalUah} precision={2} suffix="₴" />
+      <Statistic title="Загальна сума" value={formatCurrency(data.totalUahMinor, 'UAH')} />
 
       <Table
         rowKey="category"

@@ -24,6 +24,7 @@ import { useDictionary } from '../../hooks/useDictionaries';
 import { useVehicles } from '../../hooks/useVehicles';
 import { ExpenseFormModal } from '../../modals/ExpenseFormModal';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
+import { formatCurrency } from '../../utils/format';
 
 const { RangePicker } = DatePicker;
 
@@ -111,10 +112,10 @@ export function ExpensesListPage() {
     },
     {
       title: 'Сума',
-      dataIndex: 'amount',
+      dataIndex: 'amountMinor',
       align: 'right',
       sorter: true,
-      render: (v: string, row: ExpenseResponse) => `${v} ${row.currency}`,
+      render: (value: number, row: ExpenseResponse) => formatCurrency(value, row.currency),
     },
     {
       title: 'Джерело',

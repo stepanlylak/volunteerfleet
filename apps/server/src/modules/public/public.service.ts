@@ -40,10 +40,8 @@ export class PublicService {
       year: row.year,
       status: { name: VEHICLE_STATUS_CONFIG[row.status].label },
       publicSummary: row.publicSummary,
-      publicCollectedAmountUah: row.publicCollectedAmountUah
-        ? Number(row.publicCollectedAmountUah)
-        : null,
-      publicGoalAmountUah: row.publicGoalAmountUah ? Number(row.publicGoalAmountUah) : null,
+      publicCollectedAmountUahMinor: row.publicCollectedAmountUahMinor,
+      publicGoalAmountUahMinor: row.publicGoalAmountUahMinor,
       photos: await this.getPublicPhotos(row.id),
       createdAt: row.createdAt.toISOString(),
     };
@@ -75,7 +73,7 @@ export class PublicService {
       },
       dateFrom: report.dateFrom,
       dateTo: report.dateTo,
-      totalUah: report.totalUah,
+      totalUahMinor: report.totalUahMinor,
       byCategory: report.byCategory,
       byVehicle: report.byVehicle.filter((row) => row.vehicle != null),
     };
