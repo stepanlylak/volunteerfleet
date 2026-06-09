@@ -1054,6 +1054,7 @@ export function VehicleCardPage() {
         open={galleryModalOpen}
         vehicleId={vehicle.id}
         gallery={editingGallery}
+        allGalleries={galleriesData?.items ?? []}
         canMutate={canMutate}
         onClose={() => {
           setGalleryModalOpen(false);
