@@ -3,7 +3,7 @@ id: FIN-12
 epic: financial-flow
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [FIN-6, FIN-10, FIN-11]
 parallelizable: false
 branch: feat/fin-12-donation-form
