@@ -20,5 +20,10 @@ export const dashboardStatsSchema = z.object({
   monthlyExpenseUahMinor: minorAmountSchema.refine((value) => value >= 0),
   documentsTotal: z.number().int().min(0),
   documentsThisMonth: z.number().int().min(0),
+  // Finance KPI
+  totalDonationsUahMinor: minorAmountSchema.refine((value) => value >= 0),
+  monthlyDonationsUahMinor: minorAmountSchema.refine((value) => value >= 0),
+  totalExpensesUahMinor: minorAmountSchema.refine((value) => value >= 0),
+  balanceUahMinor: minorAmountSchema,
 });
 export type DashboardStats = z.infer<typeof dashboardStatsSchema>;
