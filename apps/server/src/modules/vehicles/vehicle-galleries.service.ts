@@ -52,6 +52,16 @@ export class VehicleGalleriesService {
     });
   }
 
+  async getGalleryResponse(
+    vehicleId: string,
+    galleryId: string,
+    activeOrgId: string,
+  ): Promise<VehicleGalleryResponse> {
+    const gallery = await this.findGallery(vehicleId, galleryId, activeOrgId);
+    const items = await this.findActiveItems(galleryId);
+    return this.toResponse(gallery, items);
+  }
+
   async list(vehicleId: string, activeOrgId: string): Promise<VehicleGalleryListResponse> {
     await this.assertVehicleExists(vehicleId, activeOrgId);
     const rows = await this.findGalleriesWithItems(vehicleId, activeOrgId);

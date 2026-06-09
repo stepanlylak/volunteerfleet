@@ -3,7 +3,7 @@ id: GAL-6
 epic: vehicle-galleries
 phase: 1
 type: feat
-status: todo
+status: ready
 depends_on: [GAL-5]
 parallelizable: true
 branch:
