@@ -7,7 +7,6 @@ export * from './user.js';
 export * from './organization.js';
 export * from './vehicle.js';
 export * from './vehicle-status.js';
-export * from './vehicle-photo.js';
 export * from './vehicle-gallery.js';
 export * from './expense.js';
 export * from './donor.js';

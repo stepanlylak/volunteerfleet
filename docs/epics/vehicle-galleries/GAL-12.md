@@ -3,7 +3,7 @@ id: GAL-12
 epic: vehicle-galleries
 phase: 3
 type: test
-status: todo
+status: ready
 depends_on: [GAL-6, GAL-7, GAL-9, GAL-11]
 parallelizable: false
 branch:

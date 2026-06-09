@@ -3,10 +3,10 @@ id: GAL-11
 epic: vehicle-galleries
 phase: 2
 type: refactor
-status: ready
+status: done
 depends_on: [GAL-4, GAL-9, GAL-10]
 parallelizable: false
-branch:
+branch: feat/gal-11-cleanup
 pr:
 ---
 
