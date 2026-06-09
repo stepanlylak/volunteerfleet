@@ -3,10 +3,10 @@ id: GAL-8
 epic: vehicle-galleries
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [GAL-3, GAL-4]
 parallelizable: true
-branch:
+branch: feat/gal-8-gallery-card-modal
 pr:
 ---
 

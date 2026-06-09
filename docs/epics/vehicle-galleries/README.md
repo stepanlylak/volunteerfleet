@@ -29,8 +29,8 @@
 | [GAL-5](GAL-5.md)   | Reorder, cover, move і soft-delete             |  1   | GAL-4                       | done   |
 | [GAL-6](GAL-6.md)   | Public API та visibility chain                 |  1   | GAL-5                       | done   |
 | [GAL-7](GAL-7.md)   | Effective main cover у vehicle responses       |  1   | GAL-5                       | done   |
-| [GAL-8](GAL-8.md)   | Галереї на картці авто та базова модалка       |  2   | GAL-3, GAL-4                | todo   |
-| [GAL-9](GAL-9.md)   | Повне керування фото у модалці                 |  2   | GAL-5, GAL-8                | todo   |
+| [GAL-8](GAL-8.md)   | Галереї на картці авто та базова модалка       |  2   | GAL-3, GAL-4                | done   |
+| [GAL-9](GAL-9.md)   | Повне керування фото у модалці                 |  2   | GAL-5, GAL-8                | ready  |
 | [GAL-10](GAL-10.md) | Public UI та обкладинки у списках              |  2   | GAL-6, GAL-7                | todo   |
 | [GAL-11](GAL-11.md) | Видалення legacy photo flow і cleanup          |  2   | GAL-4, GAL-9, GAL-10        | todo   |
 | [GAL-12](GAL-12.md) | Наскрізна регресія та документація             |  3   | GAL-6, GAL-7, GAL-9, GAL-11 | todo   |
