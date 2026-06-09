@@ -3,10 +3,10 @@ id: FIN-1
 epic: financial-flow
 phase: 0
 type: feat
-status: todo
+status: done
 depends_on: []
 parallelizable: false
-branch: feat/fin-1-shared-financial-contracts
+branch: feat/fin-phase-0
 pr:
 ---
 
