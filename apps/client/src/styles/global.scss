@@ -1,0 +1,335 @@
+@use './tokens' as *;
+
+// Global styles for VolunteerFleet
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: $vf-font-body;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+// ---------- App shell ----------
+
+.app-shell {
+  min-height: 100vh;
+}
+
+// ---------- Sidebar (command rail) ----------
+
+.app-sider {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background:
+    radial-gradient(130% 55% at 0% 0%, rgba($vf-accent, 0.1), transparent 58%),
+    linear-gradient(180deg, $vf-ink-800 0%, $vf-ink-900 100%) !important;
+  border-inline-end: 1px solid rgba(#fff, 0.07);
+
+  .ant-layout-sider-children {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .ant-menu {
+    border-inline-end: none !important;
+  }
+
+  .ant-menu-item-group-title {
+    color: #5b6477;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    padding-inline: 24px;
+    margin-top: 10px;
+  }
+
+  .ant-menu-item {
+    transition: background 0.18s ease, color 0.18s ease;
+
+    .anticon {
+      transition: color 0.18s ease;
+    }
+  }
+
+  .ant-menu-item-selected {
+    font-weight: 600;
+
+    .anticon {
+      color: $vf-accent;
+    }
+  }
+
+  .ant-menu-inline .ant-menu-item-selected::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 22px;
+    background: $vf-accent;
+    border-radius: 0 4px 4px 0;
+    box-shadow: 0 0 12px rgba($vf-accent, 0.6);
+  }
+
+  // Collapsed state tweaks
+  &.ant-layout-sider-collapsed {
+    .app-brand {
+      padding: 0;
+      justify-content: center;
+    }
+
+    .app-usercard {
+      justify-content: center;
+      padding: 8px;
+    }
+
+    .ant-menu-item-group-title {
+      height: 0;
+      padding: 0;
+      margin: 8px 18px;
+      overflow: hidden;
+      border-top: 1px solid rgba(#fff, 0.08);
+    }
+  }
+}
+
+// Brand
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 0 18px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(#fff, 0.06);
+
+  &-tile {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    color: #fff;
+    background: linear-gradient(150deg, $vf-accent, $vf-accent-deep);
+    box-shadow:
+      0 6px 16px rgba($vf-accent-deep, 0.4),
+      inset 0 1px 0 rgba(#fff, 0.28);
+  }
+
+  &-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  &-name {
+    font-family: $vf-font-display;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    color: #fff;
+    line-height: 1.1;
+  }
+
+  &-sub {
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7488;
+    margin-top: 3px;
+  }
+}
+
+// Navigation
+.app-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 0 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(#fff, 0.16) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(#fff, 0.14);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+// User card footer
+.app-usercard {
+  flex-shrink: 0;
+  margin: 8px 12px 14px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border-radius: 12px;
+  background: rgba(#fff, 0.04);
+  border: 1px solid rgba(#fff, 0.06);
+
+  &-avatar {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    color: #d6e6ff;
+    background: linear-gradient(150deg, rgba($vf-accent, 0.3), rgba($vf-accent, 0.12));
+    border: 1px solid rgba($vf-accent, 0.34);
+  }
+
+  &-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #eef1f6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &-role {
+    font-size: 11px;
+    color: #818aa0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &-logout.ant-btn {
+    color: #818aa0;
+    flex-shrink: 0;
+
+    &:hover {
+      color: #ff7875 !important;
+      background: rgba(#ff7875, 0.1) !important;
+    }
+  }
+}
+
+// ---------- Header ----------
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eceef1;
+  box-shadow: 0 1px 2px rgba(16, 19, 26, 0.04);
+
+  &-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &-title {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #1c2230;
+  }
+}
+
+.app-collapse-btn.ant-btn {
+  color: #5b6477;
+
+  &:hover {
+    color: $vf-azure;
+    background: #f0f4ff;
+  }
+}
+
+// Org switcher pill
+.app-org-btn.ant-btn {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #e7e9ee;
+  background: #fafbfc;
+  color: #2b3344;
+  font-weight: 600;
+
+  &:hover {
+    border-color: #c7d6ff;
+    background: #f4f7ff;
+    color: $vf-azure !important;
+  }
+}
+
+// ---------- Content ----------
+
+.app-content {
+  margin: 22px;
+  padding: 26px;
+  background: #fff;
+  border: 1px solid #eef0f3;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(16, 19, 26, 0.03);
+  min-height: 280px;
+  animation: vfFade 0.34s ease;
+}
+
+@keyframes vfFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// ---------- Utility classes ----------
+
+.text-center {
+  text-align: center;
+}
+
+.mt-16 {
+  margin-top: 16px;
+}
+
+.mb-16 {
+  margin-bottom: 16px;
+}
+
+.ml-auto {
+  margin-left: auto;
+}

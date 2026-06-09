@@ -1,31 +1,65 @@
 import {
+  BankOutlined,
   CarOutlined,
-  DollarOutlined,
+  DashboardOutlined,
   DownOutlined,
+  HeartOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   SettingOutlined,
   ShopOutlined,
+  TagsOutlined,
   TeamOutlined,
-  ToolOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
-import { Button, Dropdown, Layout, Menu, Space, Typography, message } from 'antd';
+import { Button, Dropdown, Layout, Menu, Tooltip, message } from 'antd';
+import type { MenuProps } from 'antd';
+import { useState } from 'react';
 import { useLocation, useNavigate, Link, Outlet } from 'react-router-dom';
 import { useAuth, useMemberships } from '@/stores/auth.store.ts';
 import { authApi } from '@/api/auth.api.ts';
-import { CSSProperties } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 const { Header, Sider, Content } = Layout;
 
-const siderStyle: CSSProperties = {
-  overflowY: 'auto',
-  height: 'calc(100vh - 64px)',
-  position: 'sticky',
-  insetInlineStart: 0,
-  top: 64,
-  scrollbarWidth: 'thin',
-  scrollbarGutter: 'auto',
+const ORG_ROLE_LABELS: Record<string, string> = {
+  coordinator: 'Координатор',
+  volunteer: 'Волонтер',
+  viewer: 'Спостерігач',
 };
+
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Дашборд',
+  '/vehicles': 'Автомобілі',
+  '/donors': 'Донори',
+  '/finances': 'Фінанси',
+  '/admin/users': 'Користувачі',
+  '/admin/organizations': 'Організації',
+  '/admin/dictionaries': 'Довідники',
+  '/my-organization': 'Налаштування організації',
+};
+
+function getInitials(name?: string): string {
+  if (!name) return '·';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = (parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '');
+  return letters.toUpperCase() || name[0]!.toUpperCase();
+}
+
+function PulseMark() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M2 13h3.2l2-6 3 12 2.6-9 1.8 3H22"
+        stroke="currentColor"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export function AppLayout() {
   const user = useAuth((s) => s.user);
@@ -35,6 +69,7 @@ export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -63,51 +98,61 @@ export function AppLayout() {
     '/donors',
     '/finances',
     '/admin/users',
+    '/admin/organizations',
     '/admin/dictionaries',
+    '/my-organization',
   ];
   const selectedKey =
     menuKeys
       .filter((key) => location.pathname === key || location.pathname.startsWith(`${key}/`))
       .sort((a, b) => b.length - a.length)[0] ?? location.pathname;
 
-  const menuItems = [
+  const menuItems: MenuProps['items'] = [
     {
       key: '/dashboard',
-      icon: <ToolOutlined />,
+      icon: <DashboardOutlined />,
       label: <Link to="/dashboard">Дашборд</Link>,
     },
     {
-      key: '/vehicles',
-      icon: <CarOutlined />,
-      label: <Link to="/vehicles">Автомобілі</Link>,
-    },
-    {
-      key: '/donors',
-      icon: <TeamOutlined />,
-      label: <Link to="/donors">Донори</Link>,
-    },
-    {
-      key: '/finances',
-      icon: <DollarOutlined />,
-      label: <Link to="/finances">Фінанси</Link>,
+      type: 'group',
+      label: 'Реєстр',
+      children: [
+        {
+          key: '/vehicles',
+          icon: <CarOutlined />,
+          label: <Link to="/vehicles">Автомобілі</Link>,
+        },
+        {
+          key: '/donors',
+          icon: <HeartOutlined />,
+          label: <Link to="/donors">Донори</Link>,
+        },
+        {
+          key: '/finances',
+          icon: <WalletOutlined />,
+          label: <Link to="/finances">Фінанси</Link>,
+        },
+      ],
     },
     ...(user?.userRole === 'superuser'
       ? [
           {
-            key: '/admin',
-            icon: <TeamOutlined />,
-            label: 'Адмін',
+            type: 'group' as const,
+            label: 'Адміністрування',
             children: [
               {
                 key: '/admin/users',
+                icon: <TeamOutlined />,
                 label: <Link to="/admin/users">Користувачі</Link>,
               },
               {
                 key: '/admin/organizations',
+                icon: <BankOutlined />,
                 label: <Link to="/admin/organizations">Організації</Link>,
               },
               {
                 key: '/admin/dictionaries',
+                icon: <TagsOutlined />,
                 label: <Link to="/admin/dictionaries">Довідники</Link>,
               },
             ],
@@ -117,100 +162,115 @@ export function AppLayout() {
     ...(user?.orgRole === 'coordinator'
       ? [
           {
-            key: '/my-organization',
-            icon: <SettingOutlined />,
-            label: <Link to="/my-organization">Налаштування організації</Link>,
+            type: 'group' as const,
+            label: 'Організація',
+            children: [
+              {
+                key: '/my-organization',
+                icon: <SettingOutlined />,
+                label: <Link to="/my-organization">Налаштування</Link>,
+              },
+            ],
           },
         ]
       : []),
   ];
 
+  const activeOrg = memberships.find((m) => m.organizationId === user?.activeOrgId);
+  const roleLabel =
+    user?.userRole === 'superuser'
+      ? 'Адміністратор системи'
+      : (user?.orgRole && ORG_ROLE_LABELS[user.orgRole]) || 'Користувач';
+  const pageTitle = PAGE_TITLES[selectedKey] ?? 'VolunteerFleet';
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header
-        style={{
-          background: '#fff',
-          padding: '0 24px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
+    <Layout className="app-shell">
+      <Sider
+        className="app-sider"
+        width={252}
+        collapsedWidth={80}
+        breakpoint="xl"
+        collapsible
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        trigger={null}
+        theme="dark"
       >
-        <a href="/" style={{ padding: '8px', textAlign: 'center', display: 'block' }}>
-          <img
-            src="/volunteer-fleet-logo.png"
-            alt="VolunteerFleet"
-            style={{ height: 48, maxWidth: '100%', display: 'block' }}
-          />
-        </a>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            height: '100%',
-          }}
-        >
-          <Space size="large">
-            {memberships.length > 0 && (
-              <Dropdown
-                menu={{
-                  items: memberships.map((m) => ({
-                    key: m.organizationId,
-                    label: m.name,
-                    disabled: m.organizationId === user?.activeOrgId,
-                    onClick: () => handleSwitchOrg(m.organizationId),
-                  })),
-                }}
-              >
-                <Button type="text">
-                  <Space>
-                    <ShopOutlined />
-                    Організація
-                    <DownOutlined />
-                  </Space>
-                </Button>
-              </Dropdown>
-            )}
-            <Space>
-              <Typography.Text>{user?.fullName}</Typography.Text>
-              <Dropdown
-                menu={{
-                  items: [
-                    {
-                      key: 'logout',
-                      icon: <LogoutOutlined />,
-                      label: 'Вийти',
-                      onClick: handleLogout,
-                    },
-                  ],
-                }}
-                placement="bottomRight"
-              >
-                <Button shape="circle" icon={<TeamOutlined />} />
-              </Dropdown>
-            </Space>
-          </Space>
+        <Link to="/dashboard" className="app-brand">
+          <span className="app-brand-tile">
+            <PulseMark />
+          </span>
+          {!collapsed && (
+            <span className="app-brand-text">
+              <span className="app-brand-name">VolunteerFleet</span>
+              <span className="app-brand-sub">облік транспорту ЗСУ</span>
+            </span>
+          )}
+        </Link>
+
+        <div className="app-nav">
+          <Menu mode="inline" theme="dark" selectedKeys={[selectedKey]} items={menuItems} />
         </div>
-      </Header>
+
+        <div className="app-usercard">
+          <span className="app-usercard-avatar">{getInitials(user?.fullName)}</span>
+          {!collapsed && (
+            <>
+              <span className="app-usercard-meta">
+                <span className="app-usercard-name">{user?.fullName}</span>
+                <span className="app-usercard-role">{roleLabel}</span>
+              </span>
+              <Tooltip title="Вийти" placement="top">
+                <Button
+                  className="app-usercard-logout"
+                  type="text"
+                  size="small"
+                  icon={<LogoutOutlined />}
+                  onClick={handleLogout}
+                />
+              </Tooltip>
+            </>
+          )}
+        </div>
+      </Sider>
+
       <Layout>
-        <Sider breakpoint="xl" collapsedWidth="80" theme="light" style={siderStyle}>
-          <Menu
-            mode="inline"
-            selectedKeys={[selectedKey]}
-            defaultOpenKeys={['/admin']}
-            items={menuItems}
-          />
-        </Sider>
-        <Layout>
-          <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', minHeight: 280 }}>
-            <Outlet />
-          </Content>
-        </Layout>
+        <Header className="app-header">
+          <div className="app-header-left">
+            <Button
+              className="app-collapse-btn"
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed((c) => !c)}
+            />
+            <span className="app-header-title">{pageTitle}</span>
+          </div>
+
+          {memberships.length > 0 && (
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                selectable: true,
+                selectedKeys: user?.activeOrgId ? [user.activeOrgId] : [],
+                items: memberships.map((m) => ({
+                  key: m.organizationId,
+                  label: m.name,
+                  disabled: m.organizationId === user?.activeOrgId,
+                  onClick: () => handleSwitchOrg(m.organizationId),
+                })),
+              }}
+            >
+              <Button className="app-org-btn" icon={<ShopOutlined />}>
+                {activeOrg?.name ?? 'Організація'}
+                <DownOutlined style={{ fontSize: 11, opacity: 0.6 }} />
+              </Button>
+            </Dropdown>
+          )}
+        </Header>
+
+        <Content className="app-content">
+          <Outlet />
+        </Content>
       </Layout>
     </Layout>
   );

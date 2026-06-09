@@ -1,6 +1,6 @@
 import { Layout, Typography } from 'antd';
 import { Link, Outlet } from 'react-router-dom';
-import '../../styles/global.css';
+import '../../styles/global.scss';
 
 const { Header, Content } = Layout;
 

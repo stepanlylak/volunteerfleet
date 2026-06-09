@@ -9,6 +9,7 @@ import { RouterProvider } from 'react-router-dom';
 import { authApi } from './api/auth.api';
 import { router } from './router';
 import { useAuth } from './stores/auth.store';
+import './styles/global.scss';
 import './styles/print.css';
 import { theme } from './styles/theme';
 
