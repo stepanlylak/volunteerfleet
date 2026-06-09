@@ -7,6 +7,7 @@ import type {
   VehiclePhotoResponse,
   VehicleResponse,
   VehicleStatusHistoryListResponse,
+  VehicleTransitionRequest,
   VehicleUpdate,
 } from '@volunteerfleet/shared';
 import { http } from './client';
@@ -43,6 +44,11 @@ export const vehiclesApi = {
     return res.data;
   },
 
+  async transition(id: string, payload: VehicleTransitionRequest): Promise<VehicleResponse> {
+    const res = await http.post<VehicleResponse>(`/vehicles/${id}/transition`, payload);
+    return res.data;
+  },
+
   async getStatusHistory(id: string): Promise<VehicleStatusHistoryListResponse> {
     const res = await http.get<VehicleStatusHistoryListResponse>(`/vehicles/${id}/status-history`);
     return res.data;
@@ -60,7 +66,10 @@ export const vehiclesApi = {
     return res.data;
   },
 
-  async reorderPhotos(id: string, payload: VehiclePhotoOrderUpdate): Promise<VehiclePhotoListResponse> {
+  async reorderPhotos(
+    id: string,
+    payload: VehiclePhotoOrderUpdate,
+  ): Promise<VehiclePhotoListResponse> {
     const res = await http.patch<VehiclePhotoListResponse>(`/vehicles/${id}/photos/order`, payload);
     return res.data;
   },

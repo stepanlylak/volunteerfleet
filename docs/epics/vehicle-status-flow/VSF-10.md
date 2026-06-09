@@ -3,10 +3,10 @@ id: VSF-10
 epic: vehicle-status-flow
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [VSF-8, VSF-9]
 parallelizable: true
-branch: feat/vsf-10-alerts-on-vehicle-card
+branch: feat/vsf-9-10-status-transition
 pr:
 ---
 

@@ -446,9 +446,8 @@ export class VehicleTransitionService {
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
             .returnActDocId || null;
       } else if (dto.targetStatus === 'lost') {
-        updateValues.lostReason = (
-          dto as any
-        ) /* eslint-disable-line @typescript-eslint/no-explicit-any */.lostReason;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        updateValues.lostReason = (dto as any).lostReason;
       }
 
       await tx
