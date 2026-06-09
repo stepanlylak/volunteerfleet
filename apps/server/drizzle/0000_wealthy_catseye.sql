@@ -34,6 +34,16 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;--> statement-breakpoint
 DO $$ BEGIN
+ CREATE TYPE "public"."vehicle_gallery_item_type" AS ENUM('image');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ CREATE TYPE "public"."vehicle_gallery_kind" AS ENUM('main', 'custom');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
  CREATE TYPE "public"."vehicle_status" AS ENUM('new', 'paid', 'in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned', 'lost');
 EXCEPTION
  WHEN duplicate_object THEN null;
@@ -123,6 +133,46 @@ CREATE TABLE IF NOT EXISTS "vehicle_photos" (
 	"mime_type" varchar(128) NOT NULL,
 	"size_bytes" bigint NOT NULL,
 	"sort_order" smallint DEFAULT 0 NOT NULL,
+	"created_by" uuid NOT NULL,
+	"updated_by" uuid NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "vehicle_galleries" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"vehicle_id" uuid NOT NULL,
+	"kind" "vehicle_gallery_kind" NOT NULL,
+	"name" varchar(255),
+	"description" text,
+	"is_public" boolean DEFAULT false NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"cover_item_id" uuid,
+	"created_by" uuid NOT NULL,
+	"updated_by" uuid NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid,
+	CONSTRAINT "vehicle_galleries_main_shape_check" CHECK ("kind" <> 'main' OR ("name" IS NULL AND "is_public" = true AND "sort_order" = 0)),
+	CONSTRAINT "vehicle_galleries_custom_shape_check" CHECK ("kind" <> 'custom' OR ("name" IS NOT NULL AND length(trim("name")) > 0))
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "vehicle_gallery_items" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"vehicle_id" uuid NOT NULL,
+	"gallery_id" uuid NOT NULL,
+	"type" "vehicle_gallery_item_type" NOT NULL,
+	"file_key" varchar(512) NOT NULL,
+	"original_name" varchar(255) NOT NULL,
+	"mime_type" varchar(128) NOT NULL,
+	"size_bytes" bigint NOT NULL,
+	"caption" text,
+	"sort_order" integer DEFAULT 0 NOT NULL,
 	"created_by" uuid NOT NULL,
 	"updated_by" uuid NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -284,6 +334,66 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;--> statement-breakpoint
 DO $$ BEGIN
+ ALTER TABLE "vehicle_galleries" ADD CONSTRAINT "vehicle_galleries_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_galleries" ADD CONSTRAINT "vehicle_galleries_vehicle_id_vehicles_id_fk" FOREIGN KEY ("vehicle_id") REFERENCES "public"."vehicles"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_galleries" ADD CONSTRAINT "vehicle_galleries_cover_item_id_vehicle_gallery_items_id_fk" FOREIGN KEY ("cover_item_id") REFERENCES "public"."vehicle_gallery_items"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_galleries" ADD CONSTRAINT "vehicle_galleries_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_galleries" ADD CONSTRAINT "vehicle_galleries_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_galleries" ADD CONSTRAINT "vehicle_galleries_deleted_by_users_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_gallery_items" ADD CONSTRAINT "vehicle_gallery_items_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_gallery_items" ADD CONSTRAINT "vehicle_gallery_items_vehicle_id_vehicles_id_fk" FOREIGN KEY ("vehicle_id") REFERENCES "public"."vehicles"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_gallery_items" ADD CONSTRAINT "vehicle_gallery_items_gallery_id_vehicle_galleries_id_fk" FOREIGN KEY ("gallery_id") REFERENCES "public"."vehicle_galleries"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_gallery_items" ADD CONSTRAINT "vehicle_gallery_items_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_gallery_items" ADD CONSTRAINT "vehicle_gallery_items_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "vehicle_gallery_items" ADD CONSTRAINT "vehicle_gallery_items_deleted_by_users_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
  ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
@@ -408,6 +518,13 @@ CREATE INDEX IF NOT EXISTS "vehicles_is_public_idx" ON "vehicles" USING btree ("
 CREATE INDEX IF NOT EXISTS "vehicle_photos_organization_id_idx" ON "vehicle_photos" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "vehicle_photos_vehicle_id_idx" ON "vehicle_photos" USING btree ("vehicle_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "vehicle_photos_vehicle_order_idx" ON "vehicle_photos" USING btree ("vehicle_id","sort_order");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "vehicle_galleries_main_active_unique" ON "vehicle_galleries" USING btree ("vehicle_id") WHERE "vehicle_galleries"."kind" = 'main' AND "vehicle_galleries"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "vehicle_galleries_name_active_unique" ON "vehicle_galleries" USING btree ("vehicle_id",lower(trim("name"))) WHERE "vehicle_galleries"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "vehicle_galleries_org_vehicle_idx" ON "vehicle_galleries" USING btree ("organization_id","vehicle_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "vehicle_galleries_vehicle_order_idx" ON "vehicle_galleries" USING btree ("vehicle_id","sort_order");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "vehicle_gallery_items_org_vehicle_gallery_idx" ON "vehicle_gallery_items" USING btree ("organization_id","vehicle_id","gallery_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "vehicle_gallery_items_gallery_order_idx" ON "vehicle_gallery_items" USING btree ("gallery_id","sort_order");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "vehicle_gallery_items_gallery_order_active_unique" ON "vehicle_gallery_items" USING btree ("gallery_id","sort_order") WHERE "vehicle_gallery_items"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "vehicle_status_history_organization_id_idx" ON "vehicle_status_history" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "vehicle_status_history_vehicle_changed_at_idx" ON "vehicle_status_history" USING btree ("vehicle_id","changed_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "vehicle_status_history_transition_date_idx" ON "vehicle_status_history" USING btree ("transition_date");--> statement-breakpoint

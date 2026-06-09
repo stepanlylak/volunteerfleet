@@ -7,6 +7,8 @@ export * from './donations.js';
 export * from './dictionaries.js';
 export * from './vehicles.js';
 export * from './vehicle-photos.js';
+export * from './vehicle-galleries.js';
+export * from './vehicle-gallery-items.js';
 export * from './vehicle-status-history.js';
 export * from './vehicle-alerts-view.js';
 export * from './expenses.js';

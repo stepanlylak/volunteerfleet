@@ -28,6 +28,10 @@ export const orgRoleEnum = pgEnum('org_role', ['coordinator', 'volunteer', 'view
 
 export const documentKindEnum = pgEnum('document_kind', ['upload', 'link']);
 
+export const vehicleGalleryKindEnum = pgEnum('vehicle_gallery_kind', ['main', 'custom']);
+
+export const vehicleGalleryItemTypeEnum = pgEnum('vehicle_gallery_item_type', ['image']);
+
 export const currencyCodeEnum = pgEnum('currency_code', ['UAH', 'USD', 'EUR']);
 
 export const rateSourceEnum = pgEnum('rate_source', ['default', 'manual']);
