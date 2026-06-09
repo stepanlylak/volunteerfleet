@@ -36,21 +36,20 @@ packages:
 
 Кореневий `package.json` тримає лише оркестрацію та dev-залежності інструментів. Ключові scripts:
 
-| Скрипт            | Дія                                                                  |
-| ----------------- | -------------------------------------------------------------------- |
-| `dev`             | Білд `shared`, далі сервер + клієнт + `shared --watch` паралельно.   |
-| `build`           | `pnpm -r build` (топологічно).                                       |
-| `lint`            | ESLint по всьому репо (`--max-warnings=0`).                          |
-| `typecheck`       | `tsc --noEmit` у всіх пакетах.                                       |
-| `test`            | Vitest у всіх пакетах.                                               |
-| `format`          | Prettier write.                                                      |
-| `infra:up`        | Підняти PostgreSQL + MinIO, створити БД і bucket активного профілю.  |
-| `infra:down`      | Зупинити контейнери (volumes лишаються).                             |
-| `infra:reset`     | Знести volumes і підняти заново (чиста БД!).                         |
-| `db:generate`     | `drizzle-kit generate` — нова міграція з diff схеми.                 |
-| `db:migrate`      | Застосувати міграції.                                                |
-| `db:seed`         | Admin + базові довідники.                                            |
-| `db:seed:demo`    | Демо-дані (авто, витрати, документи).                                |
+| Скрипт        | Дія                                                                 |
+| ------------- | ------------------------------------------------------------------- |
+| `dev`         | Білд `shared`, далі сервер + клієнт + `shared --watch` паралельно.  |
+| `build`       | `pnpm -r build` (топологічно).                                      |
+| `lint`        | ESLint по всьому репо (`--max-warnings=0`).                         |
+| `typecheck`   | `tsc --noEmit` у всіх пакетах.                                      |
+| `test`        | Vitest у всіх пакетах.                                              |
+| `format`      | Prettier write.                                                     |
+| `infra:up`    | Підняти PostgreSQL + MinIO, створити БД і bucket активного профілю. |
+| `infra:down`  | Зупинити контейнери (volumes лишаються).                            |
+| `infra:reset` | Знести volumes і підняти заново (чиста БД!).                        |
+| `db:generate` | `drizzle-kit generate` — нова міграція з diff схеми.                |
+| `db:migrate`  | Застосувати міграції.                                               |
+| `db:seed`     | Superuser + глобальні довідники (категорії витрат). Org не створює. |
 
 > `shared` будується ESM-only й має бути зібраний перед першим стартом сервера. Кореневий `dev`
 > гарантує це: спершу разовий `--filter shared build`, далі `shared` у watch-режимі поряд із apps.
@@ -80,7 +79,7 @@ apps/server/
     ├── storage/                # S3/MinIO: storage.module, storage.service, storage.tokens
     ├── health/                 # /api/v1/health
     ├── modules/                # Бізнес-модулі (див. нижче)
-    └── scripts/                # seed.ts, seed-demo.ts, seed-ids.ts, ensure-database.ts
+    └── scripts/                # seed.ts, seed-ids.ts, migrate.ts, ensure-database.ts
 ```
 
 **Бізнес-модулі** (`src/modules/`): `auth`, `users`, `vehicles` (+ `vehicle-photos.service`),
