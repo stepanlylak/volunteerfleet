@@ -1,6 +1,7 @@
 import {
   Card,
   Descriptions,
+  Empty,
   Image,
   Progress,
   Result,
@@ -13,21 +14,45 @@ import {
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { PublicVehicleGallery } from '@volunteerfleet/shared';
+import { VEHICLE_GALLERY_PRESENTATION } from '@volunteerfleet/shared';
 import { publicApi } from '../../api/public.api';
 import { formatCurrency, formatDate } from '../../utils/format';
 
-function flattenGalleryItems(galleries: PublicVehicleGallery[]) {
-  const items: { id: string; galleryLabel: string; caption: string | null }[] = [];
-  for (const gallery of galleries) {
-    for (const item of gallery.items) {
-      items.push({
-        id: item.id,
-        galleryLabel: gallery.displayLabel,
-        caption: item.caption,
-      });
-    }
+function GallerySection({ gallery }: { gallery: PublicVehicleGallery }) {
+  // Don't render empty galleries
+  if (gallery.items.length === 0) {
+    return null;
   }
-  return items;
+
+  const title =
+    gallery.kind === 'main' ? VEHICLE_GALLERY_PRESENTATION.main.label : (gallery.name ?? 'Галерея');
+
+  return (
+    <div>
+      <Typography.Title level={4} style={{ marginBottom: 8 }}>
+        {title}
+      </Typography.Title>
+      {gallery.description && (
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+          {gallery.description}
+        </Typography.Paragraph>
+      )}
+      <Image.PreviewGroup>
+        <Space wrap size="middle">
+          {gallery.items.map((item) => (
+            <Image
+              key={item.id}
+              width={220}
+              height={150}
+              style={{ objectFit: 'cover' }}
+              src={publicApi.getGalleryItemDownloadUrl(item.id)}
+              alt={item.caption ?? title}
+            />
+          ))}
+        </Space>
+      </Image.PreviewGroup>
+    </div>
+  );
 }
 
 export function PublicVehiclePage() {
@@ -54,7 +79,10 @@ export function PublicVehiclePage() {
       )
     : null;
 
-  const allGalleryItems = flattenGalleryItems(data.galleries);
+  // Filter out empty galleries and sort by sortOrder
+  const visibleGalleries = data.galleries
+    .filter((g) => g.items.length > 0)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -75,22 +103,15 @@ export function PublicVehiclePage() {
         </Typography.Paragraph>
       </Card>
 
-      {allGalleryItems.length > 0 ? (
-        <Image.PreviewGroup>
-          <Space wrap size="middle">
-            {allGalleryItems.map((item) => (
-              <Image
-                key={item.id}
-                width={220}
-                height={150}
-                style={{ objectFit: 'cover' }}
-                src={publicApi.getGalleryItemDownloadUrl(item.id)}
-                alt={item.caption ?? item.galleryLabel}
-              />
-            ))}
-          </Space>
-        </Image.PreviewGroup>
-      ) : null}
+      {visibleGalleries.length > 0 ? (
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          {visibleGalleries.map((gallery) => (
+            <GallerySection key={gallery.id} gallery={gallery} />
+          ))}
+        </Space>
+      ) : (
+        <Empty description="Фото ще не додано" />
+      )}
 
       <Card>
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
