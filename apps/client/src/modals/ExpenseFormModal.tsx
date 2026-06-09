@@ -130,7 +130,7 @@ export function ExpenseFormModal({
       setCurrency(expense.currency);
       setExpenseDate(expense.expenseDate);
       setRateSource(expense.rateSource);
-      setAmount(expense.amount);
+      setAmount(expense.amountMinor / 100);
       setRate(expense.rate);
       setNewFiles([]);
       setNewLinks([]);
@@ -139,7 +139,7 @@ export function ExpenseFormModal({
       isExpenseDateManuallyChangedRef.current = false;
       form.setFieldsValue({
         expenseDate: dayjs(expense.expenseDate),
-        amount: expense.amount,
+        amount: expense.amountMinor / 100,
         currency: expense.currency,
         rate: expense.rate,
         categoryId: expense.categoryId,
@@ -183,7 +183,7 @@ export function ExpenseFormModal({
     const payload: ExpenseCreate = {
       vehicleId: effectiveVehicleId,
       expenseDate: normalizedExpenseDate,
-      amount: values.amount,
+      amountMinor: Math.round(values.amount * 100),
       currency: values.currency,
       rate: effectiveRate,
       categoryId: values.categoryId,

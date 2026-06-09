@@ -45,7 +45,7 @@ export function AmountCurrencyRateField({
 }: AmountCurrencyRateFieldProps) {
   const isRateManuallyChangedRef = useRef(false);
   const isUAH = currency === 'UAH';
-  const amountUah = amount * rate;
+  const amountUahMinor = Math.round(amount * 100 * rate);
 
   const shouldFetchRate = !isUAH && !!date && !isEdit;
   const { data: rateData, isFetching: rateFetching } = useExchangeRate(
@@ -121,7 +121,7 @@ export function AmountCurrencyRateField({
           type="secondary"
           style={{ display: 'block', marginTop: -12, marginBottom: 12 }}
         >
-          ≈ {formatCurrency(amountUah, 'UAH')}
+          ≈ {formatCurrency(amountUahMinor, 'UAH')}
         </Typography.Text>
       )}
 

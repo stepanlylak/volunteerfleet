@@ -67,8 +67,8 @@ describe('PublicService', () => {
       description: 'private description',
       isPublic: true,
       publicSummary: 'Публічний опис без приватних деталей',
-      publicCollectedAmountUah: '10000.00',
-      publicGoalAmountUah: '25000.00',
+      publicCollectedAmountUahMinor: 1_000_000,
+      publicGoalAmountUahMinor: 2_500_000,
       createdBy: '33333333-3333-3333-3333-333333333333',
       updatedBy: '33333333-3333-3333-3333-333333333333',
       createdAt: now,
@@ -89,8 +89,8 @@ describe('PublicService', () => {
       year: 2012,
       status: { name: 'На ремонті' },
       publicSummary: 'Публічний опис без приватних деталей',
-      publicCollectedAmountUah: 10000,
-      publicGoalAmountUah: 25000,
+      publicCollectedAmountUahMinor: 1_000_000,
+      publicGoalAmountUahMinor: 2_500_000,
       photos: [],
       createdAt: now.toISOString(),
     });
@@ -113,8 +113,8 @@ describe('PublicService', () => {
       },
       dateFrom: '2026-05-01',
       dateTo: '2026-05-31',
-      totalUah: 4123,
-      byCategory: [{ category: 'Ремонт', totalUah: 4123 }],
+      totalUahMinor: 412_300,
+      byCategory: [{ category: 'Ремонт', totalUahMinor: 412_300 }],
       byVehicle: [
         {
           vehicle: {
@@ -123,7 +123,7 @@ describe('PublicService', () => {
             brand: 'Toyota',
             model: 'Hilux',
           },
-          totalUah: 4123,
+          totalUahMinor: 412_300,
         },
       ],
       expenses: [{ id: 'private-expense' }],
@@ -147,8 +147,8 @@ describe('PublicService', () => {
       },
       dateFrom: '2026-05-01',
       dateTo: '2026-05-31',
-      totalUah: 4123,
-      byCategory: [{ category: 'Ремонт', totalUah: 4123 }],
+      totalUahMinor: 412_300,
+      byCategory: [{ category: 'Ремонт', totalUahMinor: 412_300 }],
       byVehicle: [
         {
           vehicle: {
@@ -157,7 +157,7 @@ describe('PublicService', () => {
             brand: 'Toyota',
             model: 'Hilux',
           },
-          totalUah: 4123,
+          totalUahMinor: 412_300,
         },
       ],
     });
@@ -176,7 +176,7 @@ describe('PublicService', () => {
       },
       dateFrom: '2026-05-01',
       dateTo: '2026-05-31',
-      totalUah: 0,
+      totalUahMinor: 0,
       byCategory: [],
       byVehicle: [],
     });

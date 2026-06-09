@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { vehicleStatusSchema } from './vehicle-status.js';
+import { minorAmountSchema } from './common.js';
 
 export const dashboardStatusCountSchema = z.object({
   status: vehicleStatusSchema,
@@ -16,7 +17,7 @@ export const dashboardStatsSchema = z.object({
   inWorkVehicles: z.number().int().min(0),
   transferredVehicles: z.number().int().min(0),
   statusCounts: z.array(dashboardStatusCountSchema),
-  monthlyExpenseUah: z.number().min(0),
+  monthlyExpenseUahMinor: minorAmountSchema.refine((value) => value >= 0),
   documentsTotal: z.number().int().min(0),
   documentsThisMonth: z.number().int().min(0),
 });

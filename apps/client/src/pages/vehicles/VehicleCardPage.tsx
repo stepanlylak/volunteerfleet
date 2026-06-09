@@ -213,12 +213,15 @@ export function VehicleCardPage() {
     if (expense.rate > 1) return expense.rate;
     return fallbackRateByExpenseId.get(expense.id) ?? expense.rate;
   };
-  const totalUah = expenses.reduce((sum, e) => sum + e.amount * getExpenseRate(e), 0);
+  const totalUahMinor = expenses.reduce(
+    (sum, expense) => sum + Math.round(expense.amountMinor * getExpenseRate(expense)),
+    0,
+  );
   const totalsByCurrency = useMemo(
     () =>
       Array.from(
         expenses.reduce((map, expense) => {
-          map.set(expense.currency, (map.get(expense.currency) ?? 0) + expense.amount);
+          map.set(expense.currency, (map.get(expense.currency) ?? 0) + expense.amountMinor);
           return map;
         }, new Map<Currency, number>()),
       ).sort(
@@ -230,8 +233,8 @@ export function VehicleCardPage() {
   const hasCompletePublicPage =
     vehicle?.isPublic &&
     Boolean(vehicle.publicSummary?.trim()) &&
-    vehicle.publicCollectedAmountUah !== null &&
-    vehicle.publicGoalAmountUah !== null;
+    vehicle.publicCollectedAmountUahMinor !== null &&
+    vehicle.publicGoalAmountUahMinor !== null;
   const userObj = useAuth((state) => state.user);
   const publicVehicleUrl =
     vehicle?.isPublic && userObj?.activeOrgId
@@ -243,8 +246,12 @@ export function VehicleCardPage() {
     form.setFieldsValue({
       isPublic: vehicle.isPublic,
       publicSummary: vehicle.publicSummary,
-      publicCollectedAmountUah: vehicle.publicCollectedAmountUah,
-      publicGoalAmountUah: vehicle.publicGoalAmountUah,
+      publicCollectedAmountUah: vehicle.publicCollectedAmountUahMinor
+        ? vehicle.publicCollectedAmountUahMinor / 100
+        : null,
+      publicGoalAmountUah: vehicle.publicGoalAmountUahMinor
+        ? vehicle.publicGoalAmountUahMinor / 100
+        : null,
     });
     setDescriptionDraft(vehicle.description ?? '');
   }, [form, vehicle]);
@@ -256,8 +263,12 @@ export function VehicleCardPage() {
     const payload = {
       ...values,
       publicSummary: values.publicSummary?.trim() ? values.publicSummary.trim() : null,
-      publicCollectedAmountUah: values.publicCollectedAmountUah ?? null,
-      publicGoalAmountUah: values.publicGoalAmountUah ?? null,
+      publicCollectedAmountUahMinor:
+        values.publicCollectedAmountUah == null
+          ? null
+          : Math.round(values.publicCollectedAmountUah * 100),
+      publicGoalAmountUahMinor:
+        values.publicGoalAmountUah == null ? null : Math.round(values.publicGoalAmountUah * 100),
     };
     const parsed = vehicleUpdateSchema.safeParse(payload);
     if (!parsed.success) {
@@ -510,7 +521,7 @@ export function VehicleCardPage() {
                   wrap
                 >
                   <Space direction="vertical" size={4}>
-                    <Statistic title="Разом (UAH)" value={totalUah} precision={2} suffix="₴" />
+                    <Statistic title="Разом (UAH)" value={formatCurrency(totalUahMinor, 'UAH')} />
                     {totalsByCurrency.length > 0 ? (
                       <Space wrap size={[8, 8]}>
                         <Typography.Text type="secondary">За валютами:</Typography.Text>
@@ -553,10 +564,14 @@ export function VehicleCardPage() {
                         key: 'amount',
                         render: (_, r) => (
                           <Space direction="vertical" size={0}>
-                            <span>{formatCurrency(r.amount, r.currency)}</span>
+                            <span>{formatCurrency(r.amountMinor, r.currency)}</span>
                             {r.currency !== 'UAH' && (
                               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                ≈ {formatCurrency(r.amount * getExpenseRate(r), 'UAH')}
+                                ≈{' '}
+                                {formatCurrency(
+                                  Math.round(r.amountMinor * getExpenseRate(r)),
+                                  'UAH',
+                                )}
                               </Typography.Text>
                             )}
                           </Space>

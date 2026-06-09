@@ -60,7 +60,7 @@ describe('DashboardService', () => {
         return {
           from: vi
             .fn()
-            .mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUah: '15000' }]) }),
+            .mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUahMinor: '1500000' }]) }),
         };
       }
       if (callIndex === 4) {
@@ -99,7 +99,9 @@ describe('DashboardService', () => {
       }
       if (callIndex === 3) {
         return {
-          from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUah: '0' }]) }),
+          from: vi
+            .fn()
+            .mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUahMinor: '0' }]) }),
         };
       }
       return {
@@ -136,7 +138,9 @@ describe('DashboardService', () => {
       }
       if (callIndex === 3) {
         return {
-          from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUah: '0' }]) }),
+          from: vi
+            .fn()
+            .mockReturnValue({ where: vi.fn().mockResolvedValue([{ totalUahMinor: '0' }]) }),
         };
       }
       return {

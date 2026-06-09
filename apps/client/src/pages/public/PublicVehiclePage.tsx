@@ -29,11 +29,13 @@ export function PublicVehiclePage() {
     return <Result status="404" title="Сторінка не знайдена або недоступна" />;
   }
 
-  const hasGoal = Boolean(data.publicGoalAmountUah);
+  const hasGoal = Boolean(data.publicGoalAmountUahMinor);
   const progress = hasGoal
     ? Math.min(
         100,
-        Math.round(((data.publicCollectedAmountUah ?? 0) / data.publicGoalAmountUah!) * 100),
+        Math.round(
+          ((data.publicCollectedAmountUahMinor ?? 0) / data.publicGoalAmountUahMinor!) * 100,
+        ),
       )
     : null;
 
@@ -77,12 +79,13 @@ export function PublicVehiclePage() {
           <Space wrap size="large">
             <Statistic
               title="Зібрано"
-              value={data.publicCollectedAmountUah ?? 0}
-              precision={2}
-              suffix="₴"
+              value={formatCurrency(data.publicCollectedAmountUahMinor ?? 0, 'UAH')}
             />
-            {data.publicGoalAmountUah ? (
-              <Statistic title="Ціль" value={data.publicGoalAmountUah} precision={2} suffix="₴" />
+            {data.publicGoalAmountUahMinor ? (
+              <Statistic
+                title="Ціль"
+                value={formatCurrency(data.publicGoalAmountUahMinor, 'UAH')}
+              />
             ) : null}
           </Space>
           {progress !== null ? <Progress percent={progress} /> : null}
@@ -94,7 +97,7 @@ export function PublicVehiclePage() {
         <Descriptions.Item label="Статус">{data.status.name}</Descriptions.Item>
         <Descriptions.Item label="Дата створення">{formatDate(data.createdAt)}</Descriptions.Item>
         <Descriptions.Item label="Зібрано">
-          {formatCurrency(data.publicCollectedAmountUah ?? 0, 'UAH')}
+          {formatCurrency(data.publicCollectedAmountUahMinor ?? 0, 'UAH')}
         </Descriptions.Item>
       </Descriptions>
     </Space>

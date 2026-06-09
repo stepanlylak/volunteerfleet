@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { fundingSourceSchema, fundingSourceTypeSchema } from './dictionary.js';
 import { expenseCategoryBreakdownSchema, vehicleExpenseBreakdownSchema } from './report.js';
-import { uuidSchema } from './common.js';
+import { minorAmountSchema, positiveMinorAmountSchema, uuidSchema } from './common.js';
 import { publicVehiclePhotoSchema } from './vehicle-photo.js';
 
 export const publicVehicleParamsSchema = z.object({
@@ -23,8 +23,8 @@ export const publicVehicleResponseSchema = z.object({
   year: z.number().int().nullable(),
   status: z.object({ name: z.string() }),
   publicSummary: z.string().nullable(),
-  publicCollectedAmountUah: z.number().nullable(),
-  publicGoalAmountUah: z.number().nullable(),
+  publicCollectedAmountUahMinor: positiveMinorAmountSchema.nullable(),
+  publicGoalAmountUahMinor: positiveMinorAmountSchema.nullable(),
   photos: z.array(publicVehiclePhotoSchema),
   createdAt: z.string(),
 });
@@ -39,7 +39,7 @@ export const publicFundingReportResponseSchema = z.object({
   }),
   dateFrom: z.string().nullable(),
   dateTo: z.string().nullable(),
-  totalUah: z.number(),
+  totalUahMinor: minorAmountSchema,
   byCategory: z.array(expenseCategoryBreakdownSchema),
   byVehicle: z.array(vehicleExpenseBreakdownSchema),
 });

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { nonEmptyString, uuidSchema } from './common.js';
+import { nonEmptyString, positiveMinorAmountSchema, uuidSchema } from './common.js';
 import { pageQuerySchema, pageResultSchema } from './pagination.js';
 
 export const DOCUMENT_TYPES = [
@@ -88,7 +88,7 @@ export type DocumentVehicleSummary = z.infer<typeof documentVehicleSummarySchema
 export const documentExpenseSummarySchema = z.object({
   id: uuidSchema,
   expenseDate: z.string(),
-  amount: z.number(),
+  amountMinor: positiveMinorAmountSchema,
   currency: z.string(),
 });
 export type DocumentExpenseSummary = z.infer<typeof documentExpenseSummarySchema>;

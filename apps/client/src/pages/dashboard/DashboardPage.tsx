@@ -31,14 +31,11 @@ import { VehicleFormModal } from '../../modals/VehicleFormModal';
 import { ExpenseFormModal } from '../../modals/ExpenseFormModal';
 import { DocumentFormModal } from '../../modals/DocumentFormModal';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
+import { formatCurrency } from '../../utils/format';
 
 function formatUah(value: number | undefined): string {
   if (value === undefined) return '—';
-  return new Intl.NumberFormat('uk-UA', {
-    style: 'currency',
-    currency: 'UAH',
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatCurrency(value, 'UAH');
 }
 
 function currentMonthLabel(): string {
@@ -74,9 +71,9 @@ const expenseColumns: ColumnsType<ExpenseResponse> = [
   },
   {
     title: 'Сума',
-    dataIndex: 'amount',
+    dataIndex: 'amountMinor',
     align: 'right',
-    render: (v: string, row: ExpenseResponse) => `${v} ${row.currency}`,
+    render: (value: number, row: ExpenseResponse) => formatCurrency(value, row.currency),
   },
   {
     title: 'Джерело',
@@ -99,7 +96,7 @@ export function DashboardPage() {
     totalVehicles,
     inWorkVehicles,
     transferredVehicles,
-    monthlyExpenseUah,
+    monthlyExpenseUahMinor,
     documentsTotal,
     documentsThisMonth,
     statusCounts,
@@ -219,7 +216,9 @@ export function DashboardPage() {
             ) : (
               <Statistic
                 title="Витрати за місяць"
-                value={monthlyExpenseUah !== undefined ? formatUah(monthlyExpenseUah) : '—'}
+                value={
+                  monthlyExpenseUahMinor !== undefined ? formatUah(monthlyExpenseUahMinor) : '—'
+                }
                 prefix={<DollarOutlined style={{ color: '#722ed1' }} />}
               />
             )}

@@ -40,13 +40,13 @@ export function VehicleReportPage() {
     { title: 'Валюта', dataIndex: 'currency' },
     {
       title: 'Сума у валюті',
-      dataIndex: 'totalInCurrency',
+      dataIndex: 'totalInCurrencyMinor',
       align: 'right',
       render: (value: number, row) => formatCurrency(value, row.currency),
     },
     {
       title: 'Еквівалент UAH',
-      dataIndex: 'totalUah',
+      dataIndex: 'totalUahMinor',
       align: 'right',
       render: (value: number) => formatCurrency(value, 'UAH'),
     },
@@ -56,7 +56,7 @@ export function VehicleReportPage() {
     { title: 'Категорія', dataIndex: 'category' },
     {
       title: 'Сума UAH',
-      dataIndex: 'totalUah',
+      dataIndex: 'totalUahMinor',
       align: 'right',
       render: (value: number) => formatCurrency(value, 'UAH'),
     },
@@ -70,13 +70,13 @@ export function VehicleReportPage() {
       title: 'Сума',
       key: 'amount',
       align: 'right',
-      render: (_, row) => formatCurrency(row.amount, row.currency),
+      render: (_, row) => formatCurrency(row.amountMinor, row.currency),
     },
     {
       title: 'UAH',
       key: 'uah',
       align: 'right',
-      render: (_, row) => formatCurrency(row.amount * row.rate, 'UAH'),
+      render: (_, row) => formatCurrency(Math.round(row.amountMinor * row.rate), 'UAH'),
     },
   ];
 
@@ -109,7 +109,7 @@ export function VehicleReportPage() {
 
         <ReportSection title="Зведення">
           <Space wrap size="large">
-            <Statistic title="Загальна сума" value={data.totalUah} precision={2} suffix="₴" />
+            <Statistic title="Загальна сума" value={formatCurrency(data.totalUahMinor, 'UAH')} />
             <Statistic title="Кількість витрат" value={data.expenses.length} />
             <Statistic title="Кількість документів" value={data.documents.length} />
           </Space>

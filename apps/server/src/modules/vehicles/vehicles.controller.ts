@@ -121,8 +121,8 @@ export class VehiclesController {
     if (user.orgRole !== 'coordinator') {
       delete (dto as Partial<VehicleUpdate>).isPublic;
       delete (dto as Partial<VehicleUpdate>).publicSummary;
-      delete (dto as Partial<VehicleUpdate>).publicCollectedAmountUah;
-      delete (dto as Partial<VehicleUpdate>).publicGoalAmountUah;
+      delete (dto as Partial<VehicleUpdate>).publicCollectedAmountUahMinor;
+      delete (dto as Partial<VehicleUpdate>).publicGoalAmountUahMinor;
     }
 
     return this.service.update(params.id, dto, user.sub, user.activeOrgId);
