@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   VEHICLE_GALLERY_MAX_ITEMS,
   type VehicleGalleryCreate,
@@ -13,6 +13,7 @@ import {
   type VehicleGalleryListResponse,
   type VehicleGalleryResponse,
   type VehicleGalleryUpdate,
+  type VehicleMainGalleryCover,
 } from '@volunteerfleet/shared';
 import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
@@ -50,6 +51,84 @@ export class VehicleGalleriesService {
       createdBy: userId,
       updatedBy: userId,
     });
+  }
+
+  // Returns the effective main gallery cover for a single vehicle (for detail response).
+  // Returns null when the main gallery has no active items.
+  async getMainGalleryCover(
+    vehicleId: string,
+    activeOrgId: string,
+  ): Promise<VehicleMainGalleryCover | null> {
+    const map = await this.getMainGalleryCoversForVehicles([vehicleId], activeOrgId);
+    return map.get(vehicleId) ?? null;
+  }
+
+  // Batch version for list responses: single bounded query per call (no N+1).
+  // Returns a map of vehicleId → effective cover for vehicles that have a cover.
+  async getMainGalleryCoversForVehicles(
+    vehicleIds: string[],
+    activeOrgId: string,
+  ): Promise<Map<string, VehicleMainGalleryCover>> {
+    const result = new Map<string, VehicleMainGalleryCover>();
+    if (vehicleIds.length === 0) return result;
+
+    const mainGalleries = await this.db
+      .select({
+        id: vehicleGalleries.id,
+        vehicleId: vehicleGalleries.vehicleId,
+        coverItemId: vehicleGalleries.coverItemId,
+      })
+      .from(vehicleGalleries)
+      .where(
+        and(
+          inArray(vehicleGalleries.vehicleId, vehicleIds),
+          eq(vehicleGalleries.organizationId, activeOrgId),
+          eq(vehicleGalleries.kind, 'main'),
+          isNull(vehicleGalleries.deletedAt),
+        ),
+      );
+
+    if (mainGalleries.length === 0) return result;
+
+    const galleryIds = mainGalleries.map((g) => g.id);
+    const activeItems = await this.db
+      .select({
+        id: vehicleGalleryItems.id,
+        galleryId: vehicleGalleryItems.galleryId,
+        mimeType: vehicleGalleryItems.mimeType,
+        sortOrder: vehicleGalleryItems.sortOrder,
+        createdAt: vehicleGalleryItems.createdAt,
+      })
+      .from(vehicleGalleryItems)
+      .where(
+        and(
+          inArray(vehicleGalleryItems.galleryId, galleryIds),
+          isNull(vehicleGalleryItems.deletedAt),
+        ),
+      )
+      .orderBy(asc(vehicleGalleryItems.sortOrder), asc(vehicleGalleryItems.createdAt));
+
+    // Group items by galleryId for efficient lookup
+    const itemsByGallery = new Map<string, typeof activeItems>();
+    for (const item of activeItems) {
+      const list = itemsByGallery.get(item.galleryId) ?? [];
+      list.push(item);
+      itemsByGallery.set(item.galleryId, list);
+    }
+
+    for (const gallery of mainGalleries) {
+      const items = itemsByGallery.get(gallery.id) ?? [];
+      if (items.length === 0) continue;
+
+      const explicitItem = gallery.coverItemId
+        ? items.find((i) => i.id === gallery.coverItemId)
+        : undefined;
+      const coverItem = explicitItem ?? items[0]!;
+
+      result.set(gallery.vehicleId, { itemId: coverItem.id, mimeType: coverItem.mimeType });
+    }
+
+    return result;
   }
 
   async getGalleryResponse(

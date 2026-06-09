@@ -11,6 +11,12 @@ export const vehicleGalleryItemTypeSchema = z.enum(VEHICLE_GALLERY_ITEM_TYPES);
 
 export const VEHICLE_GALLERY_MAX_ITEMS = 30;
 
+// Presentation config for main gallery UI label (Ukrainian)
+export const VEHICLE_GALLERY_PRESENTATION: Record<VehicleGalleryKind, { label: string }> = {
+  main: { label: 'Основна' },
+  custom: { label: '' }, // Custom galleries use their user-editable name
+};
+
 const emptyToNull = (value: string): string | null => (value === '' ? null : value);
 
 const optionalNormalizedText = (max: number) =>
@@ -166,6 +172,7 @@ export const publicVehicleGallerySchema = z
     id: uuidSchema,
     kind: vehicleGalleryKindSchema,
     name: z.string().nullable(),
+    displayLabel: z.string(),
     description: z.string().nullable(),
     sortOrder: z.number().int(),
     coverItemId: uuidSchema.nullable(),

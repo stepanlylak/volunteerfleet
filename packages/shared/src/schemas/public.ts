@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { positiveMinorAmountSchema, uuidSchema } from './common.js';
-import { publicVehiclePhotoSchema } from './vehicle-photo.js';
+import { publicVehicleGallerySchema } from './vehicle-gallery.js';
 
 export const publicVehicleParamsSchema = z.object({
   orgId: uuidSchema,
@@ -17,7 +17,7 @@ export const publicVehicleResponseSchema = z.object({
   publicSummary: z.string().nullable(),
   publicCollectedAmountUahMinor: positiveMinorAmountSchema.nullable(),
   publicGoalAmountUahMinor: positiveMinorAmountSchema.nullable(),
-  photos: z.array(publicVehiclePhotoSchema),
+  galleries: z.array(publicVehicleGallerySchema),
   createdAt: z.string(),
 });
 export type PublicVehicleResponse = z.infer<typeof publicVehicleResponseSchema>;

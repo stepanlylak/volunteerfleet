@@ -20,13 +20,14 @@ export class PublicController {
   ): Promise<PublicVehicleResponse> {
     return this.service.getVehicleById(params.orgId, params.vehicleId);
   }
-  @Get('vehicle-photos/:id/download')
+
+  @Get('gallery-items/:id/download')
   @Header('Access-Control-Allow-Origin', '*')
-  async vehiclePhoto(
+  async galleryItemDownload(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const { body, contentType, contentLength } = await this.service.getPhotoDownloadStream(
+    const { body, contentType, contentLength } = await this.service.getGalleryItemDownloadStream(
       params.id,
     );
     res.set({

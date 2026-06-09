@@ -6,8 +6,8 @@ export const publicApi = {
     const res = await http.get<PublicVehicleResponse>(`/public/${orgId}/vehicles/${vehicleId}`);
     return res.data;
   },
-  getVehiclePhotoUrl(photoId: string): string {
+  getGalleryItemDownloadUrl(itemId: string): string {
     const base = import.meta.env.VITE_API_URL || '/api/v1';
-    return `${base}/public/vehicle-photos/${photoId}/download`;
+    return `${base}/public/gallery-items/${itemId}/download`;
   },
 };
