@@ -57,7 +57,14 @@ export function AppLayout() {
     }
   };
 
-  const menuKeys = ['/dashboard', '/vehicles', '/expenses', '/admin/users', '/admin/dictionaries'];
+  const menuKeys = [
+    '/dashboard',
+    '/vehicles',
+    '/donors',
+    '/expenses',
+    '/admin/users',
+    '/admin/dictionaries',
+  ];
   const selectedKey =
     menuKeys
       .filter((key) => location.pathname === key || location.pathname.startsWith(`${key}/`))
@@ -73,6 +80,11 @@ export function AppLayout() {
       key: '/vehicles',
       icon: <CarOutlined />,
       label: <Link to="/vehicles">Автомобілі</Link>,
+    },
+    {
+      key: '/donors',
+      icon: <TeamOutlined />,
+      label: <Link to="/donors">Донори</Link>,
     },
     {
       key: '/expenses',
