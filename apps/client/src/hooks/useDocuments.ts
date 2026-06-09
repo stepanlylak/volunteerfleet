@@ -6,6 +6,14 @@ import type {
 } from '@volunteerfleet/shared';
 import { documentsApi } from '../api/documents.api';
 
+export function useDocument(id: string | undefined) {
+  return useQuery({
+    queryKey: ['documents', id],
+    queryFn: () => documentsApi.getById(id!),
+    enabled: !!id,
+  });
+}
+
 export function useVehicleDocuments(
   vehicleId: string | undefined,
   params?: Partial<VehicleDocumentsQuery>,
