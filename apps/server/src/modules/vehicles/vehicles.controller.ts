@@ -14,6 +14,7 @@ import {
   StreamableFile,
   UploadedFile,
   UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -46,10 +47,12 @@ import {
   vehiclePhotoUploadMetadataSchema,
   vehicleUpdateSchema,
   vehicleTransitionRequestSchema,
+  vehicleStatusHistoryEditRequestSchema,
   type IdParam,
   type VehicleDocumentsQuery,
   type VehicleExpensesQuery,
   type VehicleTransitionRequest,
+  type VehicleStatusHistoryEditRequest,
 } from '@volunteerfleet/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { OrgRoles } from '../../common/decorators/org-roles.decorator.js';
@@ -166,6 +169,40 @@ export class VehiclesController {
   ): Promise<VehicleStatusHistoryListResponse> {
     if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     return this.service.getStatusHistory(params.id, user.activeOrgId);
+  }
+
+  @Delete(':id/status-history/last')
+  @OrgRoles('coordinator')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async rollbackLastStatus(
+    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @Query('expectedLastHistoryId') expectedLastHistoryId: string,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<void> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    if (!expectedLastHistoryId) {
+      throw new BadRequestException('expectedLastHistoryId query parameter is required');
+    }
+    await this.transitionService.rollbackLastStatus(
+      params.id,
+      expectedLastHistoryId,
+      user.activeOrgId,
+      user.sub,
+    );
+  }
+
+  @Patch(':id/status-history/:historyId')
+  @OrgRoles('coordinator', 'volunteer')
+  async editStatusHistory(
+    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @Param('historyId') historyId: string,
+    @Body(new ZodValidationPipe(vehicleStatusHistoryEditRequestSchema))
+    dto: VehicleStatusHistoryEditRequest,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<void> {
+    if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.transitionService.editStatusHistory(params.id, historyId, dto, user.activeOrgId);
   }
 
   @Get(':id/expenses')

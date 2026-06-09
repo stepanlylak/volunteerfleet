@@ -3,10 +3,10 @@ id: VSF-15
 epic: vehicle-status-flow
 phase: 1
 type: feat
-status: ready
+status: done
 depends_on: [VSF-6]
 parallelizable: true
-branch: feat/vsf-15-rollback-last-status
+branch: feat/vsf-15-16-status-history
 pr:
 ---
 

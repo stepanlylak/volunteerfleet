@@ -163,6 +163,18 @@ export const vehicleTransitionRequestSchema = z.discriminatedUnion('targetStatus
 ]);
 export type VehicleTransitionRequest = z.infer<typeof vehicleTransitionRequestSchema>;
 
+export const vehicleStatusHistoryEditRequestSchema = z.discriminatedUnion('targetStatus', [
+  transitionToPaidSchema.omit({ expectedCurrentStatus: true }),
+  transitionToInTransitSchema.omit({ expectedCurrentStatus: true }),
+  transitionToArrivedSchema.omit({ expectedCurrentStatus: true }),
+  transitionToInRepairSchema.omit({ expectedCurrentStatus: true }),
+  transitionToReadySchema.omit({ expectedCurrentStatus: true }),
+  transitionToTransferredSchema.omit({ expectedCurrentStatus: true }),
+  transitionToReturnedSchema.omit({ expectedCurrentStatus: true }),
+  transitionToLostSchema.omit({ expectedCurrentStatus: true }),
+]);
+export type VehicleStatusHistoryEditRequest = z.infer<typeof vehicleStatusHistoryEditRequestSchema>;
+
 export const VEHICLE_ALERT_TYPES = [
   'missing_registration_doc',
   'missing_customs_declaration',

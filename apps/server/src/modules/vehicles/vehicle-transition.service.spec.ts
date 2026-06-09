@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VehicleTransitionService } from './vehicle-transition.service.js';
 
 describe('VehicleTransitionService', () => {
-  let db: unknown;
-  let exchangeRatesService: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let db: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let exchangeRatesService: any;
   let vehiclesService: unknown;
   let svc: VehicleTransitionService;
 
