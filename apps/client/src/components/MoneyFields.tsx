@@ -8,7 +8,7 @@ import { formatCurrency } from '../utils/format';
 
 const CURRENCIES: Currency[] = ['UAH', 'USD', 'EUR'];
 
-interface AmountCurrencyRateFieldProps {
+interface MoneyFieldsProps {
   form: FormInstance;
   amountFieldName?: string;
   currencyFieldName?: string;
@@ -26,7 +26,7 @@ interface AmountCurrencyRateFieldProps {
   disabled?: boolean;
 }
 
-export function AmountCurrencyRateField({
+export function MoneyFields({
   form,
   amountFieldName = 'amount',
   currencyFieldName = 'currency',
@@ -42,7 +42,7 @@ export function AmountCurrencyRateField({
   onAmountChange,
   isEdit = false,
   disabled = false,
-}: AmountCurrencyRateFieldProps) {
+}: MoneyFieldsProps) {
   const isRateManuallyChangedRef = useRef(false);
   const isUAH = currency === 'UAH';
   const amountUahMinor = Math.round(amount * 100 * rate);
