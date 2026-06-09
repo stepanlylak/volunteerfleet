@@ -3,10 +3,10 @@ id: FIN-8
 epic: financial-flow
 phase: 1
 type: feat
-status: todo
+status: done
 depends_on: [FIN-6, FIN-7]
 parallelizable: false
-branch: feat/fin-8-financial-journal
+branch: feat/fin-phase-1
 pr:
 ---
 
