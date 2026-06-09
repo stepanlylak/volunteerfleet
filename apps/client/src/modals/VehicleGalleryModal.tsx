@@ -1,8 +1,33 @@
 import { useEffect, useState } from 'react';
-import { Empty, Form, Image, Input, Modal, Switch, Typography, Upload, message } from 'antd';
-import { InboxOutlined } from '@ant-design/icons';
+import {
+  Button,
+  Empty,
+  Form,
+  Image,
+  Input,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Switch,
+  Tag,
+  Tooltip,
+  Typography,
+  Upload,
+  message,
+} from 'antd';
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  CheckCircleOutlined,
+  CheckCircleTwoTone,
+  DeleteOutlined,
+  EditOutlined,
+  InboxOutlined,
+  SwapOutlined,
+} from '@ant-design/icons';
 import type { UploadFile } from 'antd';
-import type { VehicleGalleryResponse } from '@volunteerfleet/shared';
+import type { VehicleGalleryItemResponse, VehicleGalleryResponse } from '@volunteerfleet/shared';
 import {
   VEHICLE_GALLERY_MAX_ITEMS,
   VEHICLE_GALLERY_PRESENTATION,
@@ -11,6 +36,11 @@ import {
 } from '@volunteerfleet/shared';
 import {
   useCreateVehicleGallery,
+  useDeleteGalleryItem,
+  useMoveGalleryItem,
+  useReorderGalleryItems,
+  useSetGalleryCover,
+  useUpdateGalleryItemCaption,
   useUpdateVehicleGallery,
   useUploadGalleryItem,
 } from '../hooks/useVehicleGalleries';
@@ -24,6 +54,7 @@ interface VehicleGalleryModalProps {
   open: boolean;
   vehicleId: string;
   gallery?: VehicleGalleryResponse;
+  allGalleries: VehicleGalleryResponse[];
   canMutate: boolean;
   onClose: () => void;
 }
@@ -38,6 +69,7 @@ export function VehicleGalleryModal({
   open,
   vehicleId,
   gallery,
+  allGalleries,
   canMutate,
   onClose,
 }: VehicleGalleryModalProps) {
@@ -48,8 +80,17 @@ export function VehicleGalleryModal({
   const createGallery = useCreateVehicleGallery(vehicleId);
   const updateGallery = useUpdateVehicleGallery(vehicleId);
   const uploadItem = useUploadGalleryItem(vehicleId);
+  const updateCaption = useUpdateGalleryItemCaption(vehicleId);
+  const reorderItems = useReorderGalleryItems(vehicleId);
+  const setCover = useSetGalleryCover(vehicleId);
+  const moveItem = useMoveGalleryItem(vehicleId);
+  const deleteItem = useDeleteGalleryItem(vehicleId);
 
   const [pendingFiles, setPendingFiles] = useState<UploadFile[]>([]);
+  const [editingCaptionId, setEditingCaptionId] = useState<string | null>(null);
+  const [captionDraft, setCaptionDraft] = useState('');
+  const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [moveTargetGalleryId, setMoveTargetGalleryId] = useState<string | null>(null);
 
   const currentItemCount = gallery?.items.length ?? 0;
   const remainingSlots = VEHICLE_GALLERY_MAX_ITEMS - currentItemCount;
@@ -57,6 +98,9 @@ export function VehicleGalleryModal({
   useEffect(() => {
     if (!open) return;
     setPendingFiles([]);
+    setEditingCaptionId(null);
+    setMovingItemId(null);
+    setMoveTargetGalleryId(null);
     if (gallery) {
       form.setFieldsValue({
         name: isMain ? VEHICLE_GALLERY_PRESENTATION.main.label : (gallery.name ?? ''),
@@ -114,22 +158,91 @@ export function VehicleGalleryModal({
       message.success(isEdit ? 'Галерею оновлено' : 'Галерею створено');
       onClose();
     } catch (err: unknown) {
-      const resp = (err as { response?: { data?: { code?: string }; status?: number } })?.response;
-      if (resp?.data?.code === 'GALLERY_NAME_ALREADY_EXISTS') {
-        message.error('Галерея з такою назвою вже існує');
-      } else if (resp?.data?.code === 'GALLERY_ITEM_LIMIT_EXCEEDED') {
-        message.error(`Максимум ${VEHICLE_GALLERY_MAX_ITEMS} фото у галереї`);
-      } else if (resp?.status === 413) {
-        message.error('Файл надто великий');
-      } else if (resp?.status === 415 || resp?.data?.code === 'UNSUPPORTED_ITEM_TYPE') {
-        message.error('Тип файлу не підтримується');
-      } else {
-        message.error('Помилка збереження');
-      }
+      handleApiError(err);
     }
   };
 
-  const isPending = createGallery.isPending || updateGallery.isPending || uploadItem.isPending;
+  const handleCaptionSave = async (item: VehicleGalleryItemResponse) => {
+    if (!gallery) return;
+    try {
+      await updateCaption.mutateAsync({
+        galleryId: gallery.id,
+        itemId: item.id,
+        payload: { caption: captionDraft.trim() || null },
+      });
+      setEditingCaptionId(null);
+      message.success('Підпис оновлено');
+    } catch (err: unknown) {
+      handleApiError(err);
+    }
+  };
+
+  const handleReorder = async (itemIndex: number, direction: -1 | 1) => {
+    if (!gallery) return;
+    const items = [...gallery.items];
+    const targetIndex = itemIndex + direction;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+    const temp = items[itemIndex]!;
+    items[itemIndex] = items[targetIndex]!;
+    items[targetIndex] = temp;
+    try {
+      await reorderItems.mutateAsync({
+        galleryId: gallery.id,
+        payload: { itemIds: items.map((it) => it.id) },
+      });
+    } catch (err: unknown) {
+      handleApiError(err);
+    }
+  };
+
+  const handleSetCover = async (itemId: string | null) => {
+    if (!gallery) return;
+    try {
+      await setCover.mutateAsync({
+        galleryId: gallery.id,
+        payload: { itemId },
+      });
+      message.success(itemId ? 'Обкладинку встановлено' : 'Обкладинку скинуто');
+    } catch (err: unknown) {
+      handleApiError(err);
+    }
+  };
+
+  const handleMove = async (itemId: string) => {
+    if (!gallery || !moveTargetGalleryId) return;
+    try {
+      await moveItem.mutateAsync({
+        galleryId: gallery.id,
+        itemId,
+        payload: { targetGalleryId: moveTargetGalleryId },
+      });
+      setMovingItemId(null);
+      setMoveTargetGalleryId(null);
+      message.success('Фото переміщено');
+    } catch (err: unknown) {
+      handleApiError(err);
+    }
+  };
+
+  const handleDeleteItem = async (item: VehicleGalleryItemResponse) => {
+    if (!gallery) return;
+    try {
+      await deleteItem.mutateAsync({ galleryId: gallery.id, itemId: item.id });
+      message.success('Фото видалено');
+    } catch (err: unknown) {
+      handleApiError(err);
+    }
+  };
+
+  const isMutating =
+    createGallery.isPending ||
+    updateGallery.isPending ||
+    uploadItem.isPending ||
+    updateCaption.isPending ||
+    reorderItems.isPending ||
+    setCover.isPending ||
+    moveItem.isPending ||
+    deleteItem.isPending;
 
   const title = isEdit
     ? isMain
@@ -137,15 +250,23 @@ export function VehicleGalleryModal({
       : 'Редагувати галерею'
     : 'Створити галерею';
 
+  const moveTargetOptions = allGalleries
+    .filter((g) => g.id !== gallery?.id)
+    .map((g) => ({
+      value: g.id,
+      label: g.kind === 'main' ? VEHICLE_GALLERY_PRESENTATION.main.label : (g.name ?? ''),
+      disabled: g.items.length >= VEHICLE_GALLERY_MAX_ITEMS,
+    }));
+
   return (
     <Modal
       open={open}
       title={title}
       onCancel={onClose}
       onOk={canMutate ? () => void form.submit() : undefined}
-      confirmLoading={isPending}
+      confirmLoading={isMutating}
       destroyOnHidden
-      width={640}
+      width={720}
       footer={canMutate ? undefined : null}
     >
       <Form form={form} layout="vertical" onFinish={handleFinish} disabled={!canMutate}>
@@ -179,48 +300,213 @@ export function VehicleGalleryModal({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                  gap: 8,
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                  gap: 12,
                   marginBottom: 16,
                 }}
               >
-                {gallery.items.map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      position: 'relative',
-                      aspectRatio: '1',
-                      borderRadius: 6,
-                      overflow: 'hidden',
-                      border: '1px solid #d9d9d9',
-                    }}
-                  >
-                    <Image
-                      src={vehicleGalleriesApi.getItemDownloadUrl(vehicleId, gallery.id, item.id)}
-                      alt={item.caption ?? item.originalName}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    {item.caption && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          background: 'rgba(0,0,0,0.55)',
-                          color: '#fff',
-                          fontSize: 11,
-                          padding: '2px 6px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {item.caption}
+                {gallery.items.map((item, index) => {
+                  const isExplicitCover = gallery.explicitCoverItemId === item.id;
+                  const isEffectiveCover = gallery.effectiveCoverItemId === item.id;
+                  const isEditingCaption = editingCaptionId === item.id;
+                  const isMoving = movingItemId === item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        border: isExplicitCover
+                          ? '2px solid #1677ff'
+                          : isEffectiveCover
+                            ? '2px dashed #1677ff'
+                            : '1px solid #d9d9d9',
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        background: '#fff',
+                      }}
+                    >
+                      <div style={{ position: 'relative', aspectRatio: '4 / 3' }}>
+                        <Image
+                          src={vehicleGalleriesApi.getItemDownloadUrl(
+                            vehicleId,
+                            gallery.id,
+                            item.id,
+                          )}
+                          alt={item.caption ?? item.originalName}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        {isEffectiveCover && (
+                          <Tag
+                            color="blue"
+                            style={{ position: 'absolute', top: 4, left: 4, margin: 0 }}
+                          >
+                            {isExplicitCover ? 'Обкладинка' : 'Обкладинка (авто)'}
+                          </Tag>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      <div style={{ padding: '6px 8px' }}>
+                        {isEditingCaption ? (
+                          <Space.Compact style={{ width: '100%', marginBottom: 4 }}>
+                            <Input
+                              size="small"
+                              value={captionDraft}
+                              onChange={(e) => setCaptionDraft(e.target.value)}
+                              maxLength={2000}
+                              placeholder="Підпис"
+                              onPressEnter={() => void handleCaptionSave(item)}
+                              autoFocus
+                            />
+                            <Button
+                              size="small"
+                              type="primary"
+                              loading={updateCaption.isPending}
+                              onClick={() => void handleCaptionSave(item)}
+                            >
+                              OK
+                            </Button>
+                            <Button size="small" onClick={() => setEditingCaptionId(null)}>
+                              X
+                            </Button>
+                          </Space.Compact>
+                        ) : (
+                          <Typography.Text
+                            type="secondary"
+                            ellipsis
+                            style={{ fontSize: 12, display: 'block', marginBottom: 4 }}
+                            title={item.caption ?? undefined}
+                          >
+                            {item.caption || '—'}
+                          </Typography.Text>
+                        )}
+
+                        {isMoving && (
+                          <Space.Compact style={{ width: '100%', marginBottom: 4 }}>
+                            <Select
+                              size="small"
+                              style={{ flex: 1 }}
+                              placeholder="Оберіть галерею"
+                              options={moveTargetOptions}
+                              value={moveTargetGalleryId}
+                              onChange={setMoveTargetGalleryId}
+                            />
+                            <Button
+                              size="small"
+                              type="primary"
+                              disabled={!moveTargetGalleryId}
+                              loading={moveItem.isPending}
+                              onClick={() => void handleMove(item.id)}
+                            >
+                              OK
+                            </Button>
+                            <Button
+                              size="small"
+                              onClick={() => {
+                                setMovingItemId(null);
+                                setMoveTargetGalleryId(null);
+                              }}
+                            >
+                              X
+                            </Button>
+                          </Space.Compact>
+                        )}
+
+                        {canMutate && !isEditingCaption && !isMoving && (
+                          <Space wrap size={4}>
+                            <Tooltip title="Редагувати підпис">
+                              <Button
+                                size="small"
+                                icon={<EditOutlined />}
+                                onClick={() => {
+                                  setCaptionDraft(item.caption ?? '');
+                                  setEditingCaptionId(item.id);
+                                }}
+                                aria-label="Редагувати підпис"
+                              />
+                            </Tooltip>
+                            {index > 0 && (
+                              <Tooltip title="Вгору">
+                                <Button
+                                  size="small"
+                                  icon={<ArrowUpOutlined />}
+                                  loading={reorderItems.isPending}
+                                  onClick={() => void handleReorder(index, -1)}
+                                  aria-label="Перемістити вгору"
+                                />
+                              </Tooltip>
+                            )}
+                            {index < gallery.items.length - 1 && (
+                              <Tooltip title="Вниз">
+                                <Button
+                                  size="small"
+                                  icon={<ArrowDownOutlined />}
+                                  loading={reorderItems.isPending}
+                                  onClick={() => void handleReorder(index, 1)}
+                                  aria-label="Перемістити вниз"
+                                />
+                              </Tooltip>
+                            )}
+                            <Tooltip
+                              title={
+                                isExplicitCover ? 'Скинути обкладинку' : 'Встановити обкладинкою'
+                              }
+                            >
+                              <Button
+                                size="small"
+                                icon={
+                                  isExplicitCover ? (
+                                    <CheckCircleTwoTone twoToneColor="#1677ff" />
+                                  ) : (
+                                    <CheckCircleOutlined />
+                                  )
+                                }
+                                loading={setCover.isPending}
+                                onClick={() =>
+                                  void handleSetCover(isExplicitCover ? null : item.id)
+                                }
+                                aria-label={
+                                  isExplicitCover ? 'Скинути обкладинку' : 'Встановити обкладинкою'
+                                }
+                              />
+                            </Tooltip>
+                            {moveTargetOptions.length > 0 && (
+                              <Tooltip title="Перемістити в іншу галерею">
+                                <Button
+                                  size="small"
+                                  icon={<SwapOutlined />}
+                                  onClick={() => {
+                                    setMovingItemId(item.id);
+                                    setMoveTargetGalleryId(null);
+                                  }}
+                                  disabled={
+                                    remainingSlots <= 0 &&
+                                    moveTargetOptions.every((o) => o.disabled)
+                                  }
+                                  aria-label="Перемістити в іншу галерею"
+                                />
+                              </Tooltip>
+                            )}
+                            <Popconfirm
+                              title="Видалити фото?"
+                              okText="Видалити"
+                              cancelText="Скасувати"
+                              onConfirm={() => void handleDeleteItem(item)}
+                            >
+                              <Tooltip title="Видалити">
+                                <Button
+                                  size="small"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  aria-label="Видалити фото"
+                                />
+                              </Tooltip>
+                            </Popconfirm>
+                          </Space>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </Image.PreviewGroup>
           ) : (
@@ -269,4 +555,23 @@ export function VehicleGalleryModal({
       )}
     </Modal>
   );
+}
+
+function handleApiError(err: unknown) {
+  const resp = (err as { response?: { data?: { code?: string }; status?: number } })?.response;
+  if (resp?.data?.code === 'GALLERY_NAME_ALREADY_EXISTS') {
+    message.error('Галерея з такою назвою вже існує');
+  } else if (resp?.data?.code === 'GALLERY_ITEM_LIMIT_EXCEEDED') {
+    message.error(`Максимум ${VEHICLE_GALLERY_MAX_ITEMS} фото у галереї`);
+  } else if (resp?.data?.code === 'MOVE_TARGET_MUST_DIFFER_FROM_SOURCE') {
+    message.error('Не можна перемістити у ту саму галерею');
+  } else if (resp?.data?.code === 'TARGET_GALLERY_NOT_FOUND') {
+    message.error('Цільову галерею не знайдено');
+  } else if (resp?.status === 413) {
+    message.error('Файл надто великий');
+  } else if (resp?.status === 415 || resp?.data?.code === 'UNSUPPORTED_ITEM_TYPE') {
+    message.error('Тип файлу не підтримується');
+  } else {
+    message.error('Помилка збереження');
+  }
 }
