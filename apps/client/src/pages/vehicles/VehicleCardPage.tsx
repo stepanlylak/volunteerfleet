@@ -848,11 +848,6 @@ export function VehicleCardPage() {
                               )}
                             </Typography.Text>
                           )}
-                          {item.repairNote && (
-                            <Typography.Text style={{ fontSize: 12 }}>
-                              Ремонт: {item.repairNote}
-                            </Typography.Text>
-                          )}
                           {item.lostReason && (
                             <Typography.Text style={{ fontSize: 12 }}>
                               Причина: {item.lostReason}

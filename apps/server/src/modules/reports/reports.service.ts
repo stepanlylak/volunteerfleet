@@ -459,7 +459,7 @@ export class ReportsService {
       purchaseRate: row.purchaseRate === null ? null : Number(row.purchaseRate),
       purchaseRateSource: row.purchaseRateSource,
       isLocalPurchase: row.isLocalPurchase,
-      repairNote: row.repairNote,
+
       isRegisteredAtServiceCenter: row.isRegisteredAtServiceCenter,
       lostReason: row.lostReason,
       registrationDocId: row.registrationDocId,

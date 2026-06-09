@@ -118,7 +118,6 @@ export const transitionToArrivedSchema = baseTransitionSchema
 export const transitionToInRepairSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('in_repair'),
-    repairNote: z.string().max(2000).optional().nullable(),
   })
   .strict();
 

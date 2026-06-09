@@ -100,7 +100,6 @@ interface FormValues {
   // arrived
   borderCrossingDate?: dayjs.Dayjs;
   // in_repair
-  repairNote?: string;
   // transferred
   isRegisteredAtServiceCenter?: boolean;
   // lost
@@ -254,7 +253,7 @@ export function StatusTransitionModal({
           };
           break;
         case 'in_repair':
-          payload = { ...base, repairNote: values.repairNote || null };
+          payload = { ...base };
           break;
         case 'ready':
           payload = { ...base, transferActDraftDocId: docIds['transferActDraftDocId'] ?? null };
@@ -376,12 +375,6 @@ export function StatusTransitionModal({
         {targetStatus === 'arrived' && (
           <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
             <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
-          </Form.Item>
-        )}
-
-        {targetStatus === 'in_repair' && (
-          <Form.Item name="repairNote" label="Примітка до ремонту">
-            <Input.TextArea rows={3} maxLength={2000} showCount />
           </Form.Item>
         )}
 

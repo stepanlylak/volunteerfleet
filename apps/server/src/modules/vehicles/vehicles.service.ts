@@ -329,7 +329,6 @@ export class VehiclesService {
       purchaseRate: r.purchaseRate === null ? null : Number(r.purchaseRate),
       purchaseRateSource: r.purchaseRateSource,
       isLocalPurchase: r.isLocalPurchase,
-      repairNote: r.repairNote,
       isRegisteredAtServiceCenter: r.isRegisteredAtServiceCenter,
       lostReason: r.lostReason,
       registrationDocId: r.registrationDocId,

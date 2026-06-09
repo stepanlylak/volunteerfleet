@@ -111,7 +111,6 @@ export const vehicleStatusHistorySchema = z.object({
   purchaseRateSource: z.enum(['default', 'manual']).nullable(),
   isLocalPurchase: z.boolean().nullable(),
 
-  repairNote: z.string().nullable(),
   isRegisteredAtServiceCenter: z.boolean().nullable(),
   lostReason: z.string().nullable(),
 

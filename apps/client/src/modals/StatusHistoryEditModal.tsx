@@ -115,7 +115,6 @@ interface FormValues {
   note?: string;
   isLocalPurchase?: boolean;
   borderCrossingDate?: dayjs.Dayjs | null;
-  repairNote?: string;
   isRegisteredAtServiceCenter?: boolean;
   lostReason?: string;
 }
@@ -173,7 +172,6 @@ export function StatusHistoryEditModal({
       note: entry.note ?? undefined,
       isLocalPurchase: entry.isLocalPurchase ?? false,
       borderCrossingDate: null,
-      repairNote: entry.repairNote ?? undefined,
       isRegisteredAtServiceCenter: entry.isRegisteredAtServiceCenter ?? false,
       lostReason: entry.lostReason ?? undefined,
     });
@@ -252,7 +250,7 @@ export function StatusHistoryEditModal({
           };
           break;
         case 'in_repair':
-          payload = { ...base, repairNote: values.repairNote || null };
+          payload = { ...base };
           break;
         case 'ready':
           payload = { ...base, transferActDraftDocId: docIds['transferActDraftDocId'] ?? null };
@@ -354,12 +352,6 @@ export function StatusHistoryEditModal({
         {status === 'arrived' && (
           <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
             <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
-          </Form.Item>
-        )}
-
-        {status === 'in_repair' && (
-          <Form.Item name="repairNote" label="Примітка до ремонту">
-            <Input.TextArea rows={3} maxLength={2000} showCount />
           </Form.Item>
         )}
 

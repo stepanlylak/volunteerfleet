@@ -44,7 +44,6 @@ export const vehicleStatusHistory = pgTable(
     purchaseRateSource: rateSourceEnum('purchase_rate_source'),
     isLocalPurchase: boolean('is_local_purchase'),
 
-    repairNote: text('repair_note'),
     isRegisteredAtServiceCenter: boolean('is_registered_at_service_center'),
     lostReason: text('lost_reason'),
 

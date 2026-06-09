@@ -3,7 +3,7 @@ id: VSF-18
 epic: vehicle-status-flow
 phase: 2
 type: chore
-status: todo
+status: done
 depends_on: [VSF-9, VSF-11, VSF-16]
 parallelizable: true
 branch: chore/vsf-18-remove-repair-note

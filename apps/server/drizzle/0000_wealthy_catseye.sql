@@ -146,7 +146,6 @@ CREATE TABLE IF NOT EXISTS "vehicle_status_history" (
 	"purchase_rate" numeric(14, 6),
 	"purchase_rate_source" "rate_source",
 	"is_local_purchase" boolean,
-	"repair_note" text,
 	"is_registered_at_service_center" boolean,
 	"lost_reason" text,
 	"registration_doc_id" uuid,
