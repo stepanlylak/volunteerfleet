@@ -5,7 +5,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, asc } from 'drizzle-orm';
 import {
   isValidTransition,
   type VehicleTransitionRequest,
@@ -220,4 +220,61 @@ export class VehicleTransitionService {
       return this.vehiclesService.findById(vehicleId, organizationId);
     });
   }
+
+  async rollbackLastStatus(
+    vehicleId: string,
+    expectedLastHistoryId: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      const vehicle = await tx.query.vehicles.findFirst({
+        where: and(
+          eq(vehicles.id, vehicleId),
+          eq(vehicles.organizationId, organizationId),
+          isNull(vehicles.deletedAt),
+        ),
+      });
+
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle ${vehicleId} not found`);
+      }
+
+      const lastHistory = await tx.query.vehicleStatusHistory.findFirst({
+        where: eq(vehicleStatusHistory.vehicleId, vehicleId),
+        orderBy: [desc(vehicleStatusHistory.changedAt)],
+      });
+
+      if (!lastHistory) {
+        throw new BadRequestException('No history to rollback');
+      }
+
+      if (lastHistory.id !== expectedLastHistoryId) {
+        throw new ConflictException('Newer transition exists, cannot rollback');
+      }
+
+      if (lastHistory.newStatus === 'new' && !lastHistory.oldStatus) {
+        throw new BadRequestException('Cannot rollback initial status');
+      }
+
+      const updatePayload: Partial<typeof vehicles.$inferInsert> = {
+        status: lastHistory.oldStatus!,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      };
+
+      const updatedVehicles = await tx
+        .update(vehicles)
+        .set(updatePayload)
+        .where(and(eq(vehicles.id, vehicleId), eq(vehicles.status, vehicle.status)))
+        .returning();
+
+      if (updatedVehicles.length === 0) {
+        throw new ConflictException('Status update conflict');
+      }
+
+      await tx.delete(vehicleStatusHistory).where(eq(vehicleStatusHistory.id, lastHistory.id));
+    });
+  }
+
 }

@@ -14,6 +14,7 @@ import {
   StreamableFile,
   UploadedFile,
   UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -167,6 +168,27 @@ export class VehiclesController {
     if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     return this.service.getStatusHistory(params.id, user.activeOrgId);
   }
+
+  @Delete(':id/status-history/last')
+  @OrgRoles('coordinator')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async rollbackLastStatus(
+    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @Query('expectedLastHistoryId') expectedLastHistoryId: string,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<void> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    if (!expectedLastHistoryId) {
+      throw new BadRequestException('expectedLastHistoryId query parameter is required');
+    }
+    await this.transitionService.rollbackLastStatus(
+      params.id,
+      expectedLastHistoryId,
+      user.activeOrgId,
+      user.sub,
+    );
+  }
+
 
   @Get(':id/expenses')
   @OrgRoles('coordinator', 'volunteer', 'viewer')

@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VehiclesService } from './vehicles.service.js';
 
 describe('VehiclesService (VSF-7)', () => {
-  let db: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let db: any;
   let svc: VehiclesService;
 
   const vehicleId = '11111111-1111-1111-1111-111111111111';
