@@ -10,10 +10,15 @@ import { pgView, text, uuid } from 'drizzle-orm/pg-core';
 export const vehicleAlertsView = pgView('vehicle_alerts_view', {
   vehicleId: uuid('vehicle_id'),
   type: text('type'),
+  vehicleStatusHistoryId: uuid('vehicle_status_history_id'),
 }).as(
   sql`
-    SELECT v.id AS vehicle_id, 'missing_registration_doc'::text AS type
+    SELECT v.id AS vehicle_id, 'missing_registration_doc'::text AS type, h_target.id AS vehicle_status_history_id
     FROM vehicles v
+    JOIN vehicle_status_history h_target
+      ON h_target.vehicle_id = v.id
+     AND h_target.organization_id = v.organization_id
+     AND h_target.new_status = 'paid'
     WHERE v.deleted_at IS NULL
       AND v.status IN ('paid', 'in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned')
       AND NOT EXISTS (
@@ -28,8 +33,12 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
       )
 
     UNION ALL
-    SELECT v.id AS vehicle_id, 'missing_stamped_registration_doc'::text AS type
+    SELECT v.id AS vehicle_id, 'missing_stamped_registration_doc'::text AS type, h_target.id AS vehicle_status_history_id
     FROM vehicles v
+    JOIN vehicle_status_history h_target
+      ON h_target.vehicle_id = v.id
+     AND h_target.organization_id = v.organization_id
+     AND h_target.new_status = 'arrived'
     WHERE v.deleted_at IS NULL
       AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')
       AND NOT EXISTS (
@@ -44,8 +53,12 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
       )
 
     UNION ALL
-    SELECT v.id, 'missing_customs_declaration'
+    SELECT v.id, 'missing_customs_declaration', h_target.id
     FROM vehicles v
+    JOIN vehicle_status_history h_target
+      ON h_target.vehicle_id = v.id
+     AND h_target.organization_id = v.organization_id
+     AND h_target.new_status = 'in_transit'
     WHERE v.deleted_at IS NULL
       AND v.status IN ('in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned')
       AND EXISTS (
@@ -68,8 +81,12 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
       )
 
     UNION ALL
-    SELECT v.id, 'missing_stamped_customs_declaration'
+    SELECT v.id, 'missing_stamped_customs_declaration', h_target.id
     FROM vehicles v
+    JOIN vehicle_status_history h_target
+      ON h_target.vehicle_id = v.id
+     AND h_target.organization_id = v.organization_id
+     AND h_target.new_status = 'arrived'
     WHERE v.deleted_at IS NULL
       AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')
       AND EXISTS (
@@ -92,10 +109,21 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
       )
 
     UNION ALL
-    SELECT v.id, 'missing_transfer_act_draft'
+    SELECT v.id, 'missing_transfer_act_draft', h_target.id
     FROM vehicles v
+    JOIN vehicle_status_history h_target
+      ON h_target.vehicle_id = v.id
+     AND h_target.organization_id = v.organization_id
+     AND h_target.new_status = 'ready'
     WHERE v.deleted_at IS NULL
       AND v.status IN ('ready', 'transferred')
+      AND h_target.changed_at = (
+        SELECT max(h2.changed_at)
+        FROM vehicle_status_history h2
+        WHERE h2.vehicle_id = v.id
+          AND h2.organization_id = v.organization_id
+          AND h2.new_status = 'ready'
+      )
       AND NOT EXISTS (
         SELECT 1
         FROM vehicle_status_history h
@@ -108,10 +136,21 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
       )
 
     UNION ALL
-    SELECT v.id, 'missing_transfer_act_signed'
+    SELECT v.id, 'missing_transfer_act_signed', h_target.id
     FROM vehicles v
+    JOIN vehicle_status_history h_target
+      ON h_target.vehicle_id = v.id
+     AND h_target.organization_id = v.organization_id
+     AND h_target.new_status = 'transferred'
     WHERE v.deleted_at IS NULL
       AND v.status = 'transferred'
+      AND h_target.changed_at = (
+        SELECT max(h2.changed_at)
+        FROM vehicle_status_history h2
+        WHERE h2.vehicle_id = v.id
+          AND h2.organization_id = v.organization_id
+          AND h2.new_status = 'transferred'
+      )
       AND NOT EXISTS (
         SELECT 1
         FROM vehicle_status_history h
@@ -122,41 +161,43 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
         WHERE h.vehicle_id = v.id
           AND h.organization_id = v.organization_id
           AND h.new_status = 'transferred'
-          AND h.changed_at = (
-            SELECT max(h2.changed_at)
-            FROM vehicle_status_history h2
-            WHERE h2.vehicle_id = v.id
-              AND h2.organization_id = v.organization_id
-              AND h2.new_status = 'transferred'
-          )
+          AND h.changed_at = h_target.changed_at
       )
 
     UNION ALL
-    SELECT v.id, 'not_registered_at_service_center'
+    SELECT v.id, 'not_registered_at_service_center', h_target.id
     FROM vehicles v
+    JOIN vehicle_status_history h_target
+      ON h_target.vehicle_id = v.id
+     AND h_target.organization_id = v.organization_id
+     AND h_target.new_status = 'transferred'
     WHERE v.deleted_at IS NULL
       AND v.status = 'transferred'
-      AND EXISTS (
-        SELECT 1
-        FROM vehicle_status_history h
-        WHERE h.vehicle_id = v.id
-          AND h.organization_id = v.organization_id
-          AND h.new_status = 'transferred'
-          AND h.is_registered_at_service_center IS NOT TRUE
-          AND h.changed_at = (
-            SELECT max(h2.changed_at)
-            FROM vehicle_status_history h2
-            WHERE h2.vehicle_id = v.id
-              AND h2.organization_id = v.organization_id
-              AND h2.new_status = 'transferred'
-          )
+      AND h_target.changed_at = (
+        SELECT max(h2.changed_at)
+        FROM vehicle_status_history h2
+        WHERE h2.vehicle_id = v.id
+          AND h2.organization_id = v.organization_id
+          AND h2.new_status = 'transferred'
       )
+      AND h_target.is_registered_at_service_center IS NOT TRUE
 
     UNION ALL
-    SELECT v.id, 'missing_return_act'
+    SELECT v.id, 'missing_return_act', h_target.id
     FROM vehicles v
+    JOIN vehicle_status_history h_target
+      ON h_target.vehicle_id = v.id
+     AND h_target.organization_id = v.organization_id
+     AND h_target.new_status = 'returned'
     WHERE v.deleted_at IS NULL
       AND v.status = 'returned'
+      AND h_target.changed_at = (
+        SELECT max(h2.changed_at)
+        FROM vehicle_status_history h2
+        WHERE h2.vehicle_id = v.id
+          AND h2.organization_id = v.organization_id
+          AND h2.new_status = 'returned'
+      )
       AND NOT EXISTS (
         SELECT 1
         FROM vehicle_status_history h
@@ -167,13 +208,7 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
         WHERE h.vehicle_id = v.id
           AND h.organization_id = v.organization_id
           AND h.new_status = 'returned'
-          AND h.changed_at = (
-            SELECT max(h2.changed_at)
-            FROM vehicle_status_history h2
-            WHERE h2.vehicle_id = v.id
-              AND h2.organization_id = v.organization_id
-              AND h2.new_status = 'returned'
-          )
+          AND h.changed_at = h_target.changed_at
       )
   `,
 );

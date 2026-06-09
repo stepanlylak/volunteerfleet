@@ -200,5 +200,6 @@ export const VEHICLE_ALERT_CONFIG: Record<VehicleAlertType, { message: string }>
 export const vehicleAlertSchema = z.object({
   type: z.enum(VEHICLE_ALERT_TYPES),
   message: z.string(),
+  vehicleStatusHistoryId: uuidSchema.nullable(),
 });
 export type VehicleAlert = z.infer<typeof vehicleAlertSchema>;

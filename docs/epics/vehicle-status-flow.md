@@ -214,6 +214,7 @@ transition (`null` до появи `→ paid`), але окрема колонк
 
 - `vehicle_id` (uuid)
 - `type` (string enum)
+- `vehicle_status_history_id` (uuid, nullable) — опційний зв'язок з конкретним записом історії
 
 `message` у View **не зберігається** — він визначається в `VEHICLE_ALERT_CONFIG`
 (`packages/shared`): `Record<VehicleAlertType, { message: string }>`. `VehicleAlertService` мапить

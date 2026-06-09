@@ -389,14 +389,6 @@ export function VehicleCardPage() {
         {headerActions}
       </Space>
 
-      {vehicle.alerts.length > 0 && (
-        <Space direction="vertical" size="small" style={{ width: '100%' }}>
-          {vehicle.alerts.map((alert) => (
-            <Alert key={alert.type} type="warning" message={alert.message} showIcon />
-          ))}
-        </Space>
-      )}
-
       <Row gutter={[24, 24]} align="top">
         <Col xs={24} lg={8}>
           <VehiclePhotoGallery photos={photos} vehicleId={vehicle.id} loading={photosLoading} />
@@ -801,7 +793,7 @@ export function VehicleCardPage() {
           },
           {
             key: 'history',
-            label: 'Історія статусів',
+            label: `Історія статусів${vehicle.alerts.length > 0 ? ` (${vehicle.alerts.length})` : ''}`,
             children:
               (history?.items ?? []).length === 0 ? (
                 <Empty description="Історія поки порожня" />
@@ -809,6 +801,9 @@ export function VehicleCardPage() {
                 <Timeline
                   items={(history?.items ?? []).map((item) => {
                     const cfg = VEHICLE_STATUS_CONFIG[item.newStatus];
+                    const itemAlerts = vehicle.alerts.filter(
+                      (a) => a.vehicleStatusHistoryId === item.id,
+                    );
                     const docs: { label: string; docId: string | null }[] = [
                       { label: 'Техпаспорт без печатки', docId: item.registrationDocId ?? null },
                       {
@@ -886,6 +881,22 @@ export function VehicleCardPage() {
                             >
                               Редагувати
                             </Button>
+                          )}
+                          {itemAlerts.length > 0 && (
+                            <Space
+                              direction="vertical"
+                              size="small"
+                              style={{ marginTop: 8, width: '100%' }}
+                            >
+                              {itemAlerts.map((alert) => (
+                                <Alert
+                                  key={alert.type}
+                                  type="warning"
+                                  message={alert.message}
+                                  showIcon
+                                />
+                              ))}
+                            </Space>
                           )}
                         </Space>
                       ),

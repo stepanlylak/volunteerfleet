@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { PlusOutlined, WarningOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import {
+  Badge,
   Button,
   Checkbox,
   Empty,
@@ -86,7 +87,7 @@ export function VehiclesListPage() {
             </Tag>
             {vehicle.alerts.length > 0 && (
               <Tooltip title={vehicle.alerts.map((a) => a.message).join('; ')}>
-                <WarningOutlined style={{ color: '#faad14' }} />
+                <Badge count={vehicle.alerts.length} color="#faad14" />
               </Tooltip>
             )}
           </Space>
