@@ -145,6 +145,7 @@ export class DocumentsController {
   @OrgRoles('coordinator', 'volunteer', 'viewer')
   async download(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @Query('disposition') disposition: string | undefined,
     @Res({ passthrough: true }) res: Response,
     @CurrentUser() user: JwtPayload | undefined,
   ): Promise<StreamableFile | undefined> {
@@ -155,9 +156,10 @@ export class DocumentsController {
       res.redirect(HttpStatus.FOUND, result.url);
       return undefined;
     }
+    const dispositionValue = disposition === 'attachment' ? 'attachment' : 'inline';
     res.set({
       'Content-Type': result.contentType,
-      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(result.fileName)}`,
+      'Content-Disposition': `${dispositionValue}; filename*=UTF-8''${encodeURIComponent(result.fileName)}`,
       ...(result.contentLength != null ? { 'Content-Length': String(result.contentLength) } : {}),
     });
     return new StreamableFile(result.body);

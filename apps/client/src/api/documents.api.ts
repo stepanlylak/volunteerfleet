@@ -8,6 +8,11 @@ import type {
 import { http } from './client';
 
 export const documentsApi = {
+  async getById(id: string): Promise<DocumentResponse> {
+    const res = await http.get<DocumentResponse>(`/documents/${id}`);
+    return res.data;
+  },
+
   async listByVehicle(
     vehicleId: string,
     params?: Partial<VehicleDocumentsQuery>,
@@ -46,9 +51,16 @@ export const documentsApi = {
     await http.delete(`/documents/${id}`);
   },
 
-  getDownloadUrl(id: string, cacheKey?: string): string {
+  getDownloadUrl(id: string, cacheKey?: string, disposition?: 'inline' | 'attachment'): string {
     const base = import.meta.env.VITE_API_URL || '/api/v1';
     const url = `${base}/documents/${id}/download`;
-    return cacheKey ? `${url}?v=${encodeURIComponent(cacheKey)}` : url;
+    const params: string[] = [];
+    if (cacheKey) {
+      params.push(`v=${encodeURIComponent(cacheKey)}`);
+    }
+    if (disposition) {
+      params.push(`disposition=${encodeURIComponent(disposition)}`);
+    }
+    return params.length > 0 ? `${url}?${params.join('&')}` : url;
   },
 };

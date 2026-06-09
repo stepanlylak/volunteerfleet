@@ -3,10 +3,10 @@ id: FIN-15
 epic: financial-flow
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [FIN-7]
 parallelizable: true
-branch: feat/fin-15-document-details-modal
+branch: feat/financial-flow
 pr:
 ---
 
