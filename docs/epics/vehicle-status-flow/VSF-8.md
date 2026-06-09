@@ -3,7 +3,7 @@ id: VSF-8
 epic: vehicle-status-flow
 phase: 1
 type: feat
-status: todo
+status: ready
 depends_on: [VSF-6]
 parallelizable: true
 branch: feat/vsf-8-alerts-view

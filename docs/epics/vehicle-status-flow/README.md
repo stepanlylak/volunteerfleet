@@ -34,12 +34,12 @@
 | [VSF-4](VSF-4.md)   | Розширення `vehicle_status_history`                     |  0   | VSF-1, VSF-2, VSF-3 | done   |
 | [VSF-5](VSF-5.md)   | Видалення `vehicle_statuses` + перевід споживачів       |  0   | VSF-3, VSF-4        | done   |
 | [VSF-17](VSF-17.md) | Консолідація міграцій + чистка seed                     |  0   | VSF-5               | done   |
-| [VSF-6](VSF-6.md)   | Ендпоінт `POST /vehicles/:id/transition`                |  1   | VSF-5               | todo   |
-| [VSF-7](VSF-7.md)   | Авто `new` + прибрати `statusId` з create/update        |  1   | VSF-6               | todo   |
-| [VSF-8](VSF-8.md)   | Обчислення алертів (slim-View)                          |  1   | VSF-6               | todo   |
-| [VSF-15](VSF-15.md) | Видалення останнього статусу (Rollback)                 |  1   | VSF-6               | todo   |
-| [VSF-16](VSF-16.md) | Редагування даних переходу                              |  1   | VSF-6               | todo   |
-| [VSF-9](VSF-9.md)   | Модалка переходу статусу                                |  2   | VSF-6, VSF-7        | todo   |
+| [VSF-6](VSF-6.md)   | Ендпоінт `POST /vehicles/:id/transition`                |  1   | VSF-5               | done   |
+| [VSF-7](VSF-7.md)   | Авто `new` + прибрати `statusId` з create/update        |  1   | VSF-6               | done   |
+| [VSF-8](VSF-8.md)   | Обчислення алертів (slim-View)                          |  1   | VSF-6               | ready  |
+| [VSF-15](VSF-15.md) | Видалення останнього статусу (Rollback)                 |  1   | VSF-6               | ready  |
+| [VSF-16](VSF-16.md) | Редагування даних переходу                              |  1   | VSF-6               | ready  |
+| [VSF-9](VSF-9.md)   | Модалка переходу статусу                                |  2   | VSF-6, VSF-7        | ready  |
 | [VSF-10](VSF-10.md) | Алерти на картці авто                                   |  2   | VSF-8, VSF-9        | todo   |
 | [VSF-11](VSF-11.md) | Покращена історія статусів                              |  2   | VSF-9, VSF-16       | todo   |
 | [VSF-12](VSF-12.md) | Оновлення фільтрів, форм і довідників                   |  2   | VSF-9               | todo   |

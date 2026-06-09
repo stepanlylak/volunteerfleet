@@ -3,10 +3,10 @@ id: VSF-7
 epic: vehicle-status-flow
 phase: 1
 type: feat
-status: todo
+status: done
 depends_on: [VSF-6]
 parallelizable: true
-branch: feat/vsf-7-auto-new-status
+branch: feat/vsf-6-7-transition-and-auto-status
 pr:
 ---
 
