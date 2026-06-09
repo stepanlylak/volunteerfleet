@@ -1,12 +1,24 @@
 import { useMemo, useState } from 'react';
 import { PlusOutlined, WarningOutlined } from '@ant-design/icons';
-import { Button, Empty, Input, Select, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd';
+import {
+  Button,
+  Checkbox,
+  Empty,
+  Input,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import {
   VEHICLE_STATUS_CONFIG,
+  VEHICLE_STATUSES,
   type VehicleResponse,
   type VehicleStatus,
 } from '@volunteerfleet/shared';
@@ -19,7 +31,7 @@ export function VehiclesListPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<VehicleStatus | undefined>();
+  const [statuses, setStatuses] = useState<VehicleStatus[]>([]);
   const [hasAlerts, setHasAlerts] = useState<boolean | undefined>();
   const [sort, setSort] = useState('createdAt:desc');
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,7 +42,7 @@ export function VehiclesListPage() {
     page,
     pageSize,
     search: search || undefined,
-    status,
+    statuses: statuses.length > 0 ? statuses : undefined,
     hasAlerts,
     sort,
   });
@@ -142,18 +154,17 @@ export function VehiclesListPage() {
             setSearch(value.trim());
           }}
         />
-        <Select
-          allowClear
-          placeholder="Статус"
-          style={{ width: 240 }}
-          value={status}
-          onChange={(value) => {
+        <Checkbox.Group
+          value={statuses}
+          onChange={(values) => {
             setPage(1);
-            setStatus(value);
+            setStatuses(values as VehicleStatus[]);
           }}
-          options={Object.entries(VEHICLE_STATUS_CONFIG).map(([value, config]) => ({
-            value,
-            label: config.label,
+          options={VEHICLE_STATUSES.map((s) => ({
+            value: s,
+            label: (
+              <Tag color={VEHICLE_STATUS_CONFIG[s].color}>{VEHICLE_STATUS_CONFIG[s].label}</Tag>
+            ),
           }))}
         />
         <Space size="small">
