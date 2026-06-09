@@ -26,6 +26,7 @@
 | [testing.md](testing.md)                               | Стратегія тестування (Vitest) і CI.                                                              |
 | [contributing.md](contributing.md)                     | Git-воркфлоу, конвенції комітів, процес PR.                                                      |
 | [agent-workflow.md](agent-workflow.md)                 | Процес роботи з тікетами через AI-агентів: статуси, ролі, життєвий цикл тікета.                  |
+| [research-backlog.md](research-backlog.md)             | Спайки / свідомо відкладені питання, де рішення ще потребує окремого дослідження.                |
 
 ## Шляхи читання
 

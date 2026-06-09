@@ -22,7 +22,6 @@
     "db:generate": "pnpm --filter @volunteerfleet/server db:generate",
     "db:migrate": "pnpm --filter @volunteerfleet/server db:migrate",
     "db:seed": "pnpm --filter @volunteerfleet/server db:seed",
-    "db:seed:demo": "pnpm --filter @volunteerfleet/server db:seed:demo",
     "prepare": "husky"
   },
   "lint-staged": {
