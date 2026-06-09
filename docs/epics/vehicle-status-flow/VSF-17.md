@@ -3,7 +3,7 @@ id: VSF-17
 epic: vehicle-status-flow
 phase: 0
 type: chore
-status: todo
+status: done
 depends_on: [VSF-5]
 parallelizable: false
 branch: chore/vsf-17-migrations-seed-baseline

@@ -1,39 +1,44 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OrganizationsService } from './organizations.service.js';
+import type { Database } from '../../db/client.js';
 import { UsersService } from '../users/users.service.js';
+
+function createMockDb() {
+  return {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    values: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    returning: vi.fn(),
+    query: {
+      organizations: { findFirst: vi.fn(), findMany: vi.fn() },
+      organizationMembers: { findFirst: vi.fn(), findMany: vi.fn() },
+    },
+  };
+}
+
+// Exposes the private method exercised directly in these unit tests.
+type WithPrivateMembers = {
+  ensureNotLastCoordinator(orgId: string, userId: string): Promise<void>;
+};
 
 describe('OrganizationsService', () => {
   let svc: OrganizationsService;
-  let db: any;
-  let usersService: any;
+  let db: ReturnType<typeof createMockDb>;
+  let usersService: { findByEmail: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    db = {
-      select: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      set: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      returning: vi.fn(),
-      query: {
-        organizations: {
-          findFirst: vi.fn(),
-          findMany: vi.fn(),
-        },
-        organizationMembers: {
-          findFirst: vi.fn(),
-          findMany: vi.fn(),
-        },
-      },
-    };
-    usersService = {
-      findByEmail: vi.fn(),
-    };
-    svc = new OrganizationsService(db, usersService as unknown as UsersService);
+    db = createMockDb();
+    usersService = { findByEmail: vi.fn() };
+    svc = new OrganizationsService(
+      db as unknown as Database,
+      usersService as unknown as UsersService,
+    );
   });
 
   describe('ensureNotLastCoordinator', () => {
@@ -43,7 +48,7 @@ describe('OrganizationsService', () => {
     it('allows if user is not a coordinator', async () => {
       db.query.organizationMembers.findFirst.mockResolvedValue(null);
       // Should not throw
-      await (svc as any).ensureNotLastCoordinator(orgId, userId);
+      await (svc as unknown as WithPrivateMembers).ensureNotLastCoordinator(orgId, userId);
     });
 
     it('allows if there are other coordinators', async () => {
@@ -56,7 +61,7 @@ describe('OrganizationsService', () => {
       // Simulating the count query
       db.where.mockReturnValue([{ count: 2 }]);
 
-      await (svc as any).ensureNotLastCoordinator(orgId, userId);
+      await (svc as unknown as WithPrivateMembers).ensureNotLastCoordinator(orgId, userId);
     });
 
     it('throws if it is the last coordinator', async () => {
@@ -69,7 +74,7 @@ describe('OrganizationsService', () => {
       db.where.mockResolvedValue([{ count: 1 }]);
 
       await expect(
-        (svc as any).ensureNotLastCoordinator(orgId, userId),
+        (svc as unknown as WithPrivateMembers).ensureNotLastCoordinator(orgId, userId),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -91,9 +96,7 @@ describe('OrganizationsService', () => {
       db.query.organizationMembers.findFirst.mockResolvedValue(null);
       db.returning.mockResolvedValue([]);
 
-      await expect(svc.removeMember(orgId, userId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(svc.removeMember(orgId, userId)).rejects.toThrow(NotFoundException);
     });
   });
 });

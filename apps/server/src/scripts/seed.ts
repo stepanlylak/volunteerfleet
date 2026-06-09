@@ -1,29 +1,15 @@
 /* eslint-disable no-console */
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
-import { and, eq, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { createDb, createPool } from '../db/client.js';
-import {
-  expenseCategories,
-  fundingSources,
-  organizationMembers,
-  organizations,
-  users,
-} from '../db/schema/index.js';
-import { SEED_EXPENSE_CATEGORY_IDS, SEED_FUNDING_SOURCE_IDS, SEED_ORG_IDS } from './seed-ids.js';
+import { expenseCategories, users } from '../db/schema/index.js';
+import { SEED_EXPENSE_CATEGORY_IDS } from './seed-ids.js';
 
 interface ExpenseCategorySeed {
   id: string;
   name: string;
   sortOrder: number;
-}
-
-interface FundingSourceSeed {
-  id: string;
-  name: string;
-  type: 'donor' | 'fundraiser' | 'initiative' | 'other';
-  description: string | null;
-  organizationId: string;
 }
 
 const EXPENSE_CATEGORIES: ExpenseCategorySeed[] = [
@@ -36,16 +22,6 @@ const EXPENSE_CATEGORIES: ExpenseCategorySeed[] = [
   { id: SEED_EXPENSE_CATEGORY_IDS.other, name: 'Інше', sortOrder: 70 },
 ];
 
-const FUNDING_SOURCES: FundingSourceSeed[] = [
-  {
-    id: SEED_FUNDING_SOURCE_IDS.generalFundraiser,
-    name: 'Загальний збір',
-    type: 'fundraiser',
-    description: 'Стандартний загальний волонтерський збір.',
-    organizationId: SEED_ORG_IDS.primary,
-  },
-];
-
 function requireEnv(key: string): string {
   const value = process.env[key];
   if (!value || value.length === 0) {
@@ -54,11 +30,10 @@ function requireEnv(key: string): string {
   return value;
 }
 
-const PRIMARY_ORG_NAME = 'Демо Організація';
-
-// Platform superuser. Has no implicit access to organization data — it reaches
-// org data only through membership (added as coordinator of the primary org below).
-async function seedSuperuser(db: ReturnType<typeof createDb>): Promise<string> {
+// Platform superuser. Has no implicit access to organization data and is not a
+// member of any organization — the first superuser creates organizations and
+// assigns members manually after login.
+async function seedSuperuser(db: ReturnType<typeof createDb>): Promise<void> {
   const email = requireEnv('ADMIN_EMAIL');
   const password = requireEnv('ADMIN_PASSWORD');
   const fullName = requireEnv('ADMIN_NAME');
@@ -70,58 +45,24 @@ async function seedSuperuser(db: ReturnType<typeof createDb>): Promise<string> {
     .where(eq(users.email, email))
     .limit(1);
 
-  const found = existing[0];
-  if (found) {
+  if (existing[0]) {
     console.log(`[seed] superuser already exists: ${email}`);
-    return found.id;
+    return;
   }
 
   const passwordHash = await bcrypt.hash(password, bcryptCost);
-  const inserted = await db
+  await db
     .insert(users)
-    .values({ email, passwordHash, fullName, role: 'superuser', isActive: true })
-    .returning({ id: users.id });
-  const row = inserted[0];
-  if (!row) throw new Error('Failed to insert superuser');
+    .values({ email, passwordHash, fullName, role: 'superuser', isActive: true });
   console.log(`[seed] created superuser: ${email}`);
-  return row.id;
 }
 
-// One organization with the superuser as its coordinator, so a fresh install has
-// a working active organization to land in after login.
-async function seedPrimaryOrganization(
-  db: ReturnType<typeof createDb>,
-  superuserId: string,
-): Promise<void> {
-  await db
-    .insert(organizations)
-    .values({ id: SEED_ORG_IDS.primary, name: PRIMARY_ORG_NAME, createdBy: superuserId })
-    .onConflictDoNothing();
-
-  await db
-    .insert(organizationMembers)
-    .values({ organizationId: SEED_ORG_IDS.primary, userId: superuserId, role: 'coordinator' })
-    .onConflictDoNothing();
-
-  await db
-    .update(users)
-    .set({ lastActiveOrgId: SEED_ORG_IDS.primary })
-    .where(and(eq(users.id, superuserId), isNull(users.lastActiveOrgId)));
-
-  console.log(`[seed] primary organization ensured: ${PRIMARY_ORG_NAME}`);
-}
-
-// Reference data is insert-only by id: missing rows are created, existing rows are
-// left untouched. This keeps the seed safe to run on every container start without
-// resetting admin edits.
+// Global reference data is insert-only by id: missing rows are created, existing
+// rows are left untouched. This keeps the seed safe to run on every container
+// start without resetting admin edits.
 async function seedExpenseCategories(db: ReturnType<typeof createDb>): Promise<void> {
   await db.insert(expenseCategories).values(EXPENSE_CATEGORIES).onConflictDoNothing();
   console.log('[seed] expense_categories ensured');
-}
-
-async function seedFundingSources(db: ReturnType<typeof createDb>): Promise<void> {
-  await db.insert(fundingSources).values(FUNDING_SOURCES).onConflictDoNothing();
-  console.log('[seed] funding_sources ensured');
 }
 
 async function main(): Promise<void> {
@@ -130,10 +71,8 @@ async function main(): Promise<void> {
   const db = createDb(pool);
 
   try {
-    const superuserId = await seedSuperuser(db);
-    await seedPrimaryOrganization(db, superuserId);
+    await seedSuperuser(db);
     await seedExpenseCategories(db);
-    await seedFundingSources(db);
     console.log('[seed] done');
   } finally {
     await pool.end();

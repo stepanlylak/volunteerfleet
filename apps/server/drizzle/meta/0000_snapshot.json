@@ -1,5 +1,5 @@
 {
-  "id": "a3d307e7-71cc-45e8-b986-4e4b5503e599",
+  "id": "ac515fb1-9704-4fea-a7cb-70292d38ee8a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -426,6 +426,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -442,7 +448,21 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "funding_sources_organization_id_organizations_id_fk": {
+          "name": "funding_sources_organization_id_organizations_id_fk",
+          "tableFrom": "funding_sources",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "funding_sources_name_unique": {
@@ -455,105 +475,6 @@
       },
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.vehicle_statuses": {
-      "name": "vehicle_statuses",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "is_default": {
-          "name": "is_default",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "kind": {
-          "name": "kind",
-          "type": "vehicle_status_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'other'"
-        },
-        "color": {
-          "name": "color",
-          "type": "varchar(7)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'#8c8c8c'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "vehicle_statuses_only_one_default": {
-          "name": "vehicle_statuses_only_one_default",
-          "columns": [
-            {
-              "expression": "is_default",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"vehicle_statuses\".\"is_default\"",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "vehicle_statuses_name_unique": {
-          "name": "vehicle_statuses_name_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "vehicle_statuses_color_check": {
-          "name": "vehicle_statuses_color_check",
-          "value": "\"vehicle_statuses\".\"color\" ~ '^#[0-9A-Fa-f]{6}$'"
-        }
-      },
       "isRLSEnabled": false
     },
     "public.vehicles": {
@@ -609,11 +530,19 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status_id": {
-          "name": "status_id",
-          "type": "uuid",
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
           "primaryKey": false,
           "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "vehicle_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'new'"
         },
         "description": {
           "name": "description",
@@ -717,11 +646,11 @@
           "method": "btree",
           "with": {}
         },
-        "vehicles_status_id_idx": {
-          "name": "vehicles_status_id_idx",
+        "vehicles_status_idx": {
+          "name": "vehicles_status_idx",
           "columns": [
             {
-              "expression": "status_id",
+              "expression": "status",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -791,19 +720,6 @@
           "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicles_status_id_vehicle_statuses_id_fk": {
-          "name": "vehicles_status_id_vehicle_statuses_id_fk",
-          "tableFrom": "vehicles",
-          "tableTo": "vehicle_statuses",
-          "columnsFrom": [
-            "status_id"
           ],
           "columnsTo": [
             "id"
@@ -1093,15 +1009,17 @@
           "primaryKey": false,
           "notNull": true
         },
-        "old_status_id": {
-          "name": "old_status_id",
-          "type": "uuid",
+        "old_status": {
+          "name": "old_status",
+          "type": "vehicle_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },
-        "new_status_id": {
-          "name": "new_status_id",
-          "type": "uuid",
+        "new_status": {
+          "name": "new_status",
+          "type": "vehicle_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -1123,6 +1041,99 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "transition_date": {
+          "name": "transition_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "purchase_price": {
+          "name": "purchase_price",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "purchase_currency": {
+          "name": "purchase_currency",
+          "type": "currency_code",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "purchase_rate": {
+          "name": "purchase_rate",
+          "type": "numeric(14, 6)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "purchase_rate_source": {
+          "name": "purchase_rate_source",
+          "type": "rate_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_local_purchase": {
+          "name": "is_local_purchase",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "repair_note": {
+          "name": "repair_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_registered_at_service_center": {
+          "name": "is_registered_at_service_center",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lost_reason": {
+          "name": "lost_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "registration_doc_id": {
+          "name": "registration_doc_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customs_declaration_doc_id": {
+          "name": "customs_declaration_doc_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stamped_customs_declaration_doc_id": {
+          "name": "stamped_customs_declaration_doc_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transfer_act_draft_doc_id": {
+          "name": "transfer_act_draft_doc_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transfer_act_signed_doc_id": {
+          "name": "transfer_act_signed_doc_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "return_act_doc_id": {
+          "name": "return_act_doc_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -1161,6 +1172,37 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "vehicle_status_history_transition_date_idx": {
+          "name": "vehicle_status_history_transition_date_idx",
+          "columns": [
+            {
+              "expression": "transition_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "vehicle_status_history_unique_paid_per_vehicle": {
+          "name": "vehicle_status_history_unique_paid_per_vehicle",
+          "columns": [
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"vehicle_status_history\".\"new_status\" = 'paid'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1190,32 +1232,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "vehicle_status_history_old_status_id_vehicle_statuses_id_fk": {
-          "name": "vehicle_status_history_old_status_id_vehicle_statuses_id_fk",
-          "tableFrom": "vehicle_status_history",
-          "tableTo": "vehicle_statuses",
-          "columnsFrom": [
-            "old_status_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_status_history_new_status_id_vehicle_statuses_id_fk": {
-          "name": "vehicle_status_history_new_status_id_vehicle_statuses_id_fk",
-          "tableFrom": "vehicle_status_history",
-          "tableTo": "vehicle_statuses",
-          "columnsFrom": [
-            "new_status_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
         "vehicle_status_history_changed_by_users_id_fk": {
           "name": "vehicle_status_history_changed_by_users_id_fk",
           "tableFrom": "vehicle_status_history",
@@ -1228,12 +1244,99 @@
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
+        },
+        "vehicle_status_history_registration_doc_id_documents_id_fk": {
+          "name": "vehicle_status_history_registration_doc_id_documents_id_fk",
+          "tableFrom": "vehicle_status_history",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "registration_doc_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "vehicle_status_history_customs_declaration_doc_id_documents_id_fk": {
+          "name": "vehicle_status_history_customs_declaration_doc_id_documents_id_fk",
+          "tableFrom": "vehicle_status_history",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "customs_declaration_doc_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "vehicle_status_history_stamped_customs_declaration_doc_id_documents_id_fk": {
+          "name": "vehicle_status_history_stamped_customs_declaration_doc_id_documents_id_fk",
+          "tableFrom": "vehicle_status_history",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "stamped_customs_declaration_doc_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "vehicle_status_history_transfer_act_draft_doc_id_documents_id_fk": {
+          "name": "vehicle_status_history_transfer_act_draft_doc_id_documents_id_fk",
+          "tableFrom": "vehicle_status_history",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "transfer_act_draft_doc_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "vehicle_status_history_transfer_act_signed_doc_id_documents_id_fk": {
+          "name": "vehicle_status_history_transfer_act_signed_doc_id_documents_id_fk",
+          "tableFrom": "vehicle_status_history",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "transfer_act_signed_doc_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "vehicle_status_history_return_act_doc_id_documents_id_fk": {
+          "name": "vehicle_status_history_return_act_doc_id_documents_id_fk",
+          "tableFrom": "vehicle_status_history",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "return_act_doc_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "vehicle_status_history_purchase_currency_group": {
+          "name": "vehicle_status_history_purchase_currency_group",
+          "value": "(\n        (\"vehicle_status_history\".\"purchase_price\" IS NULL AND \"vehicle_status_history\".\"purchase_currency\" IS NULL AND \"vehicle_status_history\".\"purchase_rate\" IS NULL AND \"vehicle_status_history\".\"purchase_rate_source\" IS NULL)\n        OR\n        (\"vehicle_status_history\".\"purchase_price\" IS NOT NULL AND \"vehicle_status_history\".\"purchase_currency\" IS NOT NULL AND \"vehicle_status_history\".\"purchase_rate\" IS NOT NULL AND \"vehicle_status_history\".\"purchase_rate_source\" IS NOT NULL)\n      )"
+        },
+        "vehicle_status_history_purchase_rate_one_for_uah": {
+          "name": "vehicle_status_history_purchase_rate_one_for_uah",
+          "value": "(\n        \"vehicle_status_history\".\"purchase_currency\" IS NULL\n        OR\n        \"vehicle_status_history\".\"purchase_currency\" != 'UAH'\n        OR\n        \"vehicle_status_history\".\"purchase_rate\" = 1\n      )"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.expenses": {
@@ -1563,6 +1666,14 @@
           "primaryKey": false,
           "notNull": true
         },
+        "document_type": {
+          "name": "document_type",
+          "type": "document_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'other'"
+        },
         "file_key": {
           "name": "file_key",
           "type": "varchar(512)",
@@ -1799,6 +1910,19 @@
         "link"
       ]
     },
+    "public.document_type": {
+      "name": "document_type",
+      "schema": "public",
+      "values": [
+        "registration_certificate",
+        "customs_declaration",
+        "stamped_customs_declaration",
+        "transfer_act_draft",
+        "transfer_act_signed",
+        "return_act",
+        "other"
+      ]
+    },
     "public.funding_source_type": {
       "name": "funding_source_type",
       "schema": "public",
@@ -1834,13 +1958,19 @@
         "user"
       ]
     },
-    "public.vehicle_status_kind": {
-      "name": "vehicle_status_kind",
+    "public.vehicle_status": {
+      "name": "vehicle_status",
       "schema": "public",
       "values": [
-        "in_work",
-        "final",
-        "other"
+        "new",
+        "paid",
+        "in_transit",
+        "arrived",
+        "in_repair",
+        "ready",
+        "transferred",
+        "returned",
+        "lost"
       ]
     }
   },

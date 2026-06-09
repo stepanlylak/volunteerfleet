@@ -28,12 +28,12 @@
 
 | #                   | Назва                                                   | Фаза | Залежності          | Статус |
 | ------------------- | ------------------------------------------------------- | :--: | ------------------- | ------ |
-| [VSF-1](VSF-1.md)   | Enum `vehicle_status` + константи + shared-типи         |  0   | —                   | todo   |
-| [VSF-2](VSF-2.md)   | Enum `document_type` + розширення `documents`           |  0   | VSF-1               | todo   |
-| [VSF-3](VSF-3.md)   | Міграція `vehicles`: `statusId` → enum (+ `start_date`) |  0   | VSF-1               | todo   |
-| [VSF-4](VSF-4.md)   | Розширення `vehicle_status_history`                     |  0   | VSF-1, VSF-2, VSF-3 | todo   |
-| [VSF-5](VSF-5.md)   | Видалення `vehicle_statuses` + перевід споживачів       |  0   | VSF-3, VSF-4        | todo   |
-| [VSF-17](VSF-17.md) | Консолідація міграцій + чистка seed                     |  0   | VSF-5               | todo   |
+| [VSF-1](VSF-1.md)   | Enum `vehicle_status` + константи + shared-типи         |  0   | —                   | done   |
+| [VSF-2](VSF-2.md)   | Enum `document_type` + розширення `documents`           |  0   | VSF-1               | done   |
+| [VSF-3](VSF-3.md)   | Міграція `vehicles`: `statusId` → enum (+ `start_date`) |  0   | VSF-1               | done   |
+| [VSF-4](VSF-4.md)   | Розширення `vehicle_status_history`                     |  0   | VSF-1, VSF-2, VSF-3 | done   |
+| [VSF-5](VSF-5.md)   | Видалення `vehicle_statuses` + перевід споживачів       |  0   | VSF-3, VSF-4        | done   |
+| [VSF-17](VSF-17.md) | Консолідація міграцій + чистка seed                     |  0   | VSF-5               | done   |
 | [VSF-6](VSF-6.md)   | Ендпоінт `POST /vehicles/:id/transition`                |  1   | VSF-5               | todo   |
 | [VSF-7](VSF-7.md)   | Авто `new` + прибрати `statusId` з create/update        |  1   | VSF-6               | todo   |
 | [VSF-8](VSF-8.md)   | Обчислення алертів (slim-View)                          |  1   | VSF-6               | todo   |
