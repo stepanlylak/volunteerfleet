@@ -20,20 +20,20 @@
 
 ## Індекс
 
-| #                   | Назва                                                     | Фаза | Залежності                  | Статус |
-| ------------------- | --------------------------------------------------------- | :--: | --------------------------- | ------ |
-| [GAL-1](GAL-1.md)   | Shared-контракти галерей                                  |  0   | —                           | ready  |
-| [GAL-2](GAL-2.md)   | Схема БД, міграції та relations                           |  0   | GAL-1                       | todo   |
-| [GAL-3](GAL-3.md)   | Main gallery invariant + Gallery CRUD                     |  1   | GAL-2                       | todo   |
-| [GAL-4](GAL-4.md)   | Gallery items: upload, read, caption, download            |  1   | GAL-3                       | todo   |
-| [GAL-5](GAL-5.md)   | Reorder, cover, move і soft-delete                        |  1   | GAL-4                       | todo   |
-| [GAL-6](GAL-6.md)   | Public API та visibility chain                            |  1   | GAL-5                       | todo   |
-| [GAL-7](GAL-7.md)   | Effective main cover у vehicle responses                  |  1   | GAL-5                       | todo   |
-| [GAL-8](GAL-8.md)   | Галереї на картці авто та базова модалка                  |  2   | GAL-3, GAL-4                | todo   |
-| [GAL-9](GAL-9.md)   | Повне керування фото у модалці                            |  2   | GAL-5, GAL-8                | todo   |
-| [GAL-10](GAL-10.md) | Public UI та обкладинки у списках                         |  2   | GAL-6, GAL-7                | todo   |
-| [GAL-11](GAL-11.md) | Видалення legacy photo flow і cleanup                     |  2   | GAL-4, GAL-9, GAL-10        | todo   |
-| [GAL-12](GAL-12.md) | Наскрізна регресія та документація                        |  3   | GAL-6, GAL-7, GAL-9, GAL-11 | todo   |
+| #                   | Назва                                          | Фаза | Залежності                  | Статус |
+| ------------------- | ---------------------------------------------- | :--: | --------------------------- | ------ |
+| [GAL-1](GAL-1.md)   | Shared-контракти галерей                       |  0   | —                           | done   |
+| [GAL-2](GAL-2.md)   | Схема БД, міграції та relations                |  0   | GAL-1                       | ready  |
+| [GAL-3](GAL-3.md)   | Main gallery invariant + Gallery CRUD          |  1   | GAL-2                       | todo   |
+| [GAL-4](GAL-4.md)   | Gallery items: upload, read, caption, download |  1   | GAL-3                       | todo   |
+| [GAL-5](GAL-5.md)   | Reorder, cover, move і soft-delete             |  1   | GAL-4                       | todo   |
+| [GAL-6](GAL-6.md)   | Public API та visibility chain                 |  1   | GAL-5                       | todo   |
+| [GAL-7](GAL-7.md)   | Effective main cover у vehicle responses       |  1   | GAL-5                       | todo   |
+| [GAL-8](GAL-8.md)   | Галереї на картці авто та базова модалка       |  2   | GAL-3, GAL-4                | todo   |
+| [GAL-9](GAL-9.md)   | Повне керування фото у модалці                 |  2   | GAL-5, GAL-8                | todo   |
+| [GAL-10](GAL-10.md) | Public UI та обкладинки у списках              |  2   | GAL-6, GAL-7                | todo   |
+| [GAL-11](GAL-11.md) | Видалення legacy photo flow і cleanup          |  2   | GAL-4, GAL-9, GAL-10        | todo   |
+| [GAL-12](GAL-12.md) | Наскрізна регресія та документація             |  3   | GAL-6, GAL-7, GAL-9, GAL-11 | todo   |
 
 ## Критичний шлях
 

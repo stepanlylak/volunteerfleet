@@ -394,6 +394,8 @@ export class VehiclesService {
       deletedAt: row.deletedAt?.toISOString() ?? null,
       deletedBy: row.deletedByUser ? this.toUserInfo(row.deletedByUser) : null,
       alerts,
+      // Populated from the main gallery effective cover in GAL-7
+      mainGalleryCover: null,
     };
   }
 }

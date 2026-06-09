@@ -3,10 +3,10 @@ id: GAL-1
 epic: vehicle-galleries
 phase: 0
 type: feat
-status: ready
+status: done
 depends_on: []
 parallelizable: false
-branch:
+branch: feat/gal-1-shared-gallery-contracts
 pr:
 ---
 

@@ -308,6 +308,8 @@ export class ReportsService {
       deletedAt: row.deletedAt?.toISOString() ?? null,
       deletedBy: row.deletedByUser ? this.toVehicleUserInfo(row.deletedByUser) : null,
       alerts,
+      // Populated from the main gallery effective cover in GAL-7
+      mainGalleryCover: null,
     };
   }
 
