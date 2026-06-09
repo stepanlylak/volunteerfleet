@@ -3,7 +3,7 @@ import { and, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import type { DashboardStats } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
-import { documents, expenses, vehicles } from '../../db/schema/index.js';
+import { documents, donations, expenses, vehicles } from '../../db/schema/index.js';
 import {
   VEHICLE_STATUSES,
   VEHICLE_STATUS_DASHBOARD_GROUP,
@@ -67,6 +67,49 @@ export class DashboardService {
       );
     const monthlyExpenseUahMinor = Number(expenseResult[0]?.totalUahMinor ?? 0);
 
+    // Finance KPI: Total donations (all time)
+    const totalDonationsResult = await this.db
+      .select({
+        totalUahMinor: sql<string>`coalesce(sum(round(${donations.amountMinor} * ${donations.rate})), 0)::bigint`,
+      })
+      .from(donations)
+      .where(and(isNull(donations.deletedAt), eq(donations.organizationId, organizationId)));
+    const totalDonationsUahMinor = Number(totalDonationsResult[0]?.totalUahMinor ?? 0);
+
+    // Finance KPI: Monthly donations
+    const monthlyDonationsResult = await this.db
+      .select({
+        totalUahMinor: sql<string>`coalesce(sum(round(${donations.amountMinor} * ${donations.rate})), 0)::bigint`,
+      })
+      .from(donations)
+      .where(
+        and(
+          isNull(donations.deletedAt),
+          eq(donations.organizationId, organizationId),
+          gte(donations.donationDate, dateFrom),
+          lte(donations.donationDate, dateTo),
+        ),
+      );
+    const monthlyDonationsUahMinor = Number(monthlyDonationsResult[0]?.totalUahMinor ?? 0);
+
+    // Finance KPI: Total expenses (all time)
+    const totalExpensesResult = await this.db
+      .select({
+        totalUahMinor: sql<string>`coalesce(sum(round(${expenses.amountMinor} * ${expenses.rate})), 0)::bigint`,
+      })
+      .from(expenses)
+      .where(
+        and(
+          isNull(expenses.deletedAt),
+          eq(expenses.organizationId, organizationId),
+          this.expenseHasActiveVehicle(),
+        ),
+      );
+    const totalExpensesUahMinor = Number(totalExpensesResult[0]?.totalUahMinor ?? 0);
+
+    // Finance KPI: Balance = donations - expenses
+    const balanceUahMinor = totalDonationsUahMinor - totalExpensesUahMinor;
+
     const docsTotalResult = await this.db
       .select({ count: sql<number>`count(*)::int` })
       .from(documents)
@@ -110,6 +153,11 @@ export class DashboardService {
       monthlyExpenseUahMinor,
       documentsTotal,
       documentsThisMonth,
+      // Finance KPI
+      totalDonationsUahMinor,
+      monthlyDonationsUahMinor,
+      totalExpensesUahMinor,
+      balanceUahMinor,
     };
   }
 
