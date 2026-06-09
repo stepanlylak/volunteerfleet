@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { bigint, check, index, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
-import { documentKindEnum } from './enums.js';
+import { documentKindEnum, documentTypeEnum } from './enums.js';
 import { expenses } from './expenses.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
@@ -17,6 +17,7 @@ export const documents = pgTable(
       .references(() => organizations.id, { onDelete: 'restrict' }),
     name: varchar('name', { length: 255 }).notNull(),
     kind: documentKindEnum('kind').notNull(),
+    documentType: documentTypeEnum('document_type').notNull().default('other'),
     fileKey: varchar('file_key', { length: 512 }),
     url: varchar('url', { length: 2048 }),
     mimeType: varchar('mime_type', { length: 128 }),

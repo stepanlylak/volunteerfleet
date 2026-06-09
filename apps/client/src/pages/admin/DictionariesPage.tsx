@@ -14,7 +14,6 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { AxiosError } from 'axios';
-import type { VehicleStatus } from '@volunteerfleet/shared';
 import type { DictionaryType } from '../../api/dictionaries.api';
 import { DictionaryItemModal } from '../../modals/DictionaryItemModal';
 import {
@@ -24,11 +23,6 @@ import {
   useUpdateDictionaryItem,
 } from '../../hooks/useDictionaries';
 
-const KIND_LABELS: Record<string, string> = {
-  in_work: 'У роботі',
-  final: 'Кінцевий',
-  other: 'Інший',
-};
 
 const KIND_COLORS: Record<string, string> = {
   in_work: 'processing',

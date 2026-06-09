@@ -4,6 +4,8 @@ import dayjs from 'dayjs';
 import {
   vehicleCreateSchema,
   vehicleUpdateSchema,
+  VEHICLE_STATUS_CONFIG,
+  VEHICLE_STATUSES,
   type VehicleCreate,
   type VehicleResponse,
 } from '@volunteerfleet/shared';
@@ -13,7 +15,6 @@ import {
   type FileAttachmentExistingItem,
   type FileAttachmentNewFile,
 } from '../components/files/FileAttachmentField';
-import { useDictionaries } from '../hooks/useDictionaries';
 import {
   useCreateVehicle,
   useDeleteVehiclePhotoForVehicle,
@@ -45,7 +46,6 @@ function optionalText(value: string | null | undefined) {
 export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: VehicleFormModalProps) {
   const [form] = Form.useForm<VehicleFormValues>();
   const isEdit = Boolean(vehicleId);
-  const { data: dictionaries } = useDictionaries();
   const { data: vehicle, isFetching } = useVehicle(open && vehicleId ? vehicleId : undefined, true);
   const { data: photosData, isLoading: photosLoading } = useVehiclePhotos(
     open && vehicleId ? vehicleId : undefined,
@@ -73,7 +73,7 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
         year: vehicle.year,
         vin: vehicle.vin,
         borderCrossingDate: vehicle.borderCrossingDate ? dayjs(vehicle.borderCrossingDate) : null,
-        statusId: vehicle.statusId,
+        status: vehicle.status,
         description: vehicle.description,
       });
     }
@@ -205,12 +205,11 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
           <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
         </Form.Item>
         <Form.Item
-          name="statusId"
+          name="status"
           label="Статус"
-          rules={[{ validator: zodValidator(vehicleCreateSchema.shape.statusId) }]}
+          rules={[{ validator: zodValidator(vehicleCreateSchema.shape.status) }]}
         >
-          <Select
-            loading={isFetching}
+          <Select>
             options={(dictionaries?.vehicleStatuses ?? []).map((status) => ({
               value: status.id,
               label: status.name,

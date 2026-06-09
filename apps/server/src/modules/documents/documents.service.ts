@@ -577,6 +577,7 @@ export class DocumentsService {
       id: row.id,
       name: row.name,
       kind: row.kind,
+      documentType: row.documentType,
       fileKey: row.fileKey,
       url: row.url,
       mimeType: row.mimeType,

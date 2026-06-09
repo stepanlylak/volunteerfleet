@@ -1,12 +1,13 @@
 import { z } from 'zod';
 import { nonEmptyString, uuidSchema } from './common.js';
 import { pageQuerySchema, pageResultSchema } from './pagination.js';
-import { vehicleStatusSchema } from './dictionary.js';
+import { vehicleStatusSchema } from './vehicle-status.js';
 
 // Base fields for vehicle
 const vehicleYearSchema = z.number().int().min(1900).max(2100).optional().nullable();
 const vehicleVinSchema = z.string().trim().max(64).optional().nullable();
 const vehicleDescriptionSchema = z.string().trim().max(2000).optional().nullable();
+const startDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const borderCrossingDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -24,8 +25,7 @@ export const vehicleCreateSchema = z.object({
   model: nonEmptyString.max(128),
   year: vehicleYearSchema,
   vin: vehicleVinSchema,
-  borderCrossingDate: borderCrossingDateSchema,
-  statusId: uuidSchema,
+  startDate: startDateSchema,
   description: vehicleDescriptionSchema,
 });
 export type VehicleCreate = z.infer<typeof vehicleCreateSchema>;
@@ -37,8 +37,7 @@ export const vehicleUpdateSchema = z.object({
   model: nonEmptyString.max(128).optional(),
   year: vehicleYearSchema,
   vin: vehicleVinSchema,
-  borderCrossingDate: borderCrossingDateSchema,
-  statusId: uuidSchema.optional(),
+  startDate: startDateSchema.optional(),
   description: vehicleDescriptionSchema,
   // Public fields (admin only in controller)
   isPublic: z.boolean().optional(),
@@ -63,9 +62,9 @@ export const vehicleResponseSchema = z.object({
   model: z.string(),
   year: z.number().int().nullable(),
   vin: z.string().nullable(),
+  startDate: z.string(),
   borderCrossingDate: z.string().nullable(),
-  statusId: uuidSchema,
-  status: vehicleStatusSchema.optional(),
+  status: vehicleStatusSchema,
   description: z.string().nullable(),
   isPublic: z.boolean(),
   publicSummary: z.string().nullable(),
@@ -82,7 +81,7 @@ export type VehicleResponse = z.infer<typeof vehicleResponseSchema>;
 
 // List query schema (pagination + filters)
 export const vehicleListQuerySchema = pageQuerySchema.extend({
-  statusId: uuidSchema.optional(),
+  status: vehicleStatusSchema.optional(),
   search: z.string().optional(),
   includeDeleted: z.coerce.boolean().default(false),
 });
@@ -96,10 +95,8 @@ export type VehicleListResponse = z.infer<typeof vehicleListResponseSchema>;
 export const vehicleStatusHistorySchema = z.object({
   id: uuidSchema,
   vehicleId: uuidSchema,
-  oldStatusId: uuidSchema.nullable(),
-  oldStatus: vehicleStatusSchema.nullable().optional(),
-  newStatusId: uuidSchema,
-  newStatus: vehicleStatusSchema.optional(),
+  oldStatus: vehicleStatusSchema.nullable(),
+  newStatus: vehicleStatusSchema,
   changedBy: vehicleUserInfoSchema,
   note: z.string().nullable(),
   changedAt: z.string(),

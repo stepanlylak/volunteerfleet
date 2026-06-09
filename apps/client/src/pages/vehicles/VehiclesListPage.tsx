@@ -5,9 +5,8 @@ import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import type { VehicleResponse } from '@volunteerfleet/shared';
+import { VEHICLE_STATUS_CONFIG, type VehicleResponse, type VehicleStatus } from '@volunteerfleet/shared';
 import { VehicleFormModal } from '../../modals/VehicleFormModal';
-import { useDictionaries } from '../../hooks/useDictionaries';
 import { useVehicles } from '../../hooks/useVehicles';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
 
@@ -16,18 +15,17 @@ export function VehiclesListPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState('');
-  const [statusId, setStatusId] = useState<string | undefined>();
+  const [status, setStatus] = useState<string | undefined>();
   const [sort, setSort] = useState('createdAt:desc');
   const [modalOpen, setModalOpen] = useState(false);
   const orgRole = useOrgRole();
   const user = useAuth((s) => s.user);
   const canMutate = orgRole !== null && orgRole !== 'viewer';
-  const { data: dictionaries } = useDictionaries();
   const { data, isFetching } = useVehicles({
     page,
     pageSize,
     search: search || undefined,
-    statusId,
+    status,
     sort,
   });
 
@@ -62,9 +60,9 @@ export function VehiclesListPage() {
       },
       {
         title: 'Статус',
-        dataIndex: ['status', 'name'],
-        render: (_: string, vehicle) => (
-          <Tag color={vehicle.status?.color ?? 'blue'}>{vehicle.status?.name ?? '—'}</Tag>
+        dataIndex: 'status',
+        render: (status: VehicleStatus) => (
+          <Tag color={VEHICLE_STATUS_CONFIG[status].color}>{VEHICLE_STATUS_CONFIG[status].label}</Tag>
         ),
       },
       {
@@ -133,14 +131,14 @@ export function VehiclesListPage() {
           allowClear
           placeholder="Статус"
           style={{ width: 240 }}
-          value={statusId}
+          value={status}
           onChange={(value) => {
             setPage(1);
-            setStatusId(value);
+            setStatus(value);
           }}
-          options={(dictionaries?.vehicleStatuses ?? []).map((status) => ({
-            value: status.id,
-            label: status.name,
+          options={Object.entries(VEHICLE_STATUS_CONFIG).map(([value, config]) => ({
+            value,
+            label: config.label,
           }))}
         />
       </Space>

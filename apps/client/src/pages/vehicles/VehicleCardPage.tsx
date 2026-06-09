@@ -59,7 +59,7 @@ import {
   useVehicleDocuments,
 } from '../../hooks/useDocuments';
 import { useDeleteExpense, useVehicleExpenses } from '../../hooks/useExpenses';
-import { useDictionaries } from '../../hooks/useDictionaries';
+import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
 import { documentsApi } from '../../api/documents.api';
 import { exchangeRatesApi } from '../../api/exchange-rates.api';
@@ -149,7 +149,6 @@ export function VehicleCardPage() {
   ]);
   const [documentExpenseIdFilter, setDocumentExpenseIdFilter] = useState<string | null>(null);
   const [statusEditing, setStatusEditing] = useState(false);
-  const { data: dictionaries } = useDictionaries();
 
   const { data: expensesData, isLoading: expensesLoading } = useVehicleExpenses(id);
   const deleteExpense = useDeleteExpense(id);
@@ -366,23 +365,23 @@ export function VehicleCardPage() {
         autoFocus
         defaultOpen
         style={{ minWidth: 160 }}
-        value={vehicle.statusId}
+        value={vehicle.status}
         loading={updateVehicle.isPending}
-        options={(dictionaries?.vehicleStatuses ?? []).map((s) => ({
-          value: s.id,
-          label: s.name,
+        options={Object.entries(VEHICLE_STATUS_CONFIG).map(([value, config]) => ({
+          value,
+          label: config.label,
         }))}
         onBlur={() => setStatusEditing(false)}
-        onChange={async (statusId) => {
+        onChange={async (status) => {
           setStatusEditing(false);
-          if (statusId === vehicle.statusId) return;
-          await updateVehicle.mutateAsync({ id: vehicle.id, payload: { statusId } });
+          if (status === vehicle.status) return;
+          await updateVehicle.mutateAsync({ id: vehicle.id, payload: { status } });
           message.success('Статус оновлено');
         }}
       />
     ) : (
       <Tag
-        color={vehicle.deletedAt ? 'red' : (vehicle.status?.color ?? 'blue')}
+        color={vehicle.deletedAt ? 'red' : (VEHICLE_STATUS_CONFIG[vehicle.status].color ?? 'blue')}
         style={isAdmin && !vehicle.deletedAt ? { cursor: 'pointer' } : undefined}
         onClick={() => {
           if (isAdmin && !vehicle.deletedAt) setStatusEditing(true);

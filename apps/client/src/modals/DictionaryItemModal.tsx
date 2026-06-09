@@ -1,19 +1,17 @@
 import { useEffect } from 'react';
 import { ColorPicker, Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
-import type { ExpenseCategory, FundingSource, VehicleStatus } from '@volunteerfleet/shared';
+import type { ExpenseCategory, FundingSource } from '@volunteerfleet/shared';
 import {
   expenseCategoryCreateSchema,
   expenseCategoryUpdateSchema,
   fundingSourceCreateSchema,
   fundingSourceUpdateSchema,
-  vehicleStatusCreateSchema,
-  vehicleStatusUpdateSchema,
 } from '@volunteerfleet/shared';
 import type { DictionaryType } from '../api/dictionaries.api';
 import { useCreateDictionaryItem, useUpdateDictionaryItem } from '../hooks/useDictionaries';
 import { zodToAntdFields, zodValidator } from '../utils/zod-antd';
 
-type DictionaryItem = VehicleStatus | ExpenseCategory | FundingSource;
+type DictionaryItem = ExpenseCategory | FundingSource;
 
 interface DictionaryItemModalProps {
   open: boolean;
@@ -26,16 +24,11 @@ interface DictionaryFormValues {
   name: string;
   sortOrder?: number;
   isDefault?: boolean;
-  kind?: 'in_work' | 'final' | 'other';
-  color?: string;
   type?: 'donor' | 'fundraiser' | 'initiative' | 'other';
   description?: string | null;
 }
 
 function schemaFor(type: DictionaryType, isEdit: boolean) {
-  if (type === 'vehicle-statuses') {
-    return isEdit ? vehicleStatusUpdateSchema : vehicleStatusCreateSchema;
-  }
   if (type === 'expense-categories') {
     return isEdit ? expenseCategoryUpdateSchema : expenseCategoryCreateSchema;
   }
@@ -43,15 +36,12 @@ function schemaFor(type: DictionaryType, isEdit: boolean) {
 }
 
 function titleFor(type: DictionaryType) {
-  if (type === 'vehicle-statuses') return 'статус';
   if (type === 'expense-categories') return 'категорію витрат';
   return 'джерело фінансування';
 }
 
 function sortOrderSchemaFor(type: DictionaryType) {
-  return type === 'vehicle-statuses'
-    ? vehicleStatusCreateSchema.shape.sortOrder
-    : expenseCategoryCreateSchema.shape.sortOrder;
+  return expenseCategoryCreateSchema.shape.sortOrder;
 }
 
 export function DictionaryItemModal({ open, type, item, onClose }: DictionaryItemModalProps) {

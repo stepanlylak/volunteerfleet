@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { vehicleStatuses } from './dictionaries.js';
+import { vehicleStatusEnum } from './enums.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
 import { vehicles } from './vehicles.js';
@@ -17,12 +17,8 @@ export const vehicleStatusHistory = pgTable(
     vehicleId: uuid('vehicle_id')
       .notNull()
       .references(() => vehicles.id, { onDelete: 'cascade' }),
-    oldStatusId: uuid('old_status_id').references(() => vehicleStatuses.id, {
-      onDelete: 'restrict',
-    }),
-    newStatusId: uuid('new_status_id')
-      .notNull()
-      .references(() => vehicleStatuses.id, { onDelete: 'restrict' }),
+    oldStatus: vehicleStatusEnum('old_status'),
+    newStatus: vehicleStatusEnum('new_status').notNull(),
     changedBy: uuid('changed_by')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),

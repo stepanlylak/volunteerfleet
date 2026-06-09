@@ -9,23 +9,12 @@ import {
   organizationMembers,
   organizations,
   users,
-  vehicleStatuses,
 } from '../db/schema/index.js';
 import {
   SEED_EXPENSE_CATEGORY_IDS,
   SEED_FUNDING_SOURCE_IDS,
   SEED_ORG_IDS,
-  SEED_VEHICLE_STATUS_IDS,
 } from './seed-ids.js';
-
-interface VehicleStatusSeed {
-  id: string;
-  name: string;
-  sortOrder: number;
-  isDefault: boolean;
-  kind: 'in_work' | 'final' | 'other';
-  color: string;
-}
 
 interface ExpenseCategorySeed {
   id: string;
@@ -171,12 +160,7 @@ async function seedPrimaryOrganization(
 
 // Reference data is insert-only by id: missing rows are created, existing rows are
 // left untouched. This keeps the seed safe to run on every container start without
-// resetting admin edits (renamed/recoloured statuses, sort order, default flag).
-async function seedVehicleStatuses(db: ReturnType<typeof createDb>): Promise<void> {
-  await db.insert(vehicleStatuses).values(VEHICLE_STATUSES).onConflictDoNothing();
-  console.log('[seed] vehicle_statuses ensured');
-}
-
+// resetting admin edits.
 async function seedExpenseCategories(db: ReturnType<typeof createDb>): Promise<void> {
   await db.insert(expenseCategories).values(EXPENSE_CATEGORIES).onConflictDoNothing();
   console.log('[seed] expense_categories ensured');
@@ -195,7 +179,6 @@ async function main(): Promise<void> {
   try {
     const superuserId = await seedSuperuser(db);
     await seedPrimaryOrganization(db, superuserId);
-    await seedVehicleStatuses(db);
     await seedExpenseCategories(db);
     await seedFundingSources(db);
     console.log('[seed] done');

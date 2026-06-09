@@ -2,6 +2,18 @@ import { z } from 'zod';
 import { nonEmptyString, uuidSchema } from './common.js';
 import { pageQuerySchema, pageResultSchema } from './pagination.js';
 
+export const DOCUMENT_TYPES = [
+  'registration_certificate',
+  'customs_declaration',
+  'stamped_customs_declaration',
+  'transfer_act_draft',
+  'transfer_act_signed',
+  'return_act',
+  'other',
+] as const;
+export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+
+export const documentTypeSchema = z.enum(DOCUMENT_TYPES);
 export const documentKindSchema = z.enum(['upload', 'link']);
 
 const attachmentFields = {
@@ -25,6 +37,7 @@ function requireAttachment<T extends { vehicleId?: string | null; expenseId?: st
 export const documentUploadMetadataSchema = z
   .object({
     name: nonEmptyString.max(255),
+    documentType: documentTypeSchema.default('other'),
     ...attachmentFields,
   })
   .superRefine(requireAttachment);
@@ -39,6 +52,7 @@ export const documentLinkCreateSchema = z
   .object({
     name: nonEmptyString.max(255),
     url: z.string().url().max(2048),
+    documentType: documentTypeSchema.default('other'),
     ...attachmentFields,
   })
   .superRefine(requireAttachment);
@@ -48,6 +62,7 @@ export const documentUpdateSchema = z
   .object({
     name: nonEmptyString.max(255).optional(),
     url: z.string().url().max(2048).optional(),
+    documentType: documentTypeSchema.optional(),
     ...attachmentFields,
   })
   .partial()
@@ -82,6 +97,7 @@ export const documentResponseSchema = z.object({
   id: uuidSchema,
   name: z.string(),
   kind: documentKindSchema,
+  documentType: documentTypeSchema,
   fileKey: z.string().nullable(),
   url: z.string().nullable(),
   mimeType: z.string().nullable(),

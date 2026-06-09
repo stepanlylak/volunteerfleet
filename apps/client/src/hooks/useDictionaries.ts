@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ExpenseCategory, FundingSource, VehicleStatus } from '@volunteerfleet/shared';
+import type { ExpenseCategory, FundingSource } from '@volunteerfleet/shared';
 import { dictionariesApi, type DictionaryType } from '../api/dictionaries.api';
 
-export type DictionaryItem = VehicleStatus | ExpenseCategory | FundingSource;
+export type DictionaryItem = ExpenseCategory | FundingSource;
 
 export function useDictionaries() {
   return useQuery({
@@ -15,7 +15,6 @@ export function useDictionary(type: DictionaryType) {
   return useQuery<DictionaryItem[]>({
     queryKey: ['dictionaries', type],
     queryFn: async () => {
-      if (type === 'vehicle-statuses') return dictionariesApi.getVehicleStatuses();
       if (type === 'expense-categories') return dictionariesApi.getExpenseCategories();
       return dictionariesApi.getFundingSources();
     },
