@@ -45,9 +45,11 @@ import {
   vehiclePhotoOrderUpdateSchema,
   vehiclePhotoUploadMetadataSchema,
   vehicleUpdateSchema,
+  vehicleTransitionRequestSchema,
   type IdParam,
   type VehicleDocumentsQuery,
   type VehicleExpensesQuery,
+  type VehicleTransitionRequest,
 } from '@volunteerfleet/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { OrgRoles } from '../../common/decorators/org-roles.decorator.js';
@@ -55,6 +57,7 @@ import type { Env } from '../../config/env.schema.js';
 import { DocumentsService } from '../documents/documents.service.js';
 import { ExpensesService } from '../expenses/expenses.service.js';
 import { VehiclePhotosService } from './vehicle-photos.service.js';
+import { VehicleTransitionService } from './vehicle-transition.service.js';
 import { VehiclesService } from './vehicles.service.js';
 
 @ApiTags('vehicles')
@@ -62,6 +65,7 @@ import { VehiclesService } from './vehicles.service.js';
 export class VehiclesController {
   constructor(
     private readonly service: VehiclesService,
+    private readonly transitionService: VehicleTransitionService,
     private readonly expensesService: ExpensesService,
     private readonly documentsService: DocumentsService,
     private readonly photosService: VehiclePhotosService,
@@ -140,6 +144,18 @@ export class VehiclesController {
   ): Promise<VehicleResponse> {
     if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     return this.service.restore(params.id, user.activeOrgId);
+  }
+
+  @Post(':id/transition')
+  @OrgRoles('coordinator', 'volunteer')
+  async transition(
+    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @Body(new ZodValidationPipe(vehicleTransitionRequestSchema)) dto: VehicleTransitionRequest,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<VehicleResponse> {
+    if (!user) throw new Error('User required');
+    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.transitionService.transition(params.id, user.sub, user.activeOrgId, dto);
   }
 
   @Get(':id/status-history')
