@@ -3,6 +3,7 @@ export * from './users.js';
 export * from './organizations.js';
 export * from './organization-members.js';
 export * from './donors.js';
+export * from './donations.js';
 export * from './dictionaries.js';
 export * from './vehicles.js';
 export * from './vehicle-photos.js';

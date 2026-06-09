@@ -29,6 +29,13 @@
       "when": 1781010072921,
       "tag": "0003_groovy_pandemic",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781010204160,
+      "tag": "0004_spotty_boomerang",
+      "breakpoints": true
     }
   ]
 }
