@@ -1,14 +1,8 @@
 import { Button, DatePicker, Form, Input, Modal, Select, Space, Switch, message } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
-import type {
-  Currency,
-  VehicleResponse,
-  VehicleStatus,
-  VehicleStatusHistory,
-} from '@volunteerfleet/shared';
+import type { VehicleResponse, VehicleStatus, VehicleStatusHistory } from '@volunteerfleet/shared';
 import { ALLOWED_TRANSITIONS, VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
-import { AmountCurrencyRateField } from '../components/AmountCurrencyRateField';
 import {
   type FileAttachmentExistingItem,
   type FileAttachmentNewFile,
@@ -121,11 +115,6 @@ export function StatusTransitionModal({
 }: StatusTransitionModalProps) {
   const [form] = Form.useForm<FormValues>();
   const [targetStatus, setTargetStatus] = useState<VehicleStatus | undefined>();
-  const [currency, setCurrency] = useState<Currency>('UAH');
-  const [rate, setRate] = useState<number>(1);
-  const [amount, setAmount] = useState<number>(0);
-  const [rateSource, setRateSource] = useState<'default' | 'manual'>('default');
-  const [transitionDateStr, setTransitionDateStr] = useState<string | undefined>();
   const [slotStates, setSlotStates] = useState<Record<string, SlotState>>({});
   const isDateManuallyChangedRef = useRef(false);
 
@@ -147,10 +136,6 @@ export function StatusTransitionModal({
   useEffect(() => {
     if (!open) return;
     setTargetStatus(undefined);
-    setCurrency('UAH');
-    setRate(1);
-    setAmount(0);
-    setRateSource('default');
     setSlotStates({});
     isDateManuallyChangedRef.current = false;
     form.resetFields();
@@ -159,13 +144,11 @@ export function StatusTransitionModal({
       isLocalPurchase: false,
       isRegisteredAtServiceCenter: false,
     });
-    setTransitionDateStr(defaultTransitionDate);
   }, [open, form, defaultTransitionDate]);
 
   useEffect(() => {
     if (!open || isDateManuallyChangedRef.current) return;
     form.setFieldValue('transitionDate', dayjs(defaultTransitionDate));
-    setTransitionDateStr(defaultTransitionDate);
   }, [open, form, defaultTransitionDate]);
 
   const getSlotState = (key: string): SlotState =>
@@ -231,10 +214,6 @@ export function StatusTransitionModal({
         case 'paid':
           payload = {
             ...base,
-            purchasePrice: amount,
-            purchaseCurrency: currency,
-            purchaseRate: rate,
-            purchaseRateSource: rateSource,
             isLocalPurchase: values.isLocalPurchase ?? false,
             registrationDocId: docIds['registrationDocId'] ?? null,
           };
@@ -324,10 +303,6 @@ export function StatusTransitionModal({
             onChange={(v: VehicleStatus) => {
               setTargetStatus(v);
               setSlotStates({});
-              setCurrency('UAH');
-              setRate(1);
-              setAmount(0);
-              setRateSource('default');
             }}
           />
         </Form.Item>
@@ -343,33 +318,15 @@ export function StatusTransitionModal({
             onChange={(date) => {
               if (date) {
                 isDateManuallyChangedRef.current = true;
-                setTransitionDateStr(date.format('YYYY-MM-DD'));
               }
             }}
           />
         </Form.Item>
 
         {targetStatus === 'paid' && (
-          <>
-            <AmountCurrencyRateField
-              form={form}
-              amountFieldName="purchasePrice"
-              currencyFieldName="purchaseCurrency"
-              rateFieldName="purchaseRate"
-              currency={currency}
-              rate={rate}
-              amount={amount}
-              rateSource={rateSource}
-              date={transitionDateStr}
-              onCurrencyChange={setCurrency}
-              onRateChange={setRate}
-              onRateSourceChange={setRateSource}
-              onAmountChange={setAmount}
-            />
-            <Form.Item name="isLocalPurchase" label="Місцева покупка" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-          </>
+          <Form.Item name="isLocalPurchase" label="Місцева покупка" valuePropName="checked">
+            <Switch />
+          </Form.Item>
         )}
 
         {targetStatus === 'arrived' && (

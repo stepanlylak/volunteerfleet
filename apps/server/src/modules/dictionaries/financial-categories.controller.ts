@@ -12,32 +12,32 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import {
-  fundingSourceCreateSchema,
-  fundingSourceUpdateSchema,
+  financialCategoryCreateSchema,
+  financialCategoryUpdateSchema,
   idParamSchema,
-  type FundingSource,
-  type FundingSourceCreate,
-  type FundingSourceUpdate,
+  type FinancialCategory,
+  type FinancialCategoryCreate,
+  type FinancialCategoryUpdate,
   type IdParam,
 } from '@volunteerfleet/shared';
 import { Roles } from '../../common/decorators/roles.decorator.js';
-import { FundingSourcesService } from './funding-sources.service.js';
+import { FinancialCategoriesService } from './financial-categories.service.js';
 
 @ApiTags('dictionaries')
-@Controller('dictionaries/funding-sources')
-export class FundingSourcesController {
-  constructor(private readonly service: FundingSourcesService) {}
+@Controller('dictionaries/financial-categories')
+export class FinancialCategoriesController {
+  constructor(private readonly service: FinancialCategoriesService) {}
 
   @Get()
-  list(): Promise<FundingSource[]> {
+  list(): Promise<FinancialCategory[]> {
     return this.service.list();
   }
 
   @Post()
   @Roles('superuser')
   create(
-    @Body(new ZodValidationPipe(fundingSourceCreateSchema)) dto: FundingSourceCreate,
-  ): Promise<FundingSource> {
+    @Body(new ZodValidationPipe(financialCategoryCreateSchema)) dto: FinancialCategoryCreate,
+  ): Promise<FinancialCategory> {
     return this.service.create(dto);
   }
 
@@ -45,8 +45,8 @@ export class FundingSourcesController {
   @Roles('superuser')
   update(
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
-    @Body(new ZodValidationPipe(fundingSourceUpdateSchema)) dto: FundingSourceUpdate,
-  ): Promise<FundingSource> {
+    @Body(new ZodValidationPipe(financialCategoryUpdateSchema)) dto: FinancialCategoryUpdate,
+  ): Promise<FinancialCategory> {
     return this.service.update(params.id, dto);
   }
 

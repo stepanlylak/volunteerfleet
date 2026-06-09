@@ -1,17 +1,15 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  check,
   date,
   index,
-  numeric,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { currencyCodeEnum, rateSourceEnum, vehicleStatusEnum } from './enums.js';
+import { vehicleStatusEnum } from './enums.js';
 import { documents } from './documents.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
@@ -38,10 +36,6 @@ export const vehicleStatusHistory = pgTable(
     changedAt: timestamp('changed_at', { withTimezone: true }).notNull().defaultNow(),
     transitionDate: date('transition_date').notNull().defaultNow(),
 
-    purchasePrice: numeric('purchase_price', { precision: 14, scale: 2 }),
-    purchaseCurrency: currencyCodeEnum('purchase_currency'),
-    purchaseRate: numeric('purchase_rate', { precision: 14, scale: 6 }),
-    purchaseRateSource: rateSourceEnum('purchase_rate_source'),
     isLocalPurchase: boolean('is_local_purchase'),
 
     isRegisteredAtServiceCenter: boolean('is_registered_at_service_center'),
@@ -80,24 +74,5 @@ export const vehicleStatusHistory = pgTable(
     uniquePaidPerVehicle: uniqueIndex('vehicle_status_history_unique_paid_per_vehicle')
       .on(table.vehicleId)
       .where(sql`${table.newStatus} = 'paid'`),
-
-    purchaseCurrencyGroup: check(
-      'vehicle_status_history_purchase_currency_group',
-      sql`(
-        (${table.purchasePrice} IS NULL AND ${table.purchaseCurrency} IS NULL AND ${table.purchaseRate} IS NULL AND ${table.purchaseRateSource} IS NULL)
-        OR
-        (${table.purchasePrice} IS NOT NULL AND ${table.purchaseCurrency} IS NOT NULL AND ${table.purchaseRate} IS NOT NULL AND ${table.purchaseRateSource} IS NOT NULL)
-      )`,
-    ),
-    purchaseRateOneForUah: check(
-      'vehicle_status_history_purchase_rate_one_for_uah',
-      sql`(
-        ${table.purchaseCurrency} IS NULL
-        OR
-        ${table.purchaseCurrency} != 'UAH'
-        OR
-        ${table.purchaseRate} = 1
-      )`,
-    ),
   }),
 );

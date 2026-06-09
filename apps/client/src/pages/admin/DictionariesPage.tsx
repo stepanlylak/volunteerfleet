@@ -28,15 +28,7 @@ function DictionaryTable({ type }: { type: DictionaryType }) {
 
   const columns: ColumnsType<DictionaryItem> = [
     { title: 'Назва', dataIndex: 'name' },
-    ...(type !== 'funding-sources'
-      ? [{ title: 'Порядок', dataIndex: 'sortOrder', width: 120 }]
-      : []),
-    ...(type === 'funding-sources'
-      ? [
-          { title: 'Тип', dataIndex: 'type', width: 160 },
-          { title: 'Опис', dataIndex: 'description' },
-        ]
-      : []),
+    { title: 'Порядок', dataIndex: 'sortOrder', width: 120 },
     {
       title: 'Дії',
       key: 'actions',
@@ -106,20 +98,15 @@ export function DictionariesPage() {
       <Tabs
         items={[
           {
-            key: 'expense-categories',
-            label: 'Категорії витрат',
-            children: <DictionaryTable type="expense-categories" />,
-          },
-          {
-            key: 'funding-sources',
-            label: 'Джерела фінансування',
-            children: <DictionaryTable type="funding-sources" />,
+            key: 'financial-categories',
+            label: 'Фінансові категорії',
+            children: <DictionaryTable type="financial-categories" />,
           },
         ]}
       />
       <Alert
         message="Як це працює?"
-        description="Значення з цих списків використовуються при додаванні транспортних засобів та обліку витрат. Категорія з відміткою «За замовчуванням» автоматично підставляється у нові форми. Порядок сортування визначає послідовність елементів у випадаючих списках."
+        description="Фінансові категорії використовуються для витрат і донатів. Порядок сортування визначає послідовність елементів у випадаючих списках."
         type="info"
         showIcon
       />

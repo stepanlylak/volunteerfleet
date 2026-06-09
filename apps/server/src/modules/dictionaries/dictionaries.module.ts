@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ExpenseCategoriesController } from './expense-categories.controller.js';
-import { ExpenseCategoriesService } from './expense-categories.service.js';
-import { FundingSourcesController } from './funding-sources.controller.js';
-import { FundingSourcesService } from './funding-sources.service.js';
+import { FinancialCategoriesController } from './financial-categories.controller.js';
+import { FinancialCategoriesService } from './financial-categories.service.js';
 
 @Module({
-  controllers: [ExpenseCategoriesController, FundingSourcesController],
-  providers: [ExpenseCategoriesService, FundingSourcesService],
-  exports: [ExpenseCategoriesService, FundingSourcesService],
+  controllers: [FinancialCategoriesController],
+  providers: [FinancialCategoriesService],
+  exports: [FinancialCategoriesService],
 })
 export class DictionariesModule {}

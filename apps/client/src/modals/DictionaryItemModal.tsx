@@ -1,17 +1,15 @@
 import { useEffect } from 'react';
-import { Form, Input, InputNumber, Modal, Select, message } from 'antd';
-import type { ExpenseCategory, FundingSource } from '@volunteerfleet/shared';
+import { Form, Input, InputNumber, Modal, message } from 'antd';
+import type { FinancialCategory } from '@volunteerfleet/shared';
 import {
-  expenseCategoryCreateSchema,
-  expenseCategoryUpdateSchema,
-  fundingSourceCreateSchema,
-  fundingSourceUpdateSchema,
+  financialCategoryCreateSchema,
+  financialCategoryUpdateSchema,
 } from '@volunteerfleet/shared';
 import type { DictionaryType } from '../api/dictionaries.api';
 import { useCreateDictionaryItem, useUpdateDictionaryItem } from '../hooks/useDictionaries';
 import { zodToAntdFields, zodValidator } from '../utils/zod-antd';
 
-type DictionaryItem = ExpenseCategory | FundingSource;
+type DictionaryItem = FinancialCategory;
 
 interface DictionaryItemModalProps {
   open: boolean;
@@ -23,25 +21,14 @@ interface DictionaryItemModalProps {
 interface DictionaryFormValues {
   name: string;
   sortOrder?: number;
-  isDefault?: boolean;
-  type?: 'donor' | 'fundraiser' | 'initiative' | 'other';
-  description?: string | null;
 }
 
-function schemaFor(type: DictionaryType, isEdit: boolean) {
-  if (type === 'expense-categories') {
-    return isEdit ? expenseCategoryUpdateSchema : expenseCategoryCreateSchema;
-  }
-  return isEdit ? fundingSourceUpdateSchema : fundingSourceCreateSchema;
-}
-
-function titleFor(type: DictionaryType) {
-  if (type === 'expense-categories') return 'категорію витрат';
-  return 'джерело фінансування';
+function schemaFor(isEdit: boolean) {
+  return isEdit ? financialCategoryUpdateSchema : financialCategoryCreateSchema;
 }
 
 function sortOrderSchema() {
-  return expenseCategoryCreateSchema.shape.sortOrder;
+  return financialCategoryCreateSchema.shape.sortOrder;
 }
 
 export function DictionaryItemModal({ open, type, item, onClose }: DictionaryItemModalProps) {
@@ -57,18 +44,12 @@ export function DictionaryItemModal({ open, type, item, onClose }: DictionaryIte
     } else {
       form.setFieldsValue({
         sortOrder: 0,
-        type: 'donor',
-        description: null,
       });
     }
   }, [form, item, open, type]);
 
   const handleFinish = async (values: DictionaryFormValues) => {
-    const payload = {
-      ...values,
-      description: values.description?.trim() ? values.description.trim() : null,
-    };
-    const parsed = schemaFor(type, isEdit).safeParse(payload);
+    const parsed = schemaFor(isEdit).safeParse(values);
     if (!parsed.success) {
       form.setFields(zodToAntdFields(parsed.error));
       return;
@@ -90,7 +71,7 @@ export function DictionaryItemModal({ open, type, item, onClose }: DictionaryIte
 
   return (
     <Modal
-      title={isEdit ? `Редагувати ${titleFor(type)}` : `Додати ${titleFor(type)}`}
+      title={isEdit ? 'Редагувати фінансову категорію' : 'Додати фінансову категорію'}
       open={open}
       onCancel={onClose}
       onOk={() => void form.submit()}
@@ -101,44 +82,17 @@ export function DictionaryItemModal({ open, type, item, onClose }: DictionaryIte
         <Form.Item
           name="name"
           label="Назва"
-          rules={[{ validator: zodValidator(schemaFor(type, false).shape.name) }]}
+          rules={[{ validator: zodValidator(financialCategoryCreateSchema.shape.name) }]}
         >
           <Input />
         </Form.Item>
-        {type !== 'funding-sources' ? (
-          <Form.Item
-            name="sortOrder"
-            label="Порядок"
-            rules={[{ validator: zodValidator(sortOrderSchema()) }]}
-          >
-            <InputNumber min={0} max={32767} style={{ width: '100%' }} />
-          </Form.Item>
-        ) : null}
-        {type === 'funding-sources' ? (
-          <>
-            <Form.Item
-              name="type"
-              label="Тип"
-              rules={[{ validator: zodValidator(fundingSourceCreateSchema.shape.type) }]}
-            >
-              <Select
-                options={[
-                  { value: 'donor', label: 'Донор' },
-                  { value: 'fundraiser', label: 'Збір' },
-                  { value: 'initiative', label: 'Ініціатива' },
-                  { value: 'other', label: 'Інше' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item
-              name="description"
-              label="Опис"
-              rules={[{ validator: zodValidator(fundingSourceCreateSchema.shape.description) }]}
-            >
-              <Input.TextArea rows={3} />
-            </Form.Item>
-          </>
-        ) : null}
+        <Form.Item
+          name="sortOrder"
+          label="Порядок"
+          rules={[{ validator: zodValidator(sortOrderSchema()) }]}
+        >
+          <InputNumber min={0} max={32767} style={{ width: '100%' }} />
+        </Form.Item>
       </Form>
     </Modal>
   );

@@ -16,9 +16,9 @@ import { useParams } from 'react-router-dom';
 import {
   VEHICLE_STATUS_CONFIG,
   type DocumentResponse,
-  type ExpenseCategoryBreakdown,
   type ExpenseCurrencyBreakdown,
   type ExpenseResponse,
+  type FinancialCategoryBreakdown,
 } from '@volunteerfleet/shared';
 import { ReportSection } from '../components/reports/ReportSection';
 import { ReportToolbar } from '../components/reports/ReportToolbar';
@@ -52,7 +52,7 @@ export function VehicleReportPage() {
     },
   ];
 
-  const categoryColumns: ColumnsType<ExpenseCategoryBreakdown> = [
+  const categoryColumns: ColumnsType<FinancialCategoryBreakdown> = [
     { title: 'Категорія', dataIndex: 'category' },
     {
       title: 'Сума UAH',
@@ -65,7 +65,6 @@ export function VehicleReportPage() {
   const expenseColumns: ColumnsType<ExpenseResponse> = [
     { title: 'Дата', dataIndex: 'expenseDate', render: (value: string) => formatDate(value) },
     { title: 'Категорія', dataIndex: ['category', 'name'] },
-    { title: 'Джерело', dataIndex: ['fundingSource', 'name'] },
     {
       title: 'Сума',
       key: 'amount',

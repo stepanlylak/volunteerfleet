@@ -64,9 +64,6 @@ export function isValidTransition(from: VehicleStatus, to: VehicleStatus): boole
 
 export const vehicleStatusSchema = z.enum(VEHICLE_STATUSES);
 
-const currencyCodeSchema = z.enum(['UAH', 'USD', 'EUR']);
-const rateSourceSchema = z.enum(['default', 'manual']);
-
 const baseTransitionSchema = z
   .object({
     expectedCurrentStatus: vehicleStatusSchema,
@@ -76,20 +73,12 @@ const baseTransitionSchema = z
   })
   .strict();
 
-const purchasePriceFields = {
-  purchasePrice: z.number().positive(),
-  purchaseCurrency: currencyCodeSchema,
-  purchaseRate: z.number().positive(),
-  purchaseRateSource: rateSourceSchema,
-};
-
 const documentRefField = (description: string) =>
   uuidSchema.optional().nullable().describe(description);
 
 export const transitionToPaidSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('paid'),
-    ...purchasePriceFields,
     isLocalPurchase: z.boolean().default(false),
     registrationDocId: documentRefField('Техпаспорт без печатки митниці'),
   })

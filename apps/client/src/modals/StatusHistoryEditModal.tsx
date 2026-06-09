@@ -1,9 +1,8 @@
 import { Button, DatePicker, Form, Input, Modal, Space, Switch, message } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
-import type { Currency, VehicleStatus, VehicleStatusHistory } from '@volunteerfleet/shared';
+import type { VehicleStatus, VehicleStatusHistory } from '@volunteerfleet/shared';
 import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
-import { AmountCurrencyRateField } from '../components/AmountCurrencyRateField';
 import {
   type FileAttachmentExistingItem,
   type FileAttachmentNewFile,
@@ -136,11 +135,6 @@ export function StatusHistoryEditModal({
   const status = entry.newStatus;
   const docSlots = getSlotsForStatus(status, entry);
 
-  const [currency, setCurrency] = useState<Currency>('UAH');
-  const [rate, setRate] = useState<number>(1);
-  const [amount, setAmount] = useState<number>(0);
-  const [rateSource, setRateSource] = useState<'default' | 'manual'>('default');
-  const [transitionDateStr, setTransitionDateStr] = useState<string>(entry.transitionDate);
   const [slotStates, setSlotStates] = useState<Record<string, SlotState>>({});
 
   const updateHistory = useUpdateStatusHistory(vehicleId);
@@ -153,11 +147,6 @@ export function StatusHistoryEditModal({
 
   useEffect(() => {
     if (!open) return;
-    setCurrency((entry.purchaseCurrency as Currency) ?? 'UAH');
-    setRate(entry.purchaseRate ?? 1);
-    setAmount(entry.purchasePrice ?? 0);
-    setRateSource((entry.purchaseRateSource as 'default' | 'manual') ?? 'default');
-    setTransitionDateStr(entry.transitionDate);
     const initial: Record<string, SlotState> = {};
     for (const slot of getSlotsForStatus(status, entry)) {
       initial[slot.fieldKey] = {
@@ -228,10 +217,6 @@ export function StatusHistoryEditModal({
         case 'paid':
           payload = {
             ...base,
-            purchasePrice: amount,
-            purchaseCurrency: currency,
-            purchaseRate: rate,
-            purchaseRateSource: rateSource,
             isLocalPurchase: values.isLocalPurchase ?? false,
             registrationDocId: docIds['registrationDocId'] ?? null,
           };
@@ -317,36 +302,13 @@ export function StatusHistoryEditModal({
           label="Дата переходу"
           rules={[{ required: true, message: 'Оберіть дату' }]}
         >
-          <DatePicker
-            style={{ width: '100%' }}
-            format="DD.MM.YYYY"
-            onChange={(date) => {
-              if (date) setTransitionDateStr(date.format('YYYY-MM-DD'));
-            }}
-          />
+          <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
         </Form.Item>
 
         {status === 'paid' && (
-          <>
-            <AmountCurrencyRateField
-              form={form}
-              amountFieldName="purchasePrice"
-              currencyFieldName="purchaseCurrency"
-              rateFieldName="purchaseRate"
-              currency={currency}
-              rate={rate}
-              amount={amount}
-              rateSource={rateSource}
-              date={transitionDateStr}
-              onCurrencyChange={setCurrency}
-              onRateChange={setRate}
-              onRateSourceChange={setRateSource}
-              onAmountChange={setAmount}
-            />
-            <Form.Item name="isLocalPurchase" label="Місцева покупка" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-          </>
+          <Form.Item name="isLocalPurchase" label="Місцева покупка" valuePropName="checked">
+            <Switch />
+          </Form.Item>
         )}
 
         {status === 'arrived' && (
