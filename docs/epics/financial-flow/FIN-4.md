@@ -3,10 +3,10 @@ id: FIN-4
 epic: financial-flow
 phase: 0
 type: feat
-status: todo
+status: ready
 depends_on: [FIN-2, FIN-3]
 parallelizable: false
-branch: feat/fin-4-financial-categories-drop-funding
+branch: feat/fin-phase-0
 pr:
 ---
 
