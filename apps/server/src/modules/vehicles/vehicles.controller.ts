@@ -28,6 +28,9 @@ import type {
   JwtPayload,
   VehicleCreate,
   VehicleGalleryCreate,
+  VehicleGalleryItemResponse,
+  VehicleGalleryItemUpdate,
+  VehicleGalleryItemUploadMetadata,
   VehicleGalleryListResponse,
   VehicleGalleryResponse,
   VehicleGalleryUpdate,
@@ -47,6 +50,9 @@ import {
   idParamSchema,
   vehicleCreateSchema,
   vehicleGalleryCreateSchema,
+  vehicleGalleryItemParamsSchema,
+  vehicleGalleryItemUpdateSchema,
+  vehicleGalleryItemUploadMetadataSchema,
   vehicleGalleryParamsSchema,
   vehicleGalleryUpdateSchema,
   vehicleListQuerySchema,
@@ -58,6 +64,7 @@ import {
   type IdParam,
   type VehicleDocumentsQuery,
   type VehicleExpensesQuery,
+  type VehicleGalleryItemParams,
   type VehicleGalleryParams,
   type VehicleTransitionRequest,
   type VehicleStatusHistoryEditRequest,
@@ -68,6 +75,7 @@ import type { Env } from '../../config/env.schema.js';
 import { DocumentsService } from '../documents/documents.service.js';
 import { ExpensesService } from '../expenses/expenses.service.js';
 import { VehicleGalleriesService } from './vehicle-galleries.service.js';
+import { VehicleGalleryItemsService } from './vehicle-gallery-items.service.js';
 import { VehiclePhotosService } from './vehicle-photos.service.js';
 import { VehicleTransitionService } from './vehicle-transition.service.js';
 import { VehiclesService } from './vehicles.service.js';
@@ -82,6 +90,7 @@ export class VehiclesController {
     private readonly documentsService: DocumentsService,
     private readonly photosService: VehiclePhotosService,
     private readonly galleriesService: VehicleGalleriesService,
+    private readonly galleryItemsService: VehicleGalleryItemsService,
     private readonly cfg: ConfigService<Env, true>,
   ) {}
 
@@ -294,6 +303,74 @@ export class VehiclesController {
   ): Promise<void> {
     if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     await this.galleriesService.softDelete(params.id, params.galleryId, user.sub, user.activeOrgId);
+  }
+
+  @Post(':id/galleries/:galleryId/items')
+  @OrgRoles('coordinator', 'volunteer')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 26214400 },
+    }),
+  )
+  uploadGalleryItem(
+    @Param(new ZodValidationPipe(vehicleGalleryParamsSchema)) params: VehicleGalleryParams,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Body(new ZodValidationPipe(vehicleGalleryItemUploadMetadataSchema))
+    dto: VehicleGalleryItemUploadMetadata,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<VehicleGalleryItemResponse> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.galleryItemsService.upload(
+      params.id,
+      params.galleryId,
+      file,
+      dto,
+      user.sub,
+      this.cfg.get('MAX_UPLOAD_BYTES', { infer: true }),
+      user.activeOrgId,
+    );
+  }
+
+  @Patch(':id/galleries/:galleryId/items/:itemId')
+  @OrgRoles('coordinator', 'volunteer')
+  updateGalleryItemCaption(
+    @Param(new ZodValidationPipe(vehicleGalleryItemParamsSchema)) params: VehicleGalleryItemParams,
+    @Body(new ZodValidationPipe(vehicleGalleryItemUpdateSchema)) dto: VehicleGalleryItemUpdate,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<VehicleGalleryItemResponse> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.galleryItemsService.updateCaption(
+      params.id,
+      params.galleryId,
+      params.itemId,
+      dto,
+      user.sub,
+      user.activeOrgId,
+    );
+  }
+
+  @Get(':id/galleries/:galleryId/items/:itemId/download')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
+  async downloadGalleryItem(
+    @Param(new ZodValidationPipe(vehicleGalleryItemParamsSchema)) params: VehicleGalleryItemParams,
+    @CurrentUser() user: JwtPayload | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    const { body, contentType, contentLength } = await this.galleryItemsService.getDownloadStream(
+      params.id,
+      params.galleryId,
+      params.itemId,
+      user.activeOrgId,
+    );
+    res.set({
+      'Content-Type': contentType,
+      'Cache-Control': 'private, max-age=300',
+      ...(contentLength != null ? { 'Content-Length': String(contentLength) } : {}),
+    });
+    return new StreamableFile(body);
   }
 
   @Get(':id/photos')

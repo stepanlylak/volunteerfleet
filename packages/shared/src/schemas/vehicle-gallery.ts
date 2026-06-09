@@ -28,6 +28,15 @@ export const vehicleGalleryParamsSchema = z
   .strict();
 export type VehicleGalleryParams = z.infer<typeof vehicleGalleryParamsSchema>;
 
+export const vehicleGalleryItemParamsSchema = z
+  .object({
+    id: uuidSchema,
+    galleryId: uuidSchema,
+    itemId: uuidSchema,
+  })
+  .strict();
+export type VehicleGalleryItemParams = z.infer<typeof vehicleGalleryItemParamsSchema>;
+
 export const vehicleGalleryCreateSchema = z
   .object({
     name: vehicleGalleryNameSchema,
