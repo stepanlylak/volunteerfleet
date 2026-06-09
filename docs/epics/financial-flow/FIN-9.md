@@ -3,7 +3,7 @@ id: FIN-9
 epic: financial-flow
 phase: 1
 type: chore
-status: todo
+status: ready
 depends_on: [FIN-8]
 parallelizable: false
 branch: chore/fin-9-reports-cleanup
