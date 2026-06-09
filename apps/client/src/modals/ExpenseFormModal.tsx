@@ -1,19 +1,6 @@
-import { EditOutlined } from '@ant-design/icons';
-import {
-  Button,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Space,
-  Tooltip,
-  Typography,
-  message,
-} from 'antd';
+import { Button, DatePicker, Form, Input, Modal, Select, Space, message } from 'antd';
 import dayjs from 'dayjs';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Currency, ExpenseCreate, ExpenseResponse } from '@volunteerfleet/shared';
 import { expenseCreateSchema } from '@volunteerfleet/shared';
 import { documentsApi } from '../api/documents.api';
@@ -23,7 +10,6 @@ import {
   type FileAttachmentNewFile,
   type FileAttachmentNewLink,
 } from '../components/files/FileAttachmentField';
-import { useExchangeRate } from '../hooks/useExchangeRate';
 import { useCreateExpense, useUpdateExpense, useVehicleExpenses } from '../hooks/useExpenses';
 import {
   useDeleteDocument,
@@ -37,7 +23,7 @@ import { useVehicles } from '../hooks/useVehicles';
 import type { ExpenseCategory, FundingSource } from '@volunteerfleet/shared';
 import type { DocumentDetachAction } from '../utils/documentDetachConfirm';
 import { confirmDocumentDetachAction } from '../utils/documentDetachConfirm';
-import { formatCurrency } from '../utils/format';
+import { AmountCurrencyRateField } from '../components/AmountCurrencyRateField';
 
 interface ExpenseFormModalProps {
   open: boolean;
@@ -59,7 +45,6 @@ interface FormValues {
   description?: string;
 }
 
-const CURRENCIES: Currency[] = ['UAH', 'USD', 'EUR'];
 const MAX_SIZE_BYTES = 26_214_400;
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
@@ -101,7 +86,6 @@ export function ExpenseFormModal({
   const [newLinks, setNewLinks] = useState<FileAttachmentNewLink[]>([]);
   const [selectedExistingDocumentIds, setSelectedExistingDocumentIds] = useState<string[]>([]);
   const [removedDocumentIds, setRemovedDocumentIds] = useState<string[]>([]);
-  const isRateManuallyChangedRef = useRef(false);
   const isExpenseDateManuallyChangedRef = useRef(false);
 
   const { data: categoriesData } = useDictionary('expense-categories');
@@ -140,12 +124,6 @@ export function ExpenseFormModal({
   );
   const attachedDocs = expense?.id ? (attachedDocsData?.items ?? []) : [];
 
-  const shouldFetchRate = currency !== 'UAH' && !!expenseDate && !isEdit;
-  const { data: rateData, isFetching: rateFetching } = useExchangeRate(
-    shouldFetchRate ? expenseDate : undefined,
-    shouldFetchRate ? currency : undefined,
-  );
-
   useEffect(() => {
     if (!open) return;
     if (expense) {
@@ -180,7 +158,6 @@ export function ExpenseFormModal({
       setNewLinks([]);
       setSelectedExistingDocumentIds([]);
       setRemovedDocumentIds([]);
-      isRateManuallyChangedRef.current = false;
       isExpenseDateManuallyChangedRef.current = false;
       form.setFieldsValue({
         expenseDate: dayjs(),
@@ -196,53 +173,13 @@ export function ExpenseFormModal({
     form.setFieldValue('expenseDate', dayjs(suggestedExpenseDate));
   }, [form, isEdit, open, suggestedExpenseDate]);
 
-  useEffect(() => {
-    if (open && rateData && !isRateManuallyChangedRef.current) {
-      setRate(rateData.rate);
-      setRateSource('default');
-      form.setFieldValue('rate', rateData.rate);
-    }
-  }, [open, rateData, form]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (currency === 'UAH') {
-      setRate(1);
-      setRateSource('default');
-      isRateManuallyChangedRef.current = false;
-      form.setFieldValue('rate', 1);
-    }
-  }, [open, currency, form]);
-
-  const handleReset = useCallback(async () => {
-    if (!expenseDate || currency === 'UAH') return;
-    isRateManuallyChangedRef.current = false;
-    const data = await useExchangeRateImperative(expenseDate, currency);
-    if (data) {
-      setRate(data.rate);
-      setRateSource('default');
-      form.setFieldValue('rate', data.rate);
-    }
-  }, [expenseDate, currency, form]);
-
   const onFinish = async (values: FormValues) => {
     if (!effectiveVehicleId) {
       message.error('Оберіть автомобіль');
       return;
     }
     const normalizedExpenseDate = values.expenseDate.format('YYYY-MM-DD');
-    let effectiveRate = values.currency === 'UAH' ? 1 : values.rate;
-    if (values.currency !== 'UAH' && (!effectiveRate || effectiveRate <= 1)) {
-      const rateData = await useExchangeRateImperative(normalizedExpenseDate, values.currency);
-      if (!rateData) {
-        message.error('Не вдалося отримати курс валюти');
-        return;
-      }
-      effectiveRate = rateData.rate;
-      setRate(rateData.rate);
-      setRateSource('default');
-      form.setFieldValue('rate', rateData.rate);
-    }
+    const effectiveRate = values.currency === 'UAH' ? 1 : values.rate;
     const payload: ExpenseCreate = {
       vehicleId: effectiveVehicleId,
       expenseDate: normalizedExpenseDate,
@@ -338,16 +275,13 @@ export function ExpenseFormModal({
     }
   };
 
-  const amountUah = amount * rate;
-  const isUAH = currency === 'UAH';
   const isPending =
     createExpense.isPending ||
     updateExpense.isPending ||
     uploadDocument.isPending ||
     linkDocument.isPending ||
     updateDocument.isPending ||
-    deleteDocument.isPending ||
-    rateFetching;
+    deleteDocument.isPending;
   const attachedDocIds = new Set(attachedDocs.map((doc) => doc.id));
   const attachedItems: FileAttachmentExistingItem[] = attachedDocs.map((doc) => ({
     id: doc.id,
@@ -424,88 +358,24 @@ export function ExpenseFormModal({
               if (date) {
                 isExpenseDateManuallyChangedRef.current = true;
                 setExpenseDate(date.format('YYYY-MM-DD'));
-                isRateManuallyChangedRef.current = false;
               }
             }}
           />
         </Form.Item>
 
-        <Space.Compact style={{ width: '100%' }}>
-          <Form.Item
-            name="amount"
-            label="Сума"
-            style={{ flex: 1 }}
-            rules={[{ required: true, message: 'Введіть суму' }]}
-          >
-            <InputNumber
-              min={0.01}
-              precision={2}
-              style={{ width: '100%' }}
-              onChange={(v) => setAmount(v ?? 0)}
-            />
-          </Form.Item>
-          <Form.Item
-            name="currency"
-            label="Валюта"
-            style={{ width: 100 }}
-            rules={[{ required: true }]}
-          >
-            <Select
-              options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-              onChange={(v: Currency) => {
-                setCurrency(v);
-                isRateManuallyChangedRef.current = false;
-              }}
-            />
-          </Form.Item>
-        </Space.Compact>
-
-        {!isUAH && (
-          <Typography.Text
-            type="secondary"
-            style={{ display: 'block', marginTop: -12, marginBottom: 12 }}
-          >
-            ≈ {formatCurrency(amountUah, 'UAH')}
-          </Typography.Text>
-        )}
-
-        {!isUAH && (
-          <Form.Item
-            name="rate"
-            label={
-              <Space>
-                <span>Курс до UAH</span>
-                {rateSource === 'manual' && (
-                  <Tooltip title="Курс встановлено вручну">
-                    <EditOutlined style={{ color: '#faad14' }} />
-                  </Tooltip>
-                )}
-              </Space>
-            }
-            rules={[{ required: true, message: 'Введіть курс' }]}
-          >
-            <Space.Compact style={{ width: '100%' }}>
-              <InputNumber
-                style={{ flex: 1 }}
-                min={0.0001}
-                precision={4}
-                disabled={isUAH || rateFetching}
-                value={rate}
-                onChange={(v) => {
-                  if (v !== null) {
-                    setRate(v);
-                    isRateManuallyChangedRef.current = true;
-                    setRateSource('manual');
-                    form.setFieldValue('rate', v);
-                  }
-                }}
-              />
-              <Button onClick={handleReset} disabled={rateFetching}>
-                Скинути
-              </Button>
-            </Space.Compact>
-          </Form.Item>
-        )}
+        <AmountCurrencyRateField
+          form={form}
+          currency={currency}
+          rate={rate}
+          amount={amount}
+          rateSource={rateSource}
+          date={expenseDate}
+          isEdit={isEdit}
+          onCurrencyChange={setCurrency}
+          onRateChange={setRate}
+          onRateSourceChange={setRateSource}
+          onAmountChange={setAmount}
+        />
 
         <Form.Item
           name="categoryId"
@@ -564,18 +434,6 @@ export function ExpenseFormModal({
       </Form>
     </Modal>
   );
-}
-
-async function useExchangeRateImperative(
-  date: string,
-  currency: Currency,
-): Promise<{ rate: number } | null> {
-  try {
-    const { exchangeRatesApi } = await import('../api/exchange-rates.api');
-    return await exchangeRatesApi.getRate(date, currency);
-  } catch {
-    return null;
-  }
 }
 
 export type { ExpenseFormModalProps };

@@ -3,10 +3,10 @@ id: VSF-9
 epic: vehicle-status-flow
 phase: 2
 type: feat
-status: ready
+status: done
 depends_on: [VSF-6, VSF-7]
 parallelizable: false
-branch: feat/vsf-9-status-transition-modal
+branch: feat/vsf-9-10-status-transition
 pr:
 ---
 

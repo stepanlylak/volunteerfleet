@@ -44,6 +44,7 @@ import type { Currency, DocumentResponse, ExpenseResponse } from '@volunteerflee
 import { vehicleUpdateSchema } from '@volunteerfleet/shared';
 import { DocumentFormModal } from '../../modals/DocumentFormModal';
 import { ExpenseFormModal } from '../../modals/ExpenseFormModal';
+import { StatusTransitionModal } from '../../modals/StatusTransitionModal';
 import { VehicleFormModal } from '../../modals/VehicleFormModal';
 import {
   useDeleteVehicle,
@@ -59,7 +60,7 @@ import {
   useVehicleDocuments,
 } from '../../hooks/useDocuments';
 import { useDeleteExpense, useVehicleExpenses } from '../../hooks/useExpenses';
-import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
+import { ALLOWED_TRANSITIONS, VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
 import { documentsApi } from '../../api/documents.api';
 import { exchangeRatesApi } from '../../api/exchange-rates.api';
@@ -137,6 +138,7 @@ export function VehicleCardPage() {
   const deleteVehicle = useDeleteVehicle();
   const restoreVehicle = useRestoreVehicle();
   const [editOpen, setEditOpen] = useState(false);
+  const [transitionOpen, setTransitionOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseResponse | undefined>();
   const [docOpen, setDocOpen] = useState(false);
@@ -314,6 +316,8 @@ export function VehicleCardPage() {
     void message.success('Витрату видалено');
   };
 
+  const allowedNextStatuses = !vehicle.deletedAt ? (ALLOWED_TRANSITIONS[vehicle.status] ?? []) : [];
+
   const headerActions = (
     <Space wrap>
       <Button
@@ -322,6 +326,11 @@ export function VehicleCardPage() {
       >
         Звіт по авто
       </Button>
+      {canMutate && allowedNextStatuses.length > 0 && (
+        <Button type="primary" onClick={() => setTransitionOpen(true)}>
+          Змінити статус
+        </Button>
+      )}
       {canMutate && (
         <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
           Редагувати
@@ -856,6 +865,12 @@ export function VehicleCardPage() {
               ]
             : []),
         ]}
+      />
+      <StatusTransitionModal
+        open={transitionOpen}
+        vehicle={vehicle}
+        lastHistoryEntry={history?.items[0]}
+        onClose={() => setTransitionOpen(false)}
       />
       <VehicleFormModal open={editOpen} vehicleId={vehicle.id} onClose={() => setEditOpen(false)} />
       <ExpenseFormModal
