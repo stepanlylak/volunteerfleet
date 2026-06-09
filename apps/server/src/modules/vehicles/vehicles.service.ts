@@ -6,6 +6,7 @@ import type {
   VehicleCreate,
   VehicleListQuery,
   VehicleListResponse,
+  VehicleMainGalleryCover,
   VehicleResponse,
   VehicleStatusHistoryListResponse,
   VehicleUpdate,
@@ -117,8 +118,14 @@ export class VehiclesService {
       },
     });
 
-    const alertsByVehicle = await this.alertService.getAlertsForVehicles(rows.map((r) => r.id));
-    const items = rows.map((r) => this.toResponse(r, alertsByVehicle.get(r.id) ?? []));
+    const vehicleIds = rows.map((r) => r.id);
+    const [alertsByVehicle, coversByVehicle] = await Promise.all([
+      this.alertService.getAlertsForVehicles(vehicleIds),
+      this.galleriesService.getMainGalleryCoversForVehicles(vehicleIds, activeOrgId),
+    ]);
+    const items = rows.map((r) =>
+      this.toResponse(r, alertsByVehicle.get(r.id) ?? [], coversByVehicle.get(r.id) ?? null),
+    );
     const totalPages = Math.ceil(total / pageSize);
 
     return { items, page, pageSize, total, totalPages };
@@ -151,8 +158,11 @@ export class VehiclesService {
       throw new NotFoundException(`Vehicle ${id} not found`);
     }
 
-    const alerts = await this.alertService.getAlertsForVehicle(row.id);
-    return this.toResponse(row, alerts);
+    const [alerts, cover] = await Promise.all([
+      this.alertService.getAlertsForVehicle(row.id),
+      this.galleriesService.getMainGalleryCover(row.id, activeOrgId),
+    ]);
+    return this.toResponse(row, alerts, cover);
   }
 
   async create(
@@ -376,6 +386,7 @@ export class VehiclesService {
       deletedByUser?: { id: string; fullName: string } | null;
     },
     alerts: VehicleAlert[] = [],
+    mainGalleryCover: VehicleMainGalleryCover | null = null,
   ): VehicleResponse {
     return {
       id: row.id,
@@ -399,8 +410,7 @@ export class VehiclesService {
       deletedAt: row.deletedAt?.toISOString() ?? null,
       deletedBy: row.deletedByUser ? this.toUserInfo(row.deletedByUser) : null,
       alerts,
-      // Populated from the main gallery effective cover in GAL-7
-      mainGalleryCover: null,
+      mainGalleryCover,
     };
   }
 }

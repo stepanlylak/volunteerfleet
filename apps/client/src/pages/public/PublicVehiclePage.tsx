@@ -12,8 +12,23 @@ import {
 } from 'antd';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import type { PublicVehicleGallery } from '@volunteerfleet/shared';
 import { publicApi } from '../../api/public.api';
 import { formatCurrency, formatDate } from '../../utils/format';
+
+function flattenGalleryItems(galleries: PublicVehicleGallery[]) {
+  const items: { id: string; galleryLabel: string; caption: string | null }[] = [];
+  for (const gallery of galleries) {
+    for (const item of gallery.items) {
+      items.push({
+        id: item.id,
+        galleryLabel: gallery.displayLabel,
+        caption: item.caption,
+      });
+    }
+  }
+  return items;
+}
 
 export function PublicVehiclePage() {
   const { orgId, vehicleId } = useParams<{ orgId: string; vehicleId: string }>();
@@ -39,6 +54,8 @@ export function PublicVehiclePage() {
       )
     : null;
 
+  const allGalleryItems = flattenGalleryItems(data.galleries);
+
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <div>
@@ -58,16 +75,17 @@ export function PublicVehiclePage() {
         </Typography.Paragraph>
       </Card>
 
-      {data.photos.length > 0 ? (
+      {allGalleryItems.length > 0 ? (
         <Image.PreviewGroup>
           <Space wrap size="middle">
-            {data.photos.map((photo) => (
+            {allGalleryItems.map((item) => (
               <Image
-                key={photo.id}
+                key={item.id}
                 width={220}
                 height={150}
                 style={{ objectFit: 'cover' }}
-                src={publicApi.getVehiclePhotoUrl(photo.id)}
+                src={publicApi.getGalleryItemDownloadUrl(item.id)}
+                alt={item.caption ?? item.galleryLabel}
               />
             ))}
           </Space>

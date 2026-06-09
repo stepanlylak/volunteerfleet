@@ -3,10 +3,10 @@ id: GAL-6
 epic: vehicle-galleries
 phase: 1
 type: feat
-status: ready
+status: done
 depends_on: [GAL-5]
 parallelizable: true
-branch:
+branch: feat/gal-6-public-api-visibility-chain
 pr:
 ---
 
