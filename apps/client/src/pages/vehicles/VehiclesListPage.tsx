@@ -1,6 +1,17 @@
 import { useMemo, useState } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { Badge, Button, Empty, Input, Space, Switch, Table, Tooltip, Typography } from 'antd';
+import {
+  Badge,
+  Button,
+  Empty,
+  Image,
+  Input,
+  Space,
+  Switch,
+  Table,
+  Tooltip,
+  Typography,
+} from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -19,6 +30,7 @@ import {
 } from '../../components/VehicleStatusTag';
 import { useVehicles } from '../../hooks/useVehicles';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
+import { vehiclesApi } from '../../api/vehicles.api';
 
 export function VehiclesListPage() {
   const navigate = useNavigate();
@@ -43,6 +55,39 @@ export function VehiclesListPage() {
 
   const columns = useMemo<ColumnsType<VehicleResponse>>(
     () => [
+      {
+        title: 'Обкладинка',
+        key: 'cover',
+        width: 100,
+        render: (_, vehicle) =>
+          vehicle.mainGalleryCover ? (
+            <Image
+              width={80}
+              height={60}
+              style={{ objectFit: 'cover', borderRadius: 4 }}
+              src={vehiclesApi.getMainCoverUrl(vehicle.mainGalleryCover.itemId)}
+              alt={`${vehicle.brand} ${vehicle.model}`}
+              preview={false}
+              placeholder
+            />
+          ) : (
+            <div
+              style={{
+                width: 80,
+                height: 60,
+                borderRadius: 4,
+                backgroundColor: '#f0f0f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#999',
+                fontSize: 12,
+              }}
+            >
+              Немає фото
+            </div>
+          ),
+      },
       {
         title: 'Ідентифікатор',
         dataIndex: 'identifier',

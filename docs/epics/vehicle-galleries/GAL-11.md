@@ -3,7 +3,7 @@ id: GAL-11
 epic: vehicle-galleries
 phase: 2
 type: refactor
-status: todo
+status: ready
 depends_on: [GAL-4, GAL-9, GAL-10]
 parallelizable: false
 branch:

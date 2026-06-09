@@ -97,4 +97,9 @@ export const vehiclesApi = {
     const base = import.meta.env.VITE_API_URL || '/api/v1';
     return `${base}/vehicles/${id}/photos/${photoId}/download`;
   },
+
+  getMainCoverUrl(itemId: string): string {
+    const base = import.meta.env.VITE_API_URL || '/api/v1';
+    return `${base}/public/gallery-items/${itemId}/download`;
+  },
 };
