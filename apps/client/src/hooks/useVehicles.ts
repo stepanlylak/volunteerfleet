@@ -68,6 +68,20 @@ export function useUpdateStatusHistory(vehicleId: string | undefined) {
   });
 }
 
+export function useRollbackLastStatus(vehicleId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (expectedLastHistoryId: string) =>
+      vehiclesApi.rollbackLastStatus(vehicleId!, expectedLastHistoryId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicleId] });
+      void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicleId, 'status-history'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+  });
+}
+
 export function useCreateVehicle() {
   const queryClient = useQueryClient();
   return useMutation({

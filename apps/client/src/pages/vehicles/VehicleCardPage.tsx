@@ -60,9 +60,11 @@ import { ExpenseFormModal } from '../../modals/ExpenseFormModal';
 import { StatusHistoryEditModal } from '../../modals/StatusHistoryEditModal';
 import { StatusTransitionModal } from '../../modals/StatusTransitionModal';
 import { VehicleFormModal } from '../../modals/VehicleFormModal';
+import { VehicleStatusTag } from '../../components/VehicleStatusTag';
 import {
   useDeleteVehicle,
   useRestoreVehicle,
+  useRollbackLastStatus,
   useUpdateVehicle,
   useVehicle,
   useVehiclePhotos,
@@ -126,6 +128,7 @@ export function VehicleCardPage() {
   const updateVehicle = useUpdateVehicle();
   const deleteVehicle = useDeleteVehicle();
   const restoreVehicle = useRestoreVehicle();
+  const rollbackLastStatus = useRollbackLastStatus(id);
   const [editOpen, setEditOpen] = useState(false);
   const [transitionOpen, setTransitionOpen] = useState(false);
   const [historyEditEntry, setHistoryEditEntry] = useState<VehicleStatusHistory | undefined>();
@@ -287,11 +290,7 @@ export function VehicleCardPage() {
     </Space>
   );
 
-  const statusTag = (
-    <Tag color={vehicle.deletedAt ? 'red' : VEHICLE_STATUS_CONFIG[vehicle.status].color}>
-      {VEHICLE_STATUS_CONFIG[vehicle.status].label}
-    </Tag>
-  );
+  const statusTag = <VehicleStatusTag status={vehicle.status} deleted={Boolean(vehicle.deletedAt)} />;
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -309,7 +308,7 @@ export function VehicleCardPage() {
         <Col xs={24} lg={16}>
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Space wrap size="small">
-              <Tag style={{ fontSize: 13, padding: '2px 10px', borderRadius: 12 }}>
+              <Tag style={{ margin: 0 }}>
                 ID: {vehicle.identifier}
               </Tag>
               {statusTag}
@@ -786,7 +785,7 @@ export function VehicleCardPage() {
                 <Empty description="Історія поки порожня" />
               ) : (
                 <Timeline
-                  items={(history?.items ?? []).map((item) => {
+                  items={(history?.items ?? []).map((item, index) => {
                     const cfg = VEHICLE_STATUS_CONFIG[item.newStatus];
                     const itemAlerts = vehicle.alerts.filter(
                       (a) => a.vehicleStatusHistoryId === item.id,
@@ -817,7 +816,7 @@ export function VehicleCardPage() {
                                 : 'Старт'}
                             </Tag>
                             <Typography.Text>→</Typography.Text>
-                            <Tag color={cfg?.color ?? 'blue'}>{cfg?.label ?? '—'}</Tag>
+                            <VehicleStatusTag status={item.newStatus} />
                           </Space>
                           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                             {dayjs(item.transitionDate).format('DD.MM.YYYY')} (перехід) ·{' '}
@@ -851,13 +850,40 @@ export function VehicleCardPage() {
                             </Space>
                           )}
                           {canMutate && (
-                            <Button
-                              size="small"
-                              icon={<EditOutlined />}
-                              onClick={() => setHistoryEditEntry(item)}
-                            >
-                              Редагувати
-                            </Button>
+                            <Space wrap size="small">
+                              <Button
+                                size="small"
+                                icon={<EditOutlined />}
+                                onClick={() => setHistoryEditEntry(item)}
+                              >
+                                Редагувати
+                              </Button>
+                              {orgRole === 'coordinator' &&
+                                !vehicle.deletedAt &&
+                                index === 0 &&
+                                item.oldStatus && (
+                                  <Popconfirm
+                                    title="Відкотити останній статус?"
+                                    description="Авто повернеться до попереднього статусу, а цей запис історії буде видалено."
+                                    okText="Відкотити"
+                                    cancelText="Скасувати"
+                                    onConfirm={async () => {
+                                      try {
+                                        await rollbackLastStatus.mutateAsync(item.id);
+                                        message.success('Останній статус відкочено');
+                                      } catch {
+                                        message.error(
+                                          'Не вдалося відкотити статус. Можливо, зʼявився новіший перехід — оновіть сторінку.',
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    <Button size="small" danger icon={<RollbackOutlined />}>
+                                      Відкотити
+                                    </Button>
+                                  </Popconfirm>
+                                )}
+                            </Space>
                           )}
                           {itemAlerts.length > 0 && (
                             <Space

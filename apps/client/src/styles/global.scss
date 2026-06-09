@@ -316,6 +316,78 @@ body {
   }
 }
 
+// ---------- Vehicle list filters ----------
+
+.vehicle-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+}
+
+.status-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  &__label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-right: 2px;
+  }
+}
+
+.status-chip {
+  appearance: none;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &--clear {
+    color: #8c95a6;
+    background: transparent;
+    border-color: transparent;
+    font-weight: 500;
+
+    &:hover {
+      color: #1c2230;
+      transform: none;
+      text-decoration: underline;
+    }
+  }
+}
+
 // ---------- Utility classes ----------
 
 .text-center {

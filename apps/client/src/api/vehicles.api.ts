@@ -63,6 +63,12 @@ export const vehiclesApi = {
     await http.patch(`/vehicles/${vehicleId}/status-history/${historyId}`, payload);
   },
 
+  async rollbackLastStatus(vehicleId: string, expectedLastHistoryId: string): Promise<void> {
+    await http.delete(`/vehicles/${vehicleId}/status-history/last`, {
+      params: { expectedLastHistoryId },
+    });
+  },
+
   async listPhotos(id: string): Promise<VehiclePhotoListResponse> {
     const res = await http.get<VehiclePhotoListResponse>(`/vehicles/${id}/photos`);
     return res.data;

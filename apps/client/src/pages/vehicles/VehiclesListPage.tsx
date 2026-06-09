@@ -1,18 +1,6 @@
 import { useMemo, useState } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import {
-  Badge,
-  Button,
-  Checkbox,
-  Empty,
-  Input,
-  Space,
-  Switch,
-  Table,
-  Tag,
-  Tooltip,
-  Typography,
-} from 'antd';
+import { Badge, Button, Empty, Input, Space, Switch, Table, Tooltip, Typography } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -24,6 +12,11 @@ import {
   type VehicleStatus,
 } from '@volunteerfleet/shared';
 import { VehicleFormModal } from '../../modals/VehicleFormModal';
+import {
+  VehicleStatusTag,
+  softColorStyle,
+  solidColorStyle,
+} from '../../components/VehicleStatusTag';
 import { useVehicles } from '../../hooks/useVehicles';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
 
@@ -82,9 +75,7 @@ export function VehiclesListPage() {
         dataIndex: 'status',
         render: (status: VehicleStatus, vehicle: VehicleResponse) => (
           <Space size="small">
-            <Tag color={VEHICLE_STATUS_CONFIG[status].color}>
-              {VEHICLE_STATUS_CONFIG[status].label}
-            </Tag>
+            <VehicleStatusTag status={status} />
             {vehicle.alerts.length > 0 && (
               <Tooltip title={vehicle.alerts.map((a) => a.message).join('; ')}>
                 <Badge count={vehicle.alerts.length} color="#faad14" />
@@ -145,40 +136,67 @@ export function VehiclesListPage() {
           </Button>
         )}
       </Space>
-      <Space wrap>
-        <Input.Search
-          allowClear
-          placeholder="Пошук за маркою, моделлю, VIN"
-          style={{ width: 320 }}
-          onSearch={(value) => {
-            setPage(1);
-            setSearch(value.trim());
-          }}
-        />
-        <Checkbox.Group
-          value={statuses}
-          onChange={(values) => {
-            setPage(1);
-            setStatuses(values as VehicleStatus[]);
-          }}
-          options={VEHICLE_STATUSES.map((s) => ({
-            value: s,
-            label: (
-              <Tag color={VEHICLE_STATUS_CONFIG[s].color}>{VEHICLE_STATUS_CONFIG[s].label}</Tag>
-            ),
-          }))}
-        />
-        <Space size="small">
-          <Switch
-            checked={hasAlerts === true}
-            onChange={(checked) => {
+      <div className="vehicle-filters">
+        <div className="vehicle-filters__top">
+          <Input.Search
+            allowClear
+            placeholder="Пошук за маркою, моделлю, VIN"
+            style={{ maxWidth: 360, width: '100%' }}
+            onSearch={(value) => {
               setPage(1);
-              setHasAlerts(checked ? true : undefined);
+              setSearch(value.trim());
             }}
           />
-          <Typography.Text>З алертами</Typography.Text>
-        </Space>
-      </Space>
+          <Space size="small">
+            <Switch
+              checked={hasAlerts === true}
+              onChange={(checked) => {
+                setPage(1);
+                setHasAlerts(checked ? true : undefined);
+              }}
+            />
+            <Typography.Text>З алертами</Typography.Text>
+          </Space>
+        </div>
+        <div className="status-filter">
+          <Typography.Text type="secondary" className="status-filter__label">
+            Статус
+          </Typography.Text>
+          {VEHICLE_STATUSES.map((s) => {
+            const cfg = VEHICLE_STATUS_CONFIG[s];
+            const active = statuses.includes(s);
+            return (
+              <button
+                key={s}
+                type="button"
+                className={`status-chip${active ? ' status-chip--active' : ''}`}
+                style={active ? solidColorStyle(cfg.color) : softColorStyle(cfg.color)}
+                aria-pressed={active}
+                onClick={() => {
+                  setPage(1);
+                  setStatuses((prev) =>
+                    prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
+                  );
+                }}
+              >
+                {cfg.label}
+              </button>
+            );
+          })}
+          {statuses.length > 0 && (
+            <button
+              type="button"
+              className="status-chip status-chip--clear"
+              onClick={() => {
+                setPage(1);
+                setStatuses([]);
+              }}
+            >
+              Скинути
+            </button>
+          )}
+        </div>
+      </div>
       <Table
         rowKey="id"
         loading={isFetching}

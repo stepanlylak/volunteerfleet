@@ -27,6 +27,7 @@ export function useCreateExpense(vehicleId?: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['expenses', 'list'] });
       void queryClient.invalidateQueries({ queryKey: ['expenses', 'vehicle', vehicleId] });
+      void queryClient.invalidateQueries({ queryKey: ['financial-entries'] });
       void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     },
   });
@@ -40,6 +41,7 @@ export function useUpdateExpense(vehicleId?: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['expenses', 'list'] });
       void queryClient.invalidateQueries({ queryKey: ['expenses', 'vehicle', vehicleId] });
+      void queryClient.invalidateQueries({ queryKey: ['financial-entries'] });
       void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     },
   });
@@ -52,6 +54,7 @@ export function useDeleteExpense(vehicleId?: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['expenses', 'list'] });
       void queryClient.invalidateQueries({ queryKey: ['expenses', 'vehicle', vehicleId] });
+      void queryClient.invalidateQueries({ queryKey: ['financial-entries'] });
       void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     },
   });

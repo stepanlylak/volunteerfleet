@@ -7,7 +7,6 @@ import {
   Space,
   Statistic,
   Table,
-  Tag,
   Timeline,
   Typography,
 } from 'antd';
@@ -20,6 +19,7 @@ import {
   type ExpenseResponse,
   type FinancialCategoryBreakdown,
 } from '@volunteerfleet/shared';
+import { VehicleStatusTag } from '../components/VehicleStatusTag';
 import { ReportSection } from '../components/reports/ReportSection';
 import { ReportToolbar } from '../components/reports/ReportToolbar';
 import { documentsApi } from '../api/documents.api';
@@ -98,7 +98,7 @@ export function VehicleReportPage() {
               </Descriptions.Item>
               <Descriptions.Item label="Рік">{vehicle.year ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Статус">
-                <Tag>{VEHICLE_STATUS_CONFIG[vehicle.status]?.label ?? '—'}</Tag>
+                <VehicleStatusTag status={vehicle.status} />
               </Descriptions.Item>
               <Descriptions.Item label="VIN">{vehicle.vin ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Опис">{vehicle.description ?? '—'}</Descriptions.Item>
