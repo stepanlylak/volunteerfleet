@@ -15,6 +15,7 @@ import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
 import { vehicleAlertsView, vehicles, vehicleStatusHistory } from '../../db/schema/index.js';
 import { VehicleAlertService } from './vehicle-alert.service.js';
+import { VehicleGalleriesService } from './vehicle-galleries.service.js';
 
 const VEHICLE_SORT_WHITELIST = [
   'identifier',
@@ -36,6 +37,7 @@ export class VehiclesService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly alertService: VehicleAlertService,
+    private readonly galleriesService: VehicleGalleriesService,
   ) {}
 
   async list(
@@ -183,6 +185,9 @@ export class VehiclesService {
         note: null,
         transitionDate: input.startDate,
       });
+
+      // A vehicle must never exist without its active main gallery
+      await this.galleriesService.insertMainGallery(tx, vehicle, userId);
 
       return vehicle;
     });

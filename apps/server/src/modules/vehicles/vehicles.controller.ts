@@ -27,6 +27,10 @@ import type {
   ExpenseListResponse,
   JwtPayload,
   VehicleCreate,
+  VehicleGalleryCreate,
+  VehicleGalleryListResponse,
+  VehicleGalleryResponse,
+  VehicleGalleryUpdate,
   VehicleListQuery,
   VehiclePhotoListResponse,
   VehiclePhotoOrderUpdate,
@@ -42,6 +46,9 @@ import {
   vehicleExpensesQuerySchema,
   idParamSchema,
   vehicleCreateSchema,
+  vehicleGalleryCreateSchema,
+  vehicleGalleryParamsSchema,
+  vehicleGalleryUpdateSchema,
   vehicleListQuerySchema,
   vehiclePhotoOrderUpdateSchema,
   vehiclePhotoUploadMetadataSchema,
@@ -51,6 +58,7 @@ import {
   type IdParam,
   type VehicleDocumentsQuery,
   type VehicleExpensesQuery,
+  type VehicleGalleryParams,
   type VehicleTransitionRequest,
   type VehicleStatusHistoryEditRequest,
 } from '@volunteerfleet/shared';
@@ -59,6 +67,7 @@ import { OrgRoles } from '../../common/decorators/org-roles.decorator.js';
 import type { Env } from '../../config/env.schema.js';
 import { DocumentsService } from '../documents/documents.service.js';
 import { ExpensesService } from '../expenses/expenses.service.js';
+import { VehicleGalleriesService } from './vehicle-galleries.service.js';
 import { VehiclePhotosService } from './vehicle-photos.service.js';
 import { VehicleTransitionService } from './vehicle-transition.service.js';
 import { VehiclesService } from './vehicles.service.js';
@@ -72,6 +81,7 @@ export class VehiclesController {
     private readonly expensesService: ExpensesService,
     private readonly documentsService: DocumentsService,
     private readonly photosService: VehiclePhotosService,
+    private readonly galleriesService: VehicleGalleriesService,
     private readonly cfg: ConfigService<Env, true>,
   ) {}
 
@@ -235,6 +245,55 @@ export class VehiclesController {
       user.orgRole,
       user.activeOrgId,
     );
+  }
+
+  @Get(':id/galleries')
+  @OrgRoles('coordinator', 'volunteer', 'viewer')
+  listGalleries(
+    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<VehicleGalleryListResponse> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.galleriesService.list(params.id, user.activeOrgId);
+  }
+
+  @Post(':id/galleries')
+  @OrgRoles('coordinator', 'volunteer')
+  createGallery(
+    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @Body(new ZodValidationPipe(vehicleGalleryCreateSchema)) dto: VehicleGalleryCreate,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<VehicleGalleryResponse> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.galleriesService.create(params.id, dto, user.sub, user.activeOrgId);
+  }
+
+  @Patch(':id/galleries/:galleryId')
+  @OrgRoles('coordinator', 'volunteer')
+  updateGallery(
+    @Param(new ZodValidationPipe(vehicleGalleryParamsSchema)) params: VehicleGalleryParams,
+    @Body(new ZodValidationPipe(vehicleGalleryUpdateSchema)) dto: VehicleGalleryUpdate,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<VehicleGalleryResponse> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    return this.galleriesService.update(
+      params.id,
+      params.galleryId,
+      dto,
+      user.sub,
+      user.activeOrgId,
+    );
+  }
+
+  @Delete(':id/galleries/:galleryId')
+  @OrgRoles('coordinator', 'volunteer')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeGallery(
+    @Param(new ZodValidationPipe(vehicleGalleryParamsSchema)) params: VehicleGalleryParams,
+    @CurrentUser() user: JwtPayload | undefined,
+  ): Promise<void> {
+    if (!user?.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
+    await this.galleriesService.softDelete(params.id, params.galleryId, user.sub, user.activeOrgId);
   }
 
   @Get(':id/photos')
