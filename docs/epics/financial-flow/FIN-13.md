@@ -3,7 +3,7 @@ id: FIN-13
 epic: financial-flow
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [FIN-8, FIN-12]
 parallelizable: false
 branch: feat/fin-13-finance-page

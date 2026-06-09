@@ -36,6 +36,11 @@ export const expensesApi = {
     return res.data;
   },
 
+  async get(id: string): Promise<ExpenseResponse> {
+    const res = await http.get<ExpenseResponse>(`/expenses/${id}`);
+    return res.data;
+  },
+
   async update(id: string, payload: ExpenseUpdate): Promise<ExpenseResponse> {
     const res = await http.patch<ExpenseResponse>(`/expenses/${id}`, payload);
     return res.data;
