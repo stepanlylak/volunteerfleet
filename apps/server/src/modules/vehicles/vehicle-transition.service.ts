@@ -41,7 +41,7 @@ export class VehicleTransitionService {
       );
     }
 
-    return await this.db.transaction(async (tx) => {
+    await this.db.transaction(async (tx) => {
       // Find vehicle
       const vehicle = await tx.query.vehicles.findFirst({
         where: and(
@@ -216,10 +216,11 @@ export class VehicleTransitionService {
 
       // Insert history
       await tx.insert(vehicleStatusHistory).values(historyValues);
-
-      // Return the updated vehicle using findById
-      return this.vehiclesService.findById(vehicleId, organizationId);
     });
+
+    // Read after the transaction commits so the response reflects the new
+    // status and recomputed alerts (findById reads via the pool, not tx).
+    return this.vehiclesService.findById(vehicleId, organizationId);
   }
 
   async rollbackLastStatus(
