@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, isNull, lte, or, SQL, sql } from 'drizzle-orm';
-import { BASE_CURRENCY, type Currency } from '@volunteerfleet/shared';
+import { BASE_CURRENCY, minorAmountSchema, type Currency } from '@volunteerfleet/shared';
 import type {
   ExpenseCreate,
   ExpenseListQuery,
@@ -23,7 +23,7 @@ import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service.j
 
 const EXPENSE_SORT_WHITELIST = [
   'expenseDate',
-  'amount',
+  'amountMinor',
   'currency',
   'createdAt',
   'updatedAt',
@@ -182,7 +182,7 @@ export class ExpensesService {
         organizationId,
         vehicleId: input.vehicleId ?? null,
         expenseDate: input.expenseDate,
-        amount: input.amount.toFixed(2),
+        amountMinor: input.amountMinor,
         currency: input.currency,
         rate: rateInfo.rate.toFixed(6),
         rateSource: rateInfo.rateSource,
@@ -230,7 +230,7 @@ export class ExpensesService {
 
     if (input.vehicleId !== undefined) updateValues.vehicleId = input.vehicleId;
     if (input.expenseDate !== undefined) updateValues.expenseDate = input.expenseDate;
-    if (input.amount !== undefined) updateValues.amount = input.amount.toFixed(2);
+    if (input.amountMinor !== undefined) updateValues.amountMinor = input.amountMinor;
     if (input.currency !== undefined) updateValues.currency = input.currency;
     if (input.categoryId !== undefined) updateValues.categoryId = input.categoryId;
     if (input.fundingSourceId !== undefined) {
@@ -336,19 +336,21 @@ export class ExpensesService {
   }
 
   private toResponse(row: ExpenseRow): ExpenseResponse {
+    if (!row.vehicleId || !row.vehicle) {
+      throw new Error(`Expense ${row.id} is missing its required vehicle`);
+    }
+
     return {
       id: row.id,
       vehicleId: row.vehicleId,
-      vehicle: row.vehicle
-        ? {
-            id: row.vehicle.id,
-            identifier: row.vehicle.identifier,
-            brand: row.vehicle.brand,
-            model: row.vehicle.model,
-          }
-        : null,
+      vehicle: {
+        id: row.vehicle.id,
+        identifier: row.vehicle.identifier,
+        brand: row.vehicle.brand,
+        model: row.vehicle.model,
+      },
       expenseDate: row.expenseDate,
-      amount: Number(row.amount),
+      amountMinor: minorAmountSchema.parse(row.amountMinor),
       currency: row.currency,
       rate: Number(row.rate),
       rateSource: row.rateSource,
@@ -359,16 +361,6 @@ export class ExpensesService {
         sortOrder: row.category?.sortOrder ?? 0,
         createdAt: row.category?.createdAt.toISOString() ?? '',
         updatedAt: row.category?.updatedAt.toISOString() ?? '',
-      },
-      fundingSourceId: row.fundingSourceId,
-      fundingSource: {
-        id: row.fundingSource?.id ?? '',
-        name: row.fundingSource?.name ?? '',
-        type: row.fundingSource?.type ?? 'other',
-        description: row.fundingSource?.description ?? null,
-        organizationId: row.fundingSource?.organizationId ?? '',
-        createdAt: row.fundingSource?.createdAt.toISOString() ?? '',
-        updatedAt: row.fundingSource?.updatedAt.toISOString() ?? '',
       },
       description: row.description,
       createdBy: this.toUserInfo(row.createdByUser),

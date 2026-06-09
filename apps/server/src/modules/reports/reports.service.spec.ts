@@ -5,7 +5,7 @@ describe('buildExpenseAggregations', () => {
   it('returns exact UAH totals across currencies and categories', () => {
     const result = buildExpenseAggregations([
       {
-        amount: '100.00',
+        amountMinor: 10_000,
         currency: 'USD',
         rate: '41.230000',
         deletedAt: null,
@@ -18,7 +18,7 @@ describe('buildExpenseAggregations', () => {
         },
       },
       {
-        amount: '2000.00',
+        amountMinor: 200_000,
         currency: 'UAH',
         rate: '1.000000',
         deletedAt: null,
@@ -31,7 +31,7 @@ describe('buildExpenseAggregations', () => {
         },
       },
       {
-        amount: '10.00',
+        amountMinor: 1_000,
         currency: 'EUR',
         rate: '44.850000',
         deletedAt: null,
@@ -45,15 +45,15 @@ describe('buildExpenseAggregations', () => {
       },
     ]);
 
-    expect(result.totalUah).toBe(6571.5);
+    expect(result.totalUahMinor).toBe(657_150);
     expect(result.byCurrency).toEqual([
-      { currency: 'EUR', totalInCurrency: 10, totalUah: 448.5 },
-      { currency: 'UAH', totalInCurrency: 2000, totalUah: 2000 },
-      { currency: 'USD', totalInCurrency: 100, totalUah: 4123 },
+      { currency: 'EUR', totalInCurrencyMinor: 1_000, totalUahMinor: 44_850 },
+      { currency: 'UAH', totalInCurrencyMinor: 200_000, totalUahMinor: 200_000 },
+      { currency: 'USD', totalInCurrencyMinor: 10_000, totalUahMinor: 412_300 },
     ]);
     expect(result.byCategory).toEqual([
-      { category: 'Ремонт', totalUah: 4571.5 },
-      { category: 'Паливо', totalUah: 2000 },
+      { category: 'Ремонт', totalUahMinor: 457_150 },
+      { category: 'Паливо', totalUahMinor: 200_000 },
     ]);
     expect(result.byVehicle).toEqual([
       {
@@ -63,7 +63,7 @@ describe('buildExpenseAggregations', () => {
           brand: 'Toyota',
           model: 'Hilux',
         },
-        totalUah: 4571.5,
+        totalUahMinor: 457_150,
       },
       {
         vehicle: {
@@ -72,7 +72,7 @@ describe('buildExpenseAggregations', () => {
           brand: 'Nissan',
           model: 'Navara',
         },
-        totalUah: 2000,
+        totalUahMinor: 200_000,
       },
     ]);
   });
@@ -80,14 +80,14 @@ describe('buildExpenseAggregations', () => {
   it('does not count soft-deleted expenses', () => {
     const result = buildExpenseAggregations([
       {
-        amount: '100.00',
+        amountMinor: 10_000,
         currency: 'USD',
         rate: '41.230000',
         deletedAt: null,
         category: { name: 'Ремонт' },
       },
       {
-        amount: '900.00',
+        amountMinor: 90_000,
         currency: 'USD',
         rate: '41.230000',
         deletedAt: new Date('2026-05-22T10:00:00.000Z'),
@@ -95,16 +95,18 @@ describe('buildExpenseAggregations', () => {
       },
     ]);
 
-    expect(result.totalUah).toBe(4123);
-    expect(result.byCurrency).toEqual([{ currency: 'USD', totalInCurrency: 100, totalUah: 4123 }]);
-    expect(result.byCategory).toEqual([{ category: 'Ремонт', totalUah: 4123 }]);
+    expect(result.totalUahMinor).toBe(412_300);
+    expect(result.byCurrency).toEqual([
+      { currency: 'USD', totalInCurrencyMinor: 10_000, totalUahMinor: 412_300 },
+    ]);
+    expect(result.byCategory).toEqual([{ category: 'Ремонт', totalUahMinor: 412_300 }]);
   });
 
   it('uses fallback rate resolver for legacy foreign-currency expenses', () => {
     const result = buildExpenseAggregations(
       [
         {
-          amount: '100.00',
+          amountMinor: 10_000,
           currency: 'USD',
           rate: '1.000000',
           deletedAt: null,
@@ -114,8 +116,30 @@ describe('buildExpenseAggregations', () => {
       () => 41.5,
     );
 
-    expect(result.totalUah).toBe(4150);
-    expect(result.byCurrency).toEqual([{ currency: 'USD', totalInCurrency: 100, totalUah: 4150 }]);
-    expect(result.byCategory).toEqual([{ category: 'Купівля', totalUah: 4150 }]);
+    expect(result.totalUahMinor).toBe(415_000);
+    expect(result.byCurrency).toEqual([
+      { currency: 'USD', totalInCurrencyMinor: 10_000, totalUahMinor: 415_000 },
+    ]);
+    expect(result.byCategory).toEqual([{ category: 'Купівля', totalUahMinor: 415_000 }]);
+  });
+
+  it('rounds converted UAH values per row without an off-by-100 error', () => {
+    const result = buildExpenseAggregations([
+      {
+        amountMinor: 101,
+        currency: 'USD',
+        rate: '41.234567',
+        deletedAt: null,
+      },
+      {
+        amountMinor: 101,
+        currency: 'USD',
+        rate: '41.234567',
+        deletedAt: null,
+      },
+    ]);
+
+    expect(result.totalUahMinor).toBe(8_330);
+    expect(result.byCurrency[0]?.totalUahMinor).toBe(8_330);
   });
 });

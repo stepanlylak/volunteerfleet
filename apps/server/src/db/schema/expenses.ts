@@ -1,5 +1,15 @@
 import { sql } from 'drizzle-orm';
-import { check, date, index, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  check,
+  date,
+  index,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { expenseCategories, fundingSources } from './dictionaries.js';
 import { currencyCodeEnum, rateSourceEnum } from './enums.js';
 import { organizations } from './organizations.js';
@@ -19,7 +29,7 @@ export const expenses = pgTable(
       onDelete: 'restrict',
     }),
     expenseDate: date('expense_date').notNull(),
-    amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
+    amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
     currency: currencyCodeEnum('currency').notNull(),
     rate: numeric('rate', { precision: 14, scale: 6 }).notNull(),
     rateSource: rateSourceEnum('rate_source').notNull(),
@@ -47,7 +57,7 @@ export const expenses = pgTable(
     }),
   },
   (table) => ({
-    amountPositive: check('expenses_amount_positive', sql`${table.amount} > 0`),
+    amountPositive: check('expenses_amount_minor_positive', sql`${table.amountMinor} > 0`),
     ratePositive: check('expenses_rate_positive', sql`${table.rate} > 0`),
     organizationIdx: index('expenses_organization_id_idx').on(table.organizationId),
     vehicleIdx: index('expenses_vehicle_id_idx').on(table.vehicleId),

@@ -52,7 +52,10 @@ interface SortItem {
 
 type DocumentRow = typeof documents.$inferSelect & {
   vehicle?: Pick<typeof vehicles.$inferSelect, 'id' | 'identifier' | 'brand' | 'model'> | null;
-  expense?: Pick<typeof expenses.$inferSelect, 'id' | 'expenseDate' | 'amount' | 'currency'> | null;
+  expense?: Pick<
+    typeof expenses.$inferSelect,
+    'id' | 'expenseDate' | 'amountMinor' | 'currency'
+  > | null;
   createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   updatedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   deletedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'> | null;
@@ -564,7 +567,7 @@ export class DocumentsService {
   private responseRelations() {
     return {
       vehicle: { columns: { id: true, identifier: true, brand: true, model: true } },
-      expense: { columns: { id: true, expenseDate: true, amount: true, currency: true } },
+      expense: { columns: { id: true, expenseDate: true, amountMinor: true, currency: true } },
       createdByUser: { columns: { id: true, fullName: true } },
       updatedByUser: { columns: { id: true, fullName: true } },
       deletedByUser: { columns: { id: true, fullName: true } },
@@ -599,7 +602,7 @@ export class DocumentsService {
         ? {
             id: row.expense.id,
             expenseDate: row.expense.expenseDate,
-            amount: Number(row.expense.amount),
+            amountMinor: row.expense.amountMinor,
             currency: row.expense.currency,
           }
         : null,

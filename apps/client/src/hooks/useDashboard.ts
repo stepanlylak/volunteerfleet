@@ -11,7 +11,7 @@ export function useDashboardStats() {
     totalVehicles: data?.totalVehicles,
     inWorkVehicles: data?.inWorkVehicles,
     transferredVehicles: data?.transferredVehicles,
-    monthlyExpenseUah: data?.monthlyExpenseUah,
+    monthlyExpenseUahMinor: data?.monthlyExpenseUahMinor,
     documentsTotal: data?.documentsTotal,
     documentsThisMonth: data?.documentsThisMonth,
     statusCounts: data?.statusCounts,

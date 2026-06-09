@@ -44,7 +44,10 @@ type ExpenseRow = typeof expenses.$inferSelect & {
 
 type DocumentRow = typeof documents.$inferSelect & {
   vehicle?: Pick<typeof vehicles.$inferSelect, 'id' | 'identifier' | 'brand' | 'model'> | null;
-  expense?: Pick<typeof expenses.$inferSelect, 'id' | 'expenseDate' | 'amount' | 'currency'> | null;
+  expense?: Pick<
+    typeof expenses.$inferSelect,
+    'id' | 'expenseDate' | 'amountMinor' | 'currency'
+  > | null;
   createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   updatedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   deletedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'> | null;
@@ -55,7 +58,7 @@ type StatusHistoryRow = typeof vehicleStatusHistory.$inferSelect & {
 };
 
 type AggregationExpense = {
-  amount: string | number;
+  amountMinor: number;
   currency: 'UAH' | 'USD' | 'EUR';
   rate: string | number;
   expenseDate?: string | Date;
@@ -71,52 +74,51 @@ type AggregationExpense = {
 
 type ReportRateResolver = (row: AggregationExpense) => number;
 
-function roundMoney(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-function addMoney(current: number, next: number): number {
-  return roundMoney(current + next);
-}
-
 export function buildExpenseAggregations(
   rows: AggregationExpense[],
   resolveRate?: ReportRateResolver,
 ): {
-  totalUah: number;
-  byCurrency: { currency: 'UAH' | 'USD' | 'EUR'; totalInCurrency: number; totalUah: number }[];
-  byCategory: { category: string; totalUah: number }[];
+  totalUahMinor: number;
+  byCurrency: {
+    currency: 'UAH' | 'USD' | 'EUR';
+    totalInCurrencyMinor: number;
+    totalUahMinor: number;
+  }[];
+  byCategory: { category: string; totalUahMinor: number }[];
   byVehicle: VehicleExpenseBreakdown[];
 } {
   const activeRows = rows.filter((row) => !row.deletedAt);
   const byCurrency = new Map<
     'UAH' | 'USD' | 'EUR',
-    { currency: 'UAH' | 'USD' | 'EUR'; totalInCurrency: number; totalUah: number }
+    {
+      currency: 'UAH' | 'USD' | 'EUR';
+      totalInCurrencyMinor: number;
+      totalUahMinor: number;
+    }
   >();
   const byCategory = new Map<string, number>();
   const byVehicle = new Map<
     string,
-    { vehicle: VehicleExpenseBreakdown['vehicle']; totalUah: number }
+    { vehicle: VehicleExpenseBreakdown['vehicle']; totalUahMinor: number }
   >();
-  let totalUah = 0;
+  let totalUahMinor = 0;
 
   for (const row of activeRows) {
-    const amount = Number(row.amount);
     const rate = resolveRate?.(row) ?? Number(row.rate);
-    const total = roundMoney(amount * rate);
-    totalUah = addMoney(totalUah, total);
+    const rowTotalUahMinor = Math.round(row.amountMinor * rate);
+    totalUahMinor += rowTotalUahMinor;
 
     const currencyGroup = byCurrency.get(row.currency) ?? {
       currency: row.currency,
-      totalInCurrency: 0,
-      totalUah: 0,
+      totalInCurrencyMinor: 0,
+      totalUahMinor: 0,
     };
-    currencyGroup.totalInCurrency = addMoney(currencyGroup.totalInCurrency, amount);
-    currencyGroup.totalUah = addMoney(currencyGroup.totalUah, total);
+    currencyGroup.totalInCurrencyMinor += row.amountMinor;
+    currencyGroup.totalUahMinor += rowTotalUahMinor;
     byCurrency.set(row.currency, currencyGroup);
 
     const categoryName = row.category?.name ?? 'Без категорії';
-    byCategory.set(categoryName, addMoney(byCategory.get(categoryName) ?? 0, total));
+    byCategory.set(categoryName, (byCategory.get(categoryName) ?? 0) + rowTotalUahMinor);
 
     const vehicleKey = row.vehicle?.id ?? 'none';
     const vehicleGroup = byVehicle.get(vehicleKey) ?? {
@@ -128,19 +130,19 @@ export function buildExpenseAggregations(
             model: row.vehicle.model,
           }
         : null,
-      totalUah: 0,
+      totalUahMinor: 0,
     };
-    vehicleGroup.totalUah = addMoney(vehicleGroup.totalUah, total);
+    vehicleGroup.totalUahMinor += rowTotalUahMinor;
     byVehicle.set(vehicleKey, vehicleGroup);
   }
 
   return {
-    totalUah,
+    totalUahMinor,
     byCurrency: [...byCurrency.values()].sort((a, b) => a.currency.localeCompare(b.currency)),
     byCategory: [...byCategory.entries()]
-      .map(([category, total]) => ({ category, totalUah: total }))
-      .sort((a, b) => b.totalUah - a.totalUah),
-    byVehicle: [...byVehicle.values()].sort((a, b) => b.totalUah - a.totalUah),
+      .map(([category, total]) => ({ category, totalUahMinor: total }))
+      .sort((a, b) => b.totalUahMinor - a.totalUahMinor),
+    byVehicle: [...byVehicle.values()].sort((a, b) => b.totalUahMinor - a.totalUahMinor),
   };
 }
 
@@ -218,7 +220,7 @@ export class ReportsService {
 
     return {
       vehicle: this.toVehicleResponse(vehicle, alerts),
-      totalUah: aggregations.totalUah,
+      totalUahMinor: aggregations.totalUahMinor,
       byCurrency: aggregations.byCurrency,
       byCategory: aggregations.byCategory,
       statusHistory: statusRows.map((row) => this.toStatusHistoryResponse(row)),
@@ -272,7 +274,7 @@ export class ReportsService {
       },
       dateFrom: query.dateFrom ?? null,
       dateTo: query.dateTo ?? null,
-      totalUah: aggregations.totalUah,
+      totalUahMinor: aggregations.totalUahMinor,
       byCategory: aggregations.byCategory,
       byVehicle: aggregations.byVehicle,
       expenses: expenseRows.map((row) => this.toExpenseResponse(row)),
@@ -285,7 +287,7 @@ export class ReportsService {
   ): Promise<
     Pick<
       FundingSourceReportResponse,
-      'fundingSource' | 'dateFrom' | 'dateTo' | 'totalUah' | 'byCategory' | 'byVehicle'
+      'fundingSource' | 'dateFrom' | 'dateTo' | 'totalUahMinor' | 'byCategory' | 'byVehicle'
     >
   > {
     const fundingSource = await this.db.query.fundingSources.findFirst({
@@ -306,7 +308,7 @@ export class ReportsService {
 
     const rows = await this.db
       .select({
-        amount: expenses.amount,
+        amountMinor: expenses.amountMinor,
         currency: expenses.currency,
         rate: expenses.rate,
         expenseDate: expenses.expenseDate,
@@ -324,7 +326,7 @@ export class ReportsService {
 
     const aggregations = buildExpenseAggregations(
       rows.map((row) => ({
-        amount: row.amount,
+        amountMinor: row.amountMinor,
         currency: row.currency,
         rate: row.rate,
         expenseDate: row.expenseDate,
@@ -352,7 +354,7 @@ export class ReportsService {
       },
       dateFrom: query.dateFrom ?? null,
       dateTo: query.dateTo ?? null,
-      totalUah: aggregations.totalUah,
+      totalUahMinor: aggregations.totalUahMinor,
       byCategory: aggregations.byCategory,
       byVehicle: aggregations.byVehicle,
     };
@@ -379,7 +381,7 @@ export class ReportsService {
   private documentRelations() {
     return {
       vehicle: { columns: { id: true, identifier: true, brand: true, model: true } },
-      expense: { columns: { id: true, expenseDate: true, amount: true, currency: true } },
+      expense: { columns: { id: true, expenseDate: true, amountMinor: true, currency: true } },
       createdByUser: { columns: { id: true, fullName: true } },
       updatedByUser: { columns: { id: true, fullName: true } },
       deletedByUser: { columns: { id: true, fullName: true } },
@@ -430,10 +432,8 @@ export class ReportsService {
       description: row.description,
       isPublic: row.isPublic,
       publicSummary: row.publicSummary,
-      publicCollectedAmountUah: row.publicCollectedAmountUah
-        ? Number(row.publicCollectedAmountUah)
-        : null,
-      publicGoalAmountUah: row.publicGoalAmountUah ? Number(row.publicGoalAmountUah) : null,
+      publicCollectedAmountUahMinor: row.publicCollectedAmountUahMinor,
+      publicGoalAmountUahMinor: row.publicGoalAmountUahMinor,
       createdBy: this.toVehicleUserInfo(row.createdByUser),
       updatedBy: this.toVehicleUserInfo(row.updatedByUser),
       createdAt: row.createdAt.toISOString(),
@@ -473,20 +473,22 @@ export class ReportsService {
   }
 
   private toExpenseResponse(row: ExpenseRow): ExpenseResponse {
+    if (!row.vehicleId || !row.vehicle) {
+      throw new Error(`Expense ${row.id} is missing its required vehicle`);
+    }
+
     const rate = this.resolveReportRate(row);
     return {
       id: row.id,
       vehicleId: row.vehicleId,
-      vehicle: row.vehicle
-        ? {
-            id: row.vehicle.id,
-            identifier: row.vehicle.identifier,
-            brand: row.vehicle.brand,
-            model: row.vehicle.model,
-          }
-        : null,
+      vehicle: {
+        id: row.vehicle.id,
+        identifier: row.vehicle.identifier,
+        brand: row.vehicle.brand,
+        model: row.vehicle.model,
+      },
       expenseDate: row.expenseDate,
-      amount: Number(row.amount),
+      amountMinor: row.amountMinor,
       currency: row.currency,
       rate,
       rateSource: row.rateSource,
@@ -497,16 +499,6 @@ export class ReportsService {
         sortOrder: row.category?.sortOrder ?? 0,
         createdAt: row.category?.createdAt.toISOString() ?? '',
         updatedAt: row.category?.updatedAt.toISOString() ?? '',
-      },
-      fundingSourceId: row.fundingSourceId,
-      fundingSource: {
-        id: row.fundingSource?.id ?? '',
-        name: row.fundingSource?.name ?? '',
-        type: row.fundingSource?.type ?? 'other',
-        description: row.fundingSource?.description ?? null,
-        organizationId: row.fundingSource?.organizationId ?? '',
-        createdAt: row.fundingSource?.createdAt.toISOString() ?? '',
-        updatedAt: row.fundingSource?.updatedAt.toISOString() ?? '',
       },
       description: row.description,
       createdBy: this.toExpenseUserInfo(row.createdByUser),
@@ -542,7 +534,7 @@ export class ReportsService {
         ? {
             id: row.expense.id,
             expenseDate: row.expense.expenseDate,
-            amount: Number(row.expense.amount),
+            amountMinor: row.expense.amountMinor,
             currency: row.expense.currency,
           }
         : null,

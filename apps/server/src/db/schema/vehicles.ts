@@ -1,9 +1,9 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
   date,
   index,
-  numeric,
   pgTable,
   smallint,
   text,
@@ -36,14 +36,10 @@ export const vehicles = pgTable(
     description: text('description'),
     isPublic: boolean('is_public').notNull().default(false),
     publicSummary: text('public_summary'),
-    publicCollectedAmountUah: numeric('public_collected_amount_uah', {
-      precision: 14,
-      scale: 2,
+    publicCollectedAmountUahMinor: bigint('public_collected_amount_uah_minor', {
+      mode: 'number',
     }),
-    publicGoalAmountUah: numeric('public_goal_amount_uah', {
-      precision: 14,
-      scale: 2,
-    }),
+    publicGoalAmountUahMinor: bigint('public_goal_amount_uah_minor', { mode: 'number' }),
     createdBy: uuid('created_by')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),

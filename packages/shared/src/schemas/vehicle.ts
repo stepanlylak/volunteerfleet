@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { nonEmptyString, uuidSchema } from './common.js';
+import { nonEmptyString, positiveMinorAmountSchema, uuidSchema } from './common.js';
 import { pageQuerySchema, pageResultSchema } from './pagination.js';
 import { vehicleAlertSchema, vehicleStatusSchema } from './vehicle-status.js';
 
@@ -11,7 +11,7 @@ const startDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 // Public fields
 const publicSummarySchema = z.string().trim().max(5000).optional().nullable();
-const publicAmountSchema = z.number().positive().optional().nullable();
+const publicAmountSchema = positiveMinorAmountSchema.optional().nullable();
 
 // Create schema
 export const vehicleCreateSchema = z.object({
@@ -37,8 +37,8 @@ export const vehicleUpdateSchema = z.object({
   // Public fields (admin only in controller)
   isPublic: z.boolean().optional(),
   publicSummary: publicSummarySchema,
-  publicCollectedAmountUah: publicAmountSchema,
-  publicGoalAmountUah: publicAmountSchema,
+  publicCollectedAmountUahMinor: publicAmountSchema,
+  publicGoalAmountUahMinor: publicAmountSchema,
 });
 export type VehicleUpdate = z.infer<typeof vehicleUpdateSchema>;
 
@@ -63,8 +63,8 @@ export const vehicleResponseSchema = z.object({
   description: z.string().nullable(),
   isPublic: z.boolean(),
   publicSummary: z.string().nullable(),
-  publicCollectedAmountUah: z.number().nullable(),
-  publicGoalAmountUah: z.number().nullable(),
+  publicCollectedAmountUahMinor: positiveMinorAmountSchema.nullable(),
+  publicGoalAmountUahMinor: positiveMinorAmountSchema.nullable(),
   createdBy: vehicleUserInfoSchema,
   updatedBy: vehicleUserInfoSchema,
   createdAt: z.string(),
