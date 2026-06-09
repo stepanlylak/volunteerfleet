@@ -55,6 +55,10 @@
 | [FIN-15](FIN-15.md) | Document details modal                                        |  2   | FIN-7                 | done   |
 | [FIN-16](FIN-16.md) | Наскрізні тести і документація                                |  3   | FIN-9, FIN-14, FIN-15 | ready  |
 
+## Баги
+
+Знайдені під час передрелізного code review — у [bugs/](bugs/README.md).
+
 ## Критичний шлях
 
 FIN-1 → FIN-17 → FIN-2 → FIN-3 → FIN-4 → FIN-5 → FIN-6 → FIN-8 → FIN-13 → FIN-14 → FIN-16.

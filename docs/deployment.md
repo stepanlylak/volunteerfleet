@@ -24,7 +24,6 @@ cp .env.example .env          # відредагувати JWT_*_SECRET, ADMIN_P
 pnpm infra:up                 # PostgreSQL + MinIO (+ створення БД і bucket активного профілю)
 pnpm db:migrate               # застосувати міграції
 pnpm db:seed                  # admin + базові довідники
-# (опційно) pnpm db:seed:demo # демо-дані
 pnpm dev                      # сервер + клієнт паралельно
 ```
 
