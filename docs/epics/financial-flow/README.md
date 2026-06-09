@@ -47,13 +47,13 @@
 | [FIN-7](FIN-7.md)   | Expense flow без funding source                               |  1   | FIN-4                 | done   |
 | [FIN-8](FIN-8.md)   | Unified financial journal і balance                           |  1   | FIN-6, FIN-7          | done   |
 | [FIN-9](FIN-9.md)   | Cleanup старих reports + reporting-ready queries              |  1   | FIN-8                 | done   |
-| [FIN-10](FIN-10.md) | Reusable money fields                                         |  2   | FIN-6, FIN-7          | todo   |
-| [FIN-11](FIN-11.md) | Donor picker і сторінка донорів                               |  2   | FIN-5                 | todo   |
-| [FIN-12](FIN-12.md) | Donation form                                                 |  2   | FIN-6, FIN-10, FIN-11 | todo   |
-| [FIN-13](FIN-13.md) | Finance page                                                  |  2   | FIN-8, FIN-12         | todo   |
-| [FIN-14](FIN-14.md) | Finance tab у картці авто                                     |  2   | FIN-13                | todo   |
-| [FIN-15](FIN-15.md) | Document details modal                                        |  2   | FIN-7                 | todo   |
-| [FIN-16](FIN-16.md) | Наскрізні тести і документація                                |  3   | FIN-9, FIN-14, FIN-15 | todo   |
+| [FIN-10](FIN-10.md) | Reusable money fields                                         |  2   | FIN-6, FIN-7          | done   |
+| [FIN-11](FIN-11.md) | Donor picker і сторінка донорів                               |  2   | FIN-5                 | done   |
+| [FIN-12](FIN-12.md) | Donation form                                                 |  2   | FIN-6, FIN-10, FIN-11 | done   |
+| [FIN-13](FIN-13.md) | Finance page                                                  |  2   | FIN-8, FIN-12         | done   |
+| [FIN-14](FIN-14.md) | Finance tab у картці авто                                     |  2   | FIN-13                | done   |
+| [FIN-15](FIN-15.md) | Document details modal                                        |  2   | FIN-7                 | done   |
+| [FIN-16](FIN-16.md) | Наскрізні тести і документація                                |  3   | FIN-9, FIN-14, FIN-15 | ready  |
 
 ## Критичний шлях
 
