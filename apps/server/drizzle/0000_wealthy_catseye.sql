@@ -146,10 +146,10 @@ CREATE TABLE IF NOT EXISTS "vehicle_status_history" (
 	"purchase_rate" numeric(14, 6),
 	"purchase_rate_source" "rate_source",
 	"is_local_purchase" boolean,
-	"repair_note" text,
 	"is_registered_at_service_center" boolean,
 	"lost_reason" text,
 	"registration_doc_id" uuid,
+	"stamped_registration_doc_id" uuid,
 	"customs_declaration_doc_id" uuid,
 	"stamped_customs_declaration_doc_id" uuid,
 	"transfer_act_draft_doc_id" uuid,
@@ -300,6 +300,7 @@ EXCEPTION
 END $$;--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_registration_doc_id_documents_id_fk" FOREIGN KEY ("registration_doc_id") REFERENCES "public"."documents"("id") ON DELETE restrict ON UPDATE no action;
+ ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vsh_stamped_registration_doc_id_documents_id_fk" FOREIGN KEY ("stamped_registration_doc_id") REFERENCES "public"."documents"("id") ON DELETE restrict ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;--> statement-breakpoint

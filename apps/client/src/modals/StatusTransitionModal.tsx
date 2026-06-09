@@ -45,7 +45,7 @@ const TRANSITION_DOC_SLOTS: Partial<Record<VehicleStatus, DocSlot[]>> = {
   paid: [
     {
       fieldKey: 'registrationDocId',
-      label: 'Техпаспорт',
+      label: 'Техпаспорт без печатки митниці',
       documentType: 'registration_certificate',
     },
   ],
@@ -58,8 +58,8 @@ const TRANSITION_DOC_SLOTS: Partial<Record<VehicleStatus, DocSlot[]>> = {
   ],
   arrived: [
     {
-      fieldKey: 'registrationDocId',
-      label: 'Техпаспорт',
+      fieldKey: 'stampedRegistrationDocId',
+      label: 'Техпаспорт з печаткою митниці',
       documentType: 'registration_certificate',
     },
     {
@@ -100,7 +100,6 @@ interface FormValues {
   // arrived
   borderCrossingDate?: dayjs.Dayjs;
   // in_repair
-  repairNote?: string;
   // transferred
   isRegisteredAtServiceCenter?: boolean;
   // lost
@@ -249,12 +248,12 @@ export function StatusTransitionModal({
             borderCrossingDate: values.borderCrossingDate
               ? values.borderCrossingDate.format('YYYY-MM-DD')
               : null,
-            registrationDocId: docIds['registrationDocId'] ?? null,
+            stampedRegistrationDocId: docIds['stampedRegistrationDocId'] ?? null,
             stampedCustomsDeclarationDocId: docIds['stampedCustomsDeclarationDocId'] ?? null,
           };
           break;
         case 'in_repair':
-          payload = { ...base, repairNote: values.repairNote || null };
+          payload = { ...base };
           break;
         case 'ready':
           payload = { ...base, transferActDraftDocId: docIds['transferActDraftDocId'] ?? null };
@@ -376,12 +375,6 @@ export function StatusTransitionModal({
         {targetStatus === 'arrived' && (
           <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
             <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
-          </Form.Item>
-        )}
-
-        {targetStatus === 'in_repair' && (
-          <Form.Item name="repairNote" label="Примітка до ремонту">
-            <Input.TextArea rows={3} maxLength={2000} showCount />
           </Form.Item>
         )}
 

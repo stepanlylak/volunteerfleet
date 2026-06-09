@@ -3,7 +3,7 @@ id: VSF-19
 epic: vehicle-status-flow
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [VSF-8, VSF-10, VSF-11, VSF-20]
 parallelizable: false
 branch: feat/vsf-19-alerts-in-history

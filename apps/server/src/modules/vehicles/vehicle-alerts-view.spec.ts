@@ -176,6 +176,7 @@ describeIfDb('vehicle_alerts_view', () => {
     await withRollback(async (tx, ctx) => {
       const vehicleId = await insertVehicle(tx, ctx, 'arrived');
       const regDoc = await insertDoc(tx, ctx, vehicleId, 'registration_certificate');
+      const stampedRegDoc = await insertDoc(tx, ctx, vehicleId, 'registration_certificate');
       const customsDoc = await insertDoc(tx, ctx, vehicleId, 'customs_declaration');
       const stampedDoc = await insertDoc(tx, ctx, vehicleId, 'stamped_customs_declaration');
       await insertHistory(tx, ctx, vehicleId, {
@@ -186,6 +187,7 @@ describeIfDb('vehicle_alerts_view', () => {
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'in_transit',
         customsDeclarationDocId: customsDoc,
+        stampedRegistrationDocId: stampedRegDoc,
       });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'arrived',

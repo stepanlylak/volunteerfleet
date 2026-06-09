@@ -20,7 +20,11 @@ export class VehicleAlertService {
     if (vehicleIds.length === 0) return result;
 
     const rows = await this.db
-      .select({ vehicleId: vehicleAlertsView.vehicleId, type: vehicleAlertsView.type })
+      .select({
+        vehicleId: vehicleAlertsView.vehicleId,
+        type: vehicleAlertsView.type,
+        vehicleStatusHistoryId: vehicleAlertsView.vehicleStatusHistoryId,
+      })
       .from(vehicleAlertsView)
       .where(inArray(vehicleAlertsView.vehicleId, vehicleIds));
 
@@ -30,7 +34,11 @@ export class VehicleAlertService {
       const config = VEHICLE_ALERT_CONFIG[type];
       if (!config) continue;
       const list = result.get(row.vehicleId) ?? [];
-      list.push({ type, message: config.message });
+      list.push({
+        type,
+        message: config.message,
+        vehicleStatusHistoryId: row.vehicleStatusHistoryId,
+      });
       result.set(row.vehicleId, list);
     }
 

@@ -79,6 +79,9 @@ export class VehicleTransitionService {
       if ('registrationDocId' in dto && dto.registrationDocId) {
         docChecks.push({ id: dto.registrationDocId, type: 'registration_certificate' });
       }
+      if ('stampedRegistrationDocId' in dto && dto.stampedRegistrationDocId) {
+        docChecks.push({ id: dto.stampedRegistrationDocId, type: 'registration_certificate' });
+      }
       if ('customsDeclarationDocId' in dto && dto.customsDeclarationDocId) {
         docChecks.push({ id: dto.customsDeclarationDocId, type: 'customs_declaration' });
       }
@@ -178,10 +181,8 @@ export class VehicleTransitionService {
       } else if (dto.targetStatus === 'in_transit') {
         historyValues.customsDeclarationDocId = dto.customsDeclarationDocId || null;
       } else if (dto.targetStatus === 'arrived') {
-        historyValues.registrationDocId = dto.registrationDocId || null;
+        historyValues.stampedRegistrationDocId = dto.stampedRegistrationDocId || null;
         historyValues.stampedCustomsDeclarationDocId = dto.stampedCustomsDeclarationDocId || null;
-      } else if (dto.targetStatus === 'in_repair') {
-        historyValues.repairNote = dto.repairNote || null;
       } else if (dto.targetStatus === 'ready') {
         historyValues.transferActDraftDocId = dto.transferActDraftDocId || null;
       } else if (dto.targetStatus === 'transferred') {
@@ -339,6 +340,9 @@ export class VehicleTransitionService {
       if ('registrationDocId' in dto && dto.registrationDocId) {
         docChecks.push({ id: dto.registrationDocId, type: 'registration_certificate' });
       }
+      if ('stampedRegistrationDocId' in dto && dto.stampedRegistrationDocId) {
+        docChecks.push({ id: dto.stampedRegistrationDocId, type: 'registration_certificate' });
+      }
       if ('customsDeclarationDocId' in dto && dto.customsDeclarationDocId) {
         docChecks.push({ id: dto.customsDeclarationDocId, type: 'customs_declaration' });
       }
@@ -421,16 +425,12 @@ export class VehicleTransitionService {
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
             .customsDeclarationDocId || null;
       } else if (dto.targetStatus === 'arrived') {
-        updateValues.registrationDocId =
+        updateValues.stampedRegistrationDocId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
-            .registrationDocId || null;
+            .stampedRegistrationDocId || null;
         updateValues.stampedCustomsDeclarationDocId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
             .stampedCustomsDeclarationDocId || null;
-      } else if (dto.targetStatus === 'in_repair') {
-        updateValues.repairNote =
-          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */.repairNote ||
-          null;
       } else if (dto.targetStatus === 'ready') {
         updateValues.transferActDraftDocId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */

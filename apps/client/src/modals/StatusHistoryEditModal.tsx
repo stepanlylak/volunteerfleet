@@ -43,7 +43,7 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
       return [
         {
           fieldKey: 'registrationDocId',
-          label: 'Техпаспорт',
+          label: 'Техпаспорт без печатки митниці',
           documentType: 'registration_certificate',
           currentDocId: entry.registrationDocId ?? null,
         },
@@ -60,10 +60,10 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
     case 'arrived':
       return [
         {
-          fieldKey: 'registrationDocId',
-          label: 'Техпаспорт',
+          fieldKey: 'stampedRegistrationDocId',
+          label: 'Техпаспорт з печаткою митниці',
           documentType: 'registration_certificate',
-          currentDocId: entry.registrationDocId ?? null,
+          currentDocId: entry.stampedRegistrationDocId ?? null,
         },
         {
           fieldKey: 'stampedCustomsDeclarationDocId',
@@ -115,7 +115,6 @@ interface FormValues {
   note?: string;
   isLocalPurchase?: boolean;
   borderCrossingDate?: dayjs.Dayjs | null;
-  repairNote?: string;
   isRegisteredAtServiceCenter?: boolean;
   lostReason?: string;
 }
@@ -173,7 +172,6 @@ export function StatusHistoryEditModal({
       note: entry.note ?? undefined,
       isLocalPurchase: entry.isLocalPurchase ?? false,
       borderCrossingDate: null,
-      repairNote: entry.repairNote ?? undefined,
       isRegisteredAtServiceCenter: entry.isRegisteredAtServiceCenter ?? false,
       lostReason: entry.lostReason ?? undefined,
     });
@@ -247,12 +245,12 @@ export function StatusHistoryEditModal({
             borderCrossingDate: values.borderCrossingDate
               ? values.borderCrossingDate.format('YYYY-MM-DD')
               : null,
-            registrationDocId: docIds['registrationDocId'] ?? null,
+            stampedRegistrationDocId: docIds['stampedRegistrationDocId'] ?? null,
             stampedCustomsDeclarationDocId: docIds['stampedCustomsDeclarationDocId'] ?? null,
           };
           break;
         case 'in_repair':
-          payload = { ...base, repairNote: values.repairNote || null };
+          payload = { ...base };
           break;
         case 'ready':
           payload = { ...base, transferActDraftDocId: docIds['transferActDraftDocId'] ?? null };
@@ -354,12 +352,6 @@ export function StatusHistoryEditModal({
         {status === 'arrived' && (
           <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
             <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
-          </Form.Item>
-        )}
-
-        {status === 'in_repair' && (
-          <Form.Item name="repairNote" label="Примітка до ремонту">
-            <Input.TextArea rows={3} maxLength={2000} showCount />
           </Form.Item>
         )}
 
