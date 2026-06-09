@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { PlusOutlined } from '@ant-design/icons';
-import { Button, Empty, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { PlusOutlined, WarningOutlined } from '@ant-design/icons';
+import { Button, Empty, Input, Select, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -20,6 +20,7 @@ export function VehiclesListPage() {
   const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<VehicleStatus | undefined>();
+  const [hasAlerts, setHasAlerts] = useState<boolean | undefined>();
   const [sort, setSort] = useState('createdAt:desc');
   const [modalOpen, setModalOpen] = useState(false);
   const orgRole = useOrgRole();
@@ -30,6 +31,7 @@ export function VehiclesListPage() {
     pageSize,
     search: search || undefined,
     status,
+    hasAlerts,
     sort,
   });
 
@@ -65,10 +67,17 @@ export function VehiclesListPage() {
       {
         title: 'Статус',
         dataIndex: 'status',
-        render: (status: VehicleStatus) => (
-          <Tag color={VEHICLE_STATUS_CONFIG[status].color}>
-            {VEHICLE_STATUS_CONFIG[status].label}
-          </Tag>
+        render: (status: VehicleStatus, vehicle: VehicleResponse) => (
+          <Space size="small">
+            <Tag color={VEHICLE_STATUS_CONFIG[status].color}>
+              {VEHICLE_STATUS_CONFIG[status].label}
+            </Tag>
+            {vehicle.alerts.length > 0 && (
+              <Tooltip title={vehicle.alerts.map((a) => a.message).join('; ')}>
+                <WarningOutlined style={{ color: '#faad14' }} />
+              </Tooltip>
+            )}
+          </Space>
         ),
       },
       {
@@ -147,6 +156,16 @@ export function VehiclesListPage() {
             label: config.label,
           }))}
         />
+        <Space size="small">
+          <Switch
+            checked={hasAlerts === true}
+            onChange={(checked) => {
+              setPage(1);
+              setHasAlerts(checked ? true : undefined);
+            }}
+          />
+          <Typography.Text>З алертами</Typography.Text>
+        </Space>
       </Space>
       <Table
         rowKey="id"

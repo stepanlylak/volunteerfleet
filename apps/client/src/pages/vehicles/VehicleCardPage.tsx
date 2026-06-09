@@ -13,6 +13,7 @@ import {
   RollbackOutlined,
 } from '@ant-design/icons';
 import {
+  Alert,
   Button,
   Col,
   Divider,
@@ -380,6 +381,14 @@ export function VehicleCardPage() {
         </Typography.Text>
         {headerActions}
       </Space>
+
+      {vehicle.alerts.length > 0 && (
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          {vehicle.alerts.map((alert) => (
+            <Alert key={alert.type} type="warning" message={alert.message} showIcon />
+          ))}
+        </Space>
+      )}
 
       <Row gutter={[24, 24]} align="top">
         <Col xs={24} lg={8}>

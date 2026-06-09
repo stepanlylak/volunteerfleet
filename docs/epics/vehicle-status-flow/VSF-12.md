@@ -3,7 +3,7 @@ id: VSF-12
 epic: vehicle-status-flow
 phase: 2
 type: feat
-status: todo
+status: ready
 depends_on: [VSF-9]
 parallelizable: true
 branch: feat/vsf-12-filters-and-dictionaries
