@@ -8,6 +8,7 @@ import { vehicleStatusHistory } from './vehicle-status-history.js';
 import { expenses } from './expenses.js';
 import { documents } from './documents.js';
 import { vehiclePhotos } from './vehicle-photos.js';
+import { donors, organizationDonors } from './donors.js';
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   lastActiveOrg: one(organizations, {
@@ -30,6 +31,9 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   statusHistoryChanges: many(vehicleStatusHistory),
   createdOrganizations: many(organizations, { relationName: 'createdBy' }),
   organizationMemberships: many(organizationMembers),
+  createdDonors: many(donors, { relationName: 'donorCreatedBy' }),
+  addedOrganizationDonors: many(organizationDonors, { relationName: 'donorAddedBy' }),
+  updatedOrganizationDonors: many(organizationDonors, { relationName: 'donorUpdatedBy' }),
 }));
 
 export const organizationsRelations = relations(organizations, ({ one, many }) => ({
@@ -45,6 +49,7 @@ export const organizationsRelations = relations(organizations, ({ one, many }) =
   documents: many(documents),
   vehiclePhotos: many(vehiclePhotos),
   statusHistory: many(vehicleStatusHistory),
+  donors: many(organizationDonors),
 }));
 
 export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
@@ -55,6 +60,36 @@ export const organizationMembersRelations = relations(organizationMembers, ({ on
   user: one(users, {
     fields: [organizationMembers.userId],
     references: [users.id],
+  }),
+}));
+
+export const donorsRelations = relations(donors, ({ one, many }) => ({
+  createdByUser: one(users, {
+    fields: [donors.createdBy],
+    references: [users.id],
+    relationName: 'donorCreatedBy',
+  }),
+  organizations: many(organizationDonors),
+}));
+
+export const organizationDonorsRelations = relations(organizationDonors, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [organizationDonors.organizationId],
+    references: [organizations.id],
+  }),
+  donor: one(donors, {
+    fields: [organizationDonors.donorId],
+    references: [donors.id],
+  }),
+  addedByUser: one(users, {
+    fields: [organizationDonors.addedBy],
+    references: [users.id],
+    relationName: 'donorAddedBy',
+  }),
+  updatedByUser: one(users, {
+    fields: [organizationDonors.updatedBy],
+    references: [users.id],
+    relationName: 'donorUpdatedBy',
   }),
 }));
 
