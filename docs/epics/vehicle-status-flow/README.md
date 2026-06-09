@@ -36,7 +36,7 @@
 | [VSF-17](VSF-17.md) | Консолідація міграцій + чистка seed                     |  0   | VSF-5               | done   |
 | [VSF-6](VSF-6.md)   | Ендпоінт `POST /vehicles/:id/transition`                |  1   | VSF-5               | done   |
 | [VSF-7](VSF-7.md)   | Авто `new` + прибрати `statusId` з create/update        |  1   | VSF-6               | done   |
-| [VSF-8](VSF-8.md)   | Обчислення алертів (slim-View)                          |  1   | VSF-6               | ready  |
+| [VSF-8](VSF-8.md)   | Обчислення алертів (slim-View)                          |  1   | VSF-6               | done   |
 | [VSF-15](VSF-15.md) | Видалення останнього статусу (Rollback)                 |  1   | VSF-6               | ready  |
 | [VSF-16](VSF-16.md) | Редагування даних переходу                              |  1   | VSF-6               | ready  |
 | [VSF-9](VSF-9.md)   | Модалка переходу статусу                                |  2   | VSF-6, VSF-7        | ready  |

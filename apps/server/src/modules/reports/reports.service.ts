@@ -25,6 +25,7 @@ import {
   vehicleStatusHistory,
 } from '../../db/schema/index.js';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service.js';
+import { VehicleAlertService } from '../vehicles/vehicle-alert.service.js';
 
 type VehicleRow = typeof vehicles.$inferSelect & {
   createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
@@ -148,6 +149,7 @@ export class ReportsService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly exchangeRates: ExchangeRatesService,
+    private readonly alertService: VehicleAlertService,
   ) {}
 
   async getVehicleReport(
@@ -212,8 +214,10 @@ export class ReportsService {
       this.resolveReportRate(row),
     );
 
+    const alerts = await this.alertService.getAlertsForVehicle(vehicleId);
+
     return {
-      vehicle: this.toVehicleResponse(vehicle),
+      vehicle: this.toVehicleResponse(vehicle, alerts),
       totalUah: aggregations.totalUah,
       byCurrency: aggregations.byCurrency,
       byCategory: aggregations.byCategory,
@@ -412,7 +416,7 @@ export class ReportsService {
     return this.exchangeRates.getRate(new Date(row.expenseDate), row.currency);
   }
 
-  private toVehicleResponse(row: VehicleRow): VehicleResponse {
+  private toVehicleResponse(row: VehicleRow, alerts: VehicleResponse['alerts']): VehicleResponse {
     return {
       id: row.id,
       identifier: row.identifier,
@@ -436,6 +440,7 @@ export class ReportsService {
       updatedAt: row.updatedAt.toISOString(),
       deletedAt: row.deletedAt?.toISOString() ?? null,
       deletedBy: row.deletedByUser ? this.toVehicleUserInfo(row.deletedByUser) : null,
+      alerts,
     };
   }
 

@@ -6,6 +6,7 @@ export * from './dictionaries.js';
 export * from './vehicles.js';
 export * from './vehicle-photos.js';
 export * from './vehicle-status-history.js';
+export * from './vehicle-alerts-view.js';
 export * from './expenses.js';
 export * from './documents.js';
 export * from './relations.js';

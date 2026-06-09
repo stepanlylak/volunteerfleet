@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { nonEmptyString, uuidSchema } from './common.js';
 import { pageQuerySchema, pageResultSchema } from './pagination.js';
-import { vehicleStatusSchema } from './vehicle-status.js';
+import { vehicleAlertSchema, vehicleStatusSchema } from './vehicle-status.js';
 
 // Base fields for vehicle
 const vehicleYearSchema = z.number().int().min(1900).max(2100).optional().nullable();
@@ -71,6 +71,7 @@ export const vehicleResponseSchema = z.object({
   updatedAt: z.string(),
   deletedAt: z.string().nullable(),
   deletedBy: vehicleUserInfoSchema.nullable(),
+  alerts: z.array(vehicleAlertSchema),
 });
 export type VehicleResponse = z.infer<typeof vehicleResponseSchema>;
 
@@ -78,6 +79,7 @@ export type VehicleResponse = z.infer<typeof vehicleResponseSchema>;
 export const vehicleListQuerySchema = pageQuerySchema.extend({
   status: vehicleStatusSchema.optional(),
   search: z.string().optional(),
+  hasAlerts: z.coerce.boolean().optional(),
   includeDeleted: z.coerce.boolean().default(false),
 });
 export type VehicleListQuery = z.infer<typeof vehicleListQuerySchema>;
