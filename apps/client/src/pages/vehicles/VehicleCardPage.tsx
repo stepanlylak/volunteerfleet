@@ -582,10 +582,6 @@ export function VehicleCardPage() {
                         dataIndex: ['category', 'name'],
                       },
                       {
-                        title: 'Джерело',
-                        dataIndex: ['fundingSource', 'name'],
-                      },
-                      {
                         title: 'Опис',
                         dataIndex: 'description',
                         width: 240,
@@ -852,16 +848,6 @@ export function VehicleCardPage() {
                             {dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')} ·{' '}
                             {item.changedBy.fullName}
                           </Typography.Text>
-                          {item.purchasePrice !== null && (
-                            <Typography.Text style={{ fontSize: 12 }}>
-                              Ціна:{' '}
-                              {formatCurrency(
-                                item.purchasePrice,
-                                (item.purchaseCurrency as Parameters<typeof formatCurrency>[1]) ??
-                                  'UAH',
-                              )}
-                            </Typography.Text>
-                          )}
                           {item.lostReason && (
                             <Typography.Text style={{ fontSize: 12 }}>
                               Причина: {item.lostReason}

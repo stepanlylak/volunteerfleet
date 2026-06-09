@@ -15,7 +15,7 @@ import {
 } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
-import type { ExpenseCategory, ExpenseResponse, FundingSource } from '@volunteerfleet/shared';
+import type { ExpenseResponse, FinancialCategory } from '@volunteerfleet/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import type { ExpensesListParams } from '../../api/expenses.api';
@@ -59,8 +59,7 @@ export function ExpensesListPage() {
   });
 
   const { data, isLoading } = useExpensesList(params);
-  const { data: categories } = useDictionary('expense-categories');
-  const { data: fundingSources } = useDictionary('funding-sources');
+  const { data: categories } = useDictionary('financial-categories');
   const { data: vehiclesData } = useVehicles({ pageSize: 100 });
 
   const handleTableChange = (
@@ -116,11 +115,6 @@ export function ExpensesListPage() {
       align: 'right',
       sorter: true,
       render: (value: number, row: ExpenseResponse) => formatCurrency(value, row.currency),
-    },
-    {
-      title: 'Джерело',
-      dataIndex: ['fundingSource', 'name'],
-      render: (v: string) => v ?? '—',
     },
     {
       title: 'Опис',
@@ -197,26 +191,12 @@ export function ExpensesListPage() {
             allowClear
             placeholder="Категорія"
             style={{ width: '100%' }}
-            options={((categories as ExpenseCategory[] | undefined) ?? []).map((c) => ({
+            options={((categories as FinancialCategory[] | undefined) ?? []).map((c) => ({
               value: c.id,
               label: c.name,
             }))}
             onChange={(val: string | undefined) =>
               setParams((p) => ({ ...p, categoryId: val, page: 1 }))
-            }
-          />
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Select
-            allowClear
-            placeholder="Джерело"
-            style={{ width: '100%' }}
-            options={((fundingSources as FundingSource[] | undefined) ?? []).map((f) => ({
-              value: f.id,
-              label: f.name,
-            }))}
-            onChange={(val: string | undefined) =>
-              setParams((p) => ({ ...p, fundingSourceId: val, page: 1 }))
             }
           />
         </Col>

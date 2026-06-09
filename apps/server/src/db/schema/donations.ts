@@ -11,7 +11,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { expenseCategories } from './dictionaries.js';
+import { financialCategories } from './dictionaries.js';
 import { donors, organizationDonors } from './donors.js';
 import { currencyCodeEnum, rateSourceEnum } from './enums.js';
 import { organizations } from './organizations.js';
@@ -33,7 +33,7 @@ export const donations = pgTable(
     vehicleId: uuid('vehicle_id')
       .notNull()
       .references(() => vehicles.id, { onDelete: 'restrict' }),
-    categoryId: uuid('category_id').references(() => expenseCategories.id, {
+    categoryId: uuid('category_id').references(() => financialCategories.id, {
       onDelete: 'restrict',
     }),
     donationDate: date('donation_date').notNull(),

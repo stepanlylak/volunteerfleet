@@ -57,14 +57,7 @@ export function AppLayout() {
     }
   };
 
-  const menuKeys = [
-    '/dashboard',
-    '/vehicles',
-    '/expenses',
-    '/reports',
-    '/admin/users',
-    '/admin/dictionaries',
-  ];
+  const menuKeys = ['/dashboard', '/vehicles', '/expenses', '/admin/users', '/admin/dictionaries'];
   const selectedKey =
     menuKeys
       .filter((key) => location.pathname === key || location.pathname.startsWith(`${key}/`))
@@ -85,11 +78,6 @@ export function AppLayout() {
       key: '/expenses',
       icon: <DollarOutlined />,
       label: <Link to="/expenses">Витрати</Link>,
-    },
-    {
-      key: '/reports',
-      icon: <ToolOutlined />,
-      label: <Link to="/reports">Звіти</Link>,
     },
     ...(user?.userRole === 'superuser'
       ? [

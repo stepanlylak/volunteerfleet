@@ -1,12 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, desc, eq, gte, inArray, isNull, lte, or, SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or, SQL, sql } from 'drizzle-orm';
 import type {
   DocumentResponse,
   DocumentUserInfo,
   ExpenseResponse,
   ExpenseUserInfo,
-  FundingSourceReportQuery,
-  FundingSourceReportResponse,
   VehicleExpenseBreakdown,
   VehicleReportResponse,
   VehicleResponse,
@@ -17,9 +15,8 @@ import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
 import {
   documents,
-  expenseCategories,
   expenses,
-  fundingSources,
+  financialCategories,
   users,
   vehicles,
   vehicleStatusHistory,
@@ -35,8 +32,7 @@ type VehicleRow = typeof vehicles.$inferSelect & {
 
 type ExpenseRow = typeof expenses.$inferSelect & {
   vehicle?: Pick<typeof vehicles.$inferSelect, 'id' | 'identifier' | 'brand' | 'model'> | null;
-  category?: typeof expenseCategories.$inferSelect;
-  fundingSource?: typeof fundingSources.$inferSelect;
+  category?: typeof financialCategories.$inferSelect;
   createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   updatedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   deletedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'> | null;
@@ -232,134 +228,6 @@ export class ReportsService {
     };
   }
 
-  async getFundingSourceReport(
-    fundingSourceId: string,
-    query: FundingSourceReportQuery,
-    organizationId: string,
-  ): Promise<FundingSourceReportResponse> {
-    const fundingSource = await this.db.query.fundingSources.findFirst({
-      where: eq(fundingSources.id, fundingSourceId),
-    });
-    if (!fundingSource) {
-      throw new NotFoundException(`Funding source ${fundingSourceId} not found`);
-    }
-
-    const conditions: SQL<unknown>[] = [
-      eq(expenses.fundingSourceId, fundingSourceId),
-      eq(expenses.organizationId, organizationId),
-      isNull(expenses.deletedAt),
-    ];
-    if (query.dateFrom) conditions.push(gte(expenses.expenseDate, query.dateFrom));
-    if (query.dateTo) conditions.push(lte(expenses.expenseDate, query.dateTo));
-
-    const expenseRows = await this.db.query.expenses.findMany({
-      where: and(...conditions),
-      orderBy: [desc(expenses.expenseDate), desc(expenses.createdAt)],
-      with: this.expenseRelations(),
-    });
-
-    const aggregations = buildExpenseAggregations(expenseRows, (row) =>
-      this.resolveReportRate(row),
-    );
-
-    return {
-      fundingSource: {
-        id: fundingSource.id,
-        name: fundingSource.name,
-        type: fundingSource.type,
-        description: fundingSource.description,
-        organizationId: fundingSource.organizationId,
-        createdAt: fundingSource.createdAt.toISOString(),
-        updatedAt: fundingSource.updatedAt.toISOString(),
-      },
-      dateFrom: query.dateFrom ?? null,
-      dateTo: query.dateTo ?? null,
-      totalUahMinor: aggregations.totalUahMinor,
-      byCategory: aggregations.byCategory,
-      byVehicle: aggregations.byVehicle,
-      expenses: expenseRows.map((row) => this.toExpenseResponse(row)),
-    };
-  }
-
-  async getPublicFundingSourceReport(
-    fundingSourceId: string,
-    query: FundingSourceReportQuery,
-  ): Promise<
-    Pick<
-      FundingSourceReportResponse,
-      'fundingSource' | 'dateFrom' | 'dateTo' | 'totalUahMinor' | 'byCategory' | 'byVehicle'
-    >
-  > {
-    const fundingSource = await this.db.query.fundingSources.findFirst({
-      where: eq(fundingSources.id, fundingSourceId),
-    });
-    if (!fundingSource) {
-      throw new NotFoundException(`Funding source ${fundingSourceId} not found`);
-    }
-
-    const conditions: SQL<unknown>[] = [
-      eq(expenses.fundingSourceId, fundingSourceId),
-      isNull(expenses.deletedAt),
-      eq(vehicles.isPublic, true),
-      isNull(vehicles.deletedAt),
-    ];
-    if (query.dateFrom) conditions.push(gte(expenses.expenseDate, query.dateFrom));
-    if (query.dateTo) conditions.push(lte(expenses.expenseDate, query.dateTo));
-
-    const rows = await this.db
-      .select({
-        amountMinor: expenses.amountMinor,
-        currency: expenses.currency,
-        rate: expenses.rate,
-        expenseDate: expenses.expenseDate,
-        deletedAt: expenses.deletedAt,
-        categoryName: expenseCategories.name,
-        vehicleId: vehicles.id,
-        identifier: vehicles.identifier,
-        brand: vehicles.brand,
-        model: vehicles.model,
-      })
-      .from(expenses)
-      .innerJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
-      .innerJoin(vehicles, eq(expenses.vehicleId, vehicles.id))
-      .where(and(...conditions));
-
-    const aggregations = buildExpenseAggregations(
-      rows.map((row) => ({
-        amountMinor: row.amountMinor,
-        currency: row.currency,
-        rate: row.rate,
-        expenseDate: row.expenseDate,
-        deletedAt: row.deletedAt,
-        category: { name: row.categoryName },
-        vehicle: {
-          id: row.vehicleId,
-          identifier: row.identifier,
-          brand: row.brand,
-          model: row.model,
-        },
-      })),
-      (row) => this.resolveReportRate(row),
-    );
-
-    return {
-      fundingSource: {
-        id: fundingSource.id,
-        name: fundingSource.name,
-        type: fundingSource.type,
-        description: fundingSource.description,
-        organizationId: fundingSource.organizationId,
-        createdAt: fundingSource.createdAt.toISOString(),
-        updatedAt: fundingSource.updatedAt.toISOString(),
-      },
-      dateFrom: query.dateFrom ?? null,
-      dateTo: query.dateTo ?? null,
-      totalUahMinor: aggregations.totalUahMinor,
-      byCategory: aggregations.byCategory,
-      byVehicle: aggregations.byVehicle,
-    };
-  }
-
   private expenseRelations() {
     return {
       vehicle: {
@@ -371,7 +239,6 @@ export class ReportsService {
         },
       },
       category: true,
-      fundingSource: true,
       createdByUser: { columns: { id: true, fullName: true } },
       updatedByUser: { columns: { id: true, fullName: true } },
       deletedByUser: { columns: { id: true, fullName: true } },
@@ -454,10 +321,6 @@ export class ReportsService {
       note: row.note,
       changedAt: row.changedAt.toISOString(),
       transitionDate: row.transitionDate,
-      purchasePrice: row.purchasePrice === null ? null : Number(row.purchasePrice),
-      purchaseCurrency: row.purchaseCurrency,
-      purchaseRate: row.purchaseRate === null ? null : Number(row.purchaseRate),
-      purchaseRateSource: row.purchaseRateSource,
       isLocalPurchase: row.isLocalPurchase,
 
       isRegisteredAtServiceCenter: row.isRegisteredAtServiceCenter,

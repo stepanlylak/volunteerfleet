@@ -20,7 +20,7 @@ import {
 } from '../hooks/useDocuments';
 import { useDictionary } from '../hooks/useDictionaries';
 import { useVehicles } from '../hooks/useVehicles';
-import type { ExpenseCategory, FundingSource } from '@volunteerfleet/shared';
+import type { FinancialCategory } from '@volunteerfleet/shared';
 import type { DocumentDetachAction } from '../utils/documentDetachConfirm';
 import { confirmDocumentDetachAction } from '../utils/documentDetachConfirm';
 import { AmountCurrencyRateField } from '../components/AmountCurrencyRateField';
@@ -41,7 +41,6 @@ interface FormValues {
   currency: Currency;
   rate: number;
   categoryId: string;
-  fundingSourceId: string;
   description?: string;
 }
 
@@ -88,10 +87,8 @@ export function ExpenseFormModal({
   const [removedDocumentIds, setRemovedDocumentIds] = useState<string[]>([]);
   const isExpenseDateManuallyChangedRef = useRef(false);
 
-  const { data: categoriesData } = useDictionary('expense-categories');
-  const { data: fundingSourcesData } = useDictionary('funding-sources');
-  const categories = (categoriesData ?? []) as ExpenseCategory[];
-  const fundingSources = (fundingSourcesData ?? []) as FundingSource[];
+  const { data: categoriesData } = useDictionary('financial-categories');
+  const categories = (categoriesData ?? []) as FinancialCategory[];
   const selectedVehicle = useMemo(
     () => vehiclesData?.items.find((vehicle) => vehicle.id === effectiveVehicleId),
     [effectiveVehicleId, vehiclesData?.items],
@@ -143,7 +140,6 @@ export function ExpenseFormModal({
         currency: expense.currency,
         rate: expense.rate,
         categoryId: expense.categoryId,
-        fundingSourceId: expense.fundingSourceId,
         description: expense.description ?? undefined,
       });
     } else {
@@ -187,7 +183,6 @@ export function ExpenseFormModal({
       currency: values.currency,
       rate: effectiveRate,
       categoryId: values.categoryId,
-      fundingSourceId: values.fundingSourceId,
       description: values.description || null,
     };
 
@@ -385,17 +380,6 @@ export function ExpenseFormModal({
           <Select
             placeholder="Оберіть категорію"
             options={categories.map((c) => ({ value: c.id, label: c.name }))}
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="fundingSourceId"
-          label="Джерело фінансування"
-          rules={[{ required: true, message: 'Оберіть джерело' }]}
-        >
-          <Select
-            placeholder="Оберіть джерело"
-            options={fundingSources.map((f) => ({ value: f.id, label: f.name }))}
           />
         </Form.Item>
 

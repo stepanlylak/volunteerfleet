@@ -1,61 +1,39 @@
 import type {
-  ExpenseCategory,
-  ExpenseCategoryCreate,
-  ExpenseCategoryUpdate,
-  FundingSource,
-  FundingSourceCreate,
-  FundingSourceUpdate,
+  FinancialCategory,
+  FinancialCategoryCreate,
+  FinancialCategoryUpdate,
 } from '@volunteerfleet/shared';
 import { http } from './client';
 
-export type DictionaryType = 'expense-categories' | 'funding-sources';
+export type DictionaryType = 'financial-categories';
 
 export interface DictionariesSnapshot {
-  expenseCategories: ExpenseCategory[];
-  fundingSources: FundingSource[];
+  financialCategories: FinancialCategory[];
 }
 
-type DictionaryPayload<T extends DictionaryType> = T extends 'expense-categories'
-  ? ExpenseCategoryCreate | ExpenseCategoryUpdate
-  : FundingSourceCreate | FundingSourceUpdate;
-
-type DictionaryItem<T extends DictionaryType> = T extends 'expense-categories'
-  ? ExpenseCategory
-  : FundingSource;
+type DictionaryPayload = FinancialCategoryCreate | FinancialCategoryUpdate;
 
 export const dictionariesApi = {
-  async getExpenseCategories(): Promise<ExpenseCategory[]> {
-    const res = await http.get<ExpenseCategory[]>('/dictionaries/expense-categories');
-    return res.data;
-  },
-
-  async getFundingSources(): Promise<FundingSource[]> {
-    const res = await http.get<FundingSource[]>('/dictionaries/funding-sources');
+  async getFinancialCategories(): Promise<FinancialCategory[]> {
+    const res = await http.get<FinancialCategory[]>('/dictionaries/financial-categories');
     return res.data;
   },
 
   async getAll(): Promise<DictionariesSnapshot> {
-    const [expenseCategories, fundingSources] = await Promise.all([
-      this.getExpenseCategories(),
-      this.getFundingSources(),
-    ]);
-    return { expenseCategories, fundingSources };
+    return { financialCategories: await this.getFinancialCategories() };
   },
 
-  async create<T extends DictionaryType>(
-    type: T,
-    payload: DictionaryPayload<T>,
-  ): Promise<DictionaryItem<T>> {
-    const res = await http.post<DictionaryItem<T>>(`/dictionaries/${type}`, payload);
+  async create(type: DictionaryType, payload: DictionaryPayload): Promise<FinancialCategory> {
+    const res = await http.post<FinancialCategory>(`/dictionaries/${type}`, payload);
     return res.data;
   },
 
-  async update<T extends DictionaryType>(
-    type: T,
+  async update(
+    type: DictionaryType,
     id: string,
-    payload: DictionaryPayload<T>,
-  ): Promise<DictionaryItem<T>> {
-    const res = await http.patch<DictionaryItem<T>>(`/dictionaries/${type}/${id}`, payload);
+    payload: DictionaryPayload,
+  ): Promise<FinancialCategory> {
+    const res = await http.patch<FinancialCategory>(`/dictionaries/${type}/${id}`, payload);
     return res.data;
   },
 

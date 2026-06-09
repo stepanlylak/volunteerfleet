@@ -1,14 +1,8 @@
-import { Controller, ForbiddenException, Get, Param, Query } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Param } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
-import type {
-  FundingSourceReportQuery,
-  FundingSourceReportResponse,
-  IdParam,
-  JwtPayload,
-  VehicleReportResponse,
-} from '@volunteerfleet/shared';
-import { fundingSourceReportQuerySchema, idParamSchema } from '@volunteerfleet/shared';
+import type { IdParam, JwtPayload, VehicleReportResponse } from '@volunteerfleet/shared';
+import { idParamSchema } from '@volunteerfleet/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { OrgRoles } from '../../common/decorators/org-roles.decorator.js';
 import { ReportsService } from './reports.service.js';
@@ -27,18 +21,5 @@ export class ReportsController {
     if (!user) throw new Error('User required');
     if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
     return this.service.getVehicleReport(params.id, user.activeOrgId);
-  }
-
-  @Get('funding-source/:id')
-  @OrgRoles('coordinator', 'volunteer', 'viewer')
-  fundingSourceReport(
-    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
-    @Query(new ZodValidationPipe(fundingSourceReportQuerySchema))
-    query: FundingSourceReportQuery,
-    @CurrentUser() user: JwtPayload | undefined,
-  ): Promise<FundingSourceReportResponse> {
-    if (!user) throw new Error('User required');
-    if (!user.activeOrgId) throw new ForbiddenException('NO_ACTIVE_ORG');
-    return this.service.getFundingSourceReport(params.id, query, user.activeOrgId);
   }
 }

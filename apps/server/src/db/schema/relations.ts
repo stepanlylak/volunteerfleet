@@ -2,7 +2,7 @@ import { relations } from 'drizzle-orm';
 import { users } from './users.js';
 import { organizations } from './organizations.js';
 import { organizationMembers } from './organization-members.js';
-import { expenseCategories, fundingSources } from './dictionaries.js';
+import { financialCategories } from './dictionaries.js';
 import { vehicles } from './vehicles.js';
 import { vehicleStatusHistory } from './vehicle-status-history.js';
 import { expenses } from './expenses.js';
@@ -198,7 +198,7 @@ export const vehicleStatusHistoryRelations = relations(vehicleStatusHistory, ({ 
   }),
 }));
 
-export const expenseCategoriesRelations = relations(expenseCategories, ({ many }) => ({
+export const financialCategoriesRelations = relations(financialCategories, ({ many }) => ({
   expenses: many(expenses),
   donations: many(donations),
 }));
@@ -220,9 +220,9 @@ export const donationsRelations = relations(donations, ({ one }) => ({
     fields: [donations.vehicleId],
     references: [vehicles.id],
   }),
-  category: one(expenseCategories, {
+  category: one(financialCategories, {
     fields: [donations.categoryId],
-    references: [expenseCategories.id],
+    references: [financialCategories.id],
   }),
   createdByUser: one(users, {
     fields: [donations.createdBy],
@@ -241,10 +241,6 @@ export const donationsRelations = relations(donations, ({ one }) => ({
   }),
 }));
 
-export const fundingSourcesRelations = relations(fundingSources, ({ many }) => ({
-  expenses: many(expenses),
-}));
-
 export const expensesRelations = relations(expenses, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [expenses.organizationId],
@@ -254,13 +250,9 @@ export const expensesRelations = relations(expenses, ({ one, many }) => ({
     fields: [expenses.vehicleId],
     references: [vehicles.id],
   }),
-  category: one(expenseCategories, {
+  category: one(financialCategories, {
     fields: [expenses.categoryId],
-    references: [expenseCategories.id],
-  }),
-  fundingSource: one(fundingSources, {
-    fields: [expenses.fundingSourceId],
-    references: [fundingSources.id],
+    references: [financialCategories.id],
   }),
   createdByUser: one(users, {
     fields: [expenses.createdBy],
