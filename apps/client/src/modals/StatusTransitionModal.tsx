@@ -105,6 +105,7 @@ interface StatusTransitionModalProps {
   vehicle: VehicleResponse;
   lastHistoryEntry?: VehicleStatusHistory;
   onClose: () => void;
+  onPaidTransition?: (transitionDate: string) => void;
 }
 
 export function StatusTransitionModal({
@@ -112,6 +113,7 @@ export function StatusTransitionModal({
   vehicle,
   lastHistoryEntry,
   onClose,
+  onPaidTransition,
 }: StatusTransitionModalProps) {
   const [form] = Form.useForm<FormValues>();
   const [targetStatus, setTargetStatus] = useState<VehicleStatus | undefined>();
@@ -257,6 +259,9 @@ export function StatusTransitionModal({
 
       await transition.mutateAsync(payload as Parameters<typeof transition.mutateAsync>[0]);
       message.success('Статус змінено');
+      if (values.targetStatus === 'paid') {
+        onPaidTransition?.(transitionDate);
+      }
       onClose();
     } catch {
       message.error('Помилка при зміні статусу');

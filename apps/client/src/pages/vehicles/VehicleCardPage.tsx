@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import {
   Alert,
+  Badge,
   Button,
   Col,
   Divider,
@@ -34,21 +35,27 @@ import {
   Tabs,
   Tag,
   Timeline,
+  Tooltip,
   Typography,
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useQueries } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
 import type {
   Currency,
   DocumentResponse,
+  DonationResponse,
+  ExpenseFinancialEntry,
   ExpenseResponse,
+  FinancialEntry,
   VehicleStatusHistory,
 } from '@volunteerfleet/shared';
 import { vehicleUpdateSchema } from '@volunteerfleet/shared';
+import { DocumentDetailsModal } from '../../modals/DocumentDetailsModal';
 import { DocumentFormModal } from '../../modals/DocumentFormModal';
+import { DonationFormModal } from '../../modals/DonationFormModal';
 import { ExpenseFormModal } from '../../modals/ExpenseFormModal';
 import { StatusHistoryEditModal } from '../../modals/StatusHistoryEditModal';
 import { StatusTransitionModal } from '../../modals/StatusTransitionModal';
@@ -61,18 +68,17 @@ import {
   useVehiclePhotos,
   useVehicleStatusHistory,
 } from '../../hooks/useVehicles';
-import {
-  useDeleteDocument,
-  useUpdateDocument,
-  useVehicleDocuments,
-} from '../../hooks/useDocuments';
-import { useDeleteExpense, useVehicleExpenses } from '../../hooks/useExpenses';
+import { useDeleteDocument, useVehicleDocuments } from '../../hooks/useDocuments';
+import { useDeleteExpense } from '../../hooks/useExpenses';
+import { useDeleteDonation } from '../../hooks/useDonations';
+import { useFinancialEntries } from '../../hooks/useFinancialEntries';
 import { ALLOWED_TRANSITIONS, VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
+import { donationsApi } from '../../api/donations.api';
 import { documentsApi } from '../../api/documents.api';
-import { exchangeRatesApi } from '../../api/exchange-rates.api';
+import { expensesApi } from '../../api/expenses.api';
 import { vehiclesApi } from '../../api/vehicles.api';
-import { confirmDocumentDetachAction } from '../../utils/documentDetachConfirm';
+
 import { formatCurrency, formatDate } from '../../utils/format';
 
 interface PublicFormValues {
@@ -88,8 +94,6 @@ const DOCUMENT_PURPOSE_OPTIONS: { label: string; value: DocumentPurpose }[] = [
   { label: 'Загальні', value: 'general' },
   { label: 'Витрати', value: 'expense' },
 ];
-
-const CURRENCY_ORDER: Currency[] = ['UAH', 'USD', 'EUR'];
 
 function renderDescription(value: string | null) {
   const text = value?.trim() || '—';
@@ -107,28 +111,6 @@ function renderDescription(value: string | null) {
       {text}
     </span>
   );
-}
-
-function confirmAction({
-  title,
-  content,
-  okText,
-}: {
-  title: string;
-  content: string;
-  okText: string;
-}): Promise<boolean> {
-  return new Promise((resolve) => {
-    Modal.confirm({
-      title,
-      content,
-      okText,
-      cancelText: 'Скасувати',
-      okButtonProps: { danger: true },
-      onOk: () => resolve(true),
-      onCancel: () => resolve(false),
-    });
-  });
 }
 
 export function VehicleCardPage() {
@@ -152,84 +134,42 @@ export function VehicleCardPage() {
   const [docOpen, setDocOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<DocumentResponse | undefined>();
   const [descriptionDraft, setDescriptionDraft] = useState('');
-  const [activeTab, setActiveTab] = useState('expenses');
+  const [activeTab, setActiveTab] = useState('finances');
+  const [donationOpen, setDonationOpen] = useState(false);
+  const [editingDonation, setEditingDonation] = useState<DonationResponse | undefined>();
+  const [docModalExpense, setDocModalExpense] = useState<{
+    vehicleId: string;
+    expenseId: string;
+  } | null>(null);
   const [documentPurposeFilter, setDocumentPurposeFilter] = useState<DocumentPurpose[]>([
     'general',
     'expense',
   ]);
   const [documentExpenseIdFilter, setDocumentExpenseIdFilter] = useState<string | null>(null);
 
-  const { data: expensesData, isLoading: expensesLoading } = useVehicleExpenses(id);
+  const queryClient = useQueryClient();
   const deleteExpense = useDeleteExpense(id);
+  const deleteDonation = useDeleteDonation();
   const { data: documentsData, isLoading: docsLoading } = useVehicleDocuments(id, {
     pageSize: 100,
   });
   const deleteDocument = useDeleteDocument(id);
-  const updateDocument = useUpdateDocument(id);
   const { data: photosData, isLoading: photosLoading } = useVehiclePhotos(id);
+  const { data: financialData, isLoading: financialLoading } = useFinancialEntries({
+    vehicleId: id,
+    pageSize: 100,
+  });
 
-  const expenses = expensesData?.items ?? [];
   const documents = documentsData?.items ?? [];
   const photos = photosData?.items ?? [];
-  const documentCountByExpense = documents.reduce((map, doc) => {
-    if (!doc.expenseId) return map;
-    map.set(doc.expenseId, (map.get(doc.expenseId) ?? 0) + 1);
-    return map;
-  }, new Map<string, number>());
+  const financialItems = financialData?.items ?? [];
+  const financialSummary = financialData?.summary;
   const filteredDocuments = documents.filter((doc) => {
     const purpose: DocumentPurpose = doc.expenseId ? 'expense' : 'general';
     if (!documentPurposeFilter.includes(purpose)) return false;
     if (documentExpenseIdFilter && doc.expenseId !== documentExpenseIdFilter) return false;
     return true;
   });
-  const missingRateRequests = useMemo(
-    () =>
-      expenses
-        .filter((expense) => expense.currency !== 'UAH' && expense.rate <= 1)
-        .map((expense) => ({
-          id: expense.id,
-          expenseDate: expense.expenseDate,
-          currency: expense.currency,
-        })),
-    [expenses],
-  );
-  const missingRateResults = useQueries({
-    queries: missingRateRequests.map((request) => ({
-      queryKey: ['exchange-rate', request.expenseDate, request.currency],
-      queryFn: () => exchangeRatesApi.getRate(request.expenseDate, request.currency),
-      staleTime: 10 * 60_000,
-    })),
-  });
-  const fallbackRateByExpenseId = useMemo(() => {
-    const rates = new Map<string, number>();
-    for (const [index, request] of missingRateRequests.entries()) {
-      const rate = missingRateResults[index]?.data?.rate;
-      if (rate !== undefined) rates.set(request.id, rate);
-    }
-    return rates;
-  }, [missingRateRequests, missingRateResults]);
-  const getExpenseRate = (expense: ExpenseResponse) => {
-    if (expense.currency === 'UAH') return 1;
-    if (expense.rate > 1) return expense.rate;
-    return fallbackRateByExpenseId.get(expense.id) ?? expense.rate;
-  };
-  const totalUahMinor = expenses.reduce(
-    (sum, expense) => sum + Math.round(expense.amountMinor * getExpenseRate(expense)),
-    0,
-  );
-  const totalsByCurrency = useMemo(
-    () =>
-      Array.from(
-        expenses.reduce((map, expense) => {
-          map.set(expense.currency, (map.get(expense.currency) ?? 0) + expense.amountMinor);
-          return map;
-        }, new Map<Currency, number>()),
-      ).sort(
-        ([currencyA], [currencyB]) =>
-          CURRENCY_ORDER.indexOf(currencyA) - CURRENCY_ORDER.indexOf(currencyB),
-      ),
-    [expenses],
-  );
   const hasCompletePublicPage =
     vehicle?.isPublic &&
     Boolean(vehicle.publicSummary?.trim()) &&
@@ -295,44 +235,6 @@ export function VehicleCardPage() {
 
     await updateVehicle.mutateAsync({ id: vehicle.id, payload: parsed.data });
     message.success('Нотатки оновлено');
-  };
-
-  const handleDeleteExpense = async (expense: ExpenseResponse) => {
-    const attachedDocuments = documents.filter((doc) => doc.expenseId === expense.id);
-    let detachAction: 'delete' | 'unlink' | null = null;
-
-    if (attachedDocuments.length > 0) {
-      detachAction = await confirmDocumentDetachAction({
-        count: attachedDocuments.length,
-        title: 'Видалити витрату з документами?',
-        description:
-          'До цієї витрати привʼязані документи. Оберіть, видалити їх повністю чи лише відвʼязати від витрати.',
-      });
-      if (!detachAction) return;
-    } else {
-      const confirmed = await confirmAction({
-        title: 'Видалити витрату?',
-        content: 'Цю дію можна буде скасувати тільки через відновлення видалених записів.',
-        okText: 'Видалити',
-      });
-      if (!confirmed) return;
-    }
-
-    if (detachAction === 'delete') {
-      for (const document of attachedDocuments) {
-        await deleteDocument.mutateAsync(document.id);
-      }
-    } else if (detachAction === 'unlink') {
-      for (const document of attachedDocuments) {
-        await updateDocument.mutateAsync({
-          id: document.id,
-          payload: { expenseId: null, vehicleId: vehicle.id },
-        });
-      }
-    }
-
-    await deleteExpense.mutateAsync(expense.id);
-    void message.success('Витрату видалено');
   };
 
   const allowedNextStatuses = !vehicle.deletedAt ? (ALLOWED_TRANSITIONS[vehicle.status] ?? []) : [];
@@ -511,27 +413,36 @@ export function VehicleCardPage() {
         onChange={setActiveTab}
         items={[
           {
-            key: 'expenses',
-            label: 'Витрати',
+            key: 'finances',
+            label: 'Фінанси',
             children: (
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <Space
-                  align="start"
-                  style={{ justifyContent: 'space-between', width: '100%' }}
-                  wrap
-                >
-                  <Space direction="vertical" size={4}>
-                    <Statistic title="Разом (UAH)" value={formatCurrency(totalUahMinor, 'UAH')} />
-                    {totalsByCurrency.length > 0 ? (
-                      <Space wrap size={[8, 8]}>
-                        <Typography.Text type="secondary">За валютами:</Typography.Text>
-                        {totalsByCurrency.map(([currency, total]) => (
-                          <Tag key={currency}>{formatCurrency(total, currency)}</Tag>
-                        ))}
-                      </Space>
-                    ) : null}
-                  </Space>
-                  {canMutate && (
+                <Row gutter={[16, 16]}>
+                  <Col>
+                    <Statistic
+                      title="Витрати"
+                      value={formatCurrency(financialSummary?.expensesUahMinor ?? 0, 'UAH')}
+                    />
+                  </Col>
+                  <Col>
+                    <Statistic
+                      title="Донати"
+                      value={formatCurrency(financialSummary?.donationsUahMinor ?? 0, 'UAH')}
+                    />
+                  </Col>
+                  <Col>
+                    <Statistic
+                      title="Баланс"
+                      value={formatCurrency(financialSummary?.balanceUahMinor ?? 0, 'UAH')}
+                      valueStyle={{
+                        color:
+                          (financialSummary?.balanceUahMinor ?? 0) >= 0 ? '#389e0d' : '#cf1322',
+                      }}
+                    />
+                  </Col>
+                </Row>
+                {canMutate && (
+                  <Space wrap>
                     <Button
                       type="primary"
                       icon={<PlusOutlined />}
@@ -542,106 +453,171 @@ export function VehicleCardPage() {
                     >
                       Додати витрату
                     </Button>
-                  )}
-                </Space>
-                <Table<ExpenseResponse>
-                  dataSource={expenses}
-                  loading={expensesLoading}
+                    <Button
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        setEditingDonation(undefined);
+                        setDonationOpen(true);
+                      }}
+                    >
+                      Додати донат
+                    </Button>
+                  </Space>
+                )}
+                <Table<FinancialEntry>
+                  dataSource={financialItems}
+                  loading={financialLoading}
                   rowKey="id"
                   size="small"
                   pagination={false}
-                  locale={{ emptyText: 'Витрат ще немає' }}
+                  locale={{ emptyText: 'Фінансових записів ще немає' }}
                   columns={
                     [
                       {
                         title: 'Дата',
-                        dataIndex: 'expenseDate',
+                        dataIndex: 'entryDate',
                         render: (v: string) => formatDate(v),
                         width: 110,
                       },
                       {
+                        title: 'Тип',
+                        dataIndex: 'type',
+                        width: 100,
+                        render: (type: 'expense' | 'donation') =>
+                          type === 'expense' ? (
+                            <Tag color="red">Витрата</Tag>
+                          ) : (
+                            <Tag color="green">Донат</Tag>
+                          ),
+                      },
+                      {
                         title: 'Сума',
                         key: 'amount',
-                        render: (_, r) => (
-                          <Space direction="vertical" size={0}>
-                            <span>{formatCurrency(r.amountMinor, r.currency)}</span>
-                            {r.currency !== 'UAH' && (
-                              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                ≈{' '}
-                                {formatCurrency(
-                                  Math.round(r.amountMinor * getExpenseRate(r)),
-                                  'UAH',
-                                )}
-                              </Typography.Text>
-                            )}
-                          </Space>
+                        align: 'right' as const,
+                        width: 140,
+                        render: (_: unknown, row: FinancialEntry) => (
+                          <span style={{ color: row.type === 'expense' ? '#cf1322' : '#389e0d' }}>
+                            {formatCurrency(row.amountMinor, row.currency as Currency)}
+                          </span>
                         ),
                       },
                       {
-                        title: 'Категорія',
-                        dataIndex: ['category', 'name'],
+                        title: 'UAH ≈',
+                        key: 'amountUah',
+                        align: 'right' as const,
+                        width: 140,
+                        render: (_: unknown, row: FinancialEntry) =>
+                          row.currency !== 'UAH' ? formatCurrency(row.amountUahMinor, 'UAH') : null,
+                      },
+                      {
+                        title: 'Деталі',
+                        key: 'details',
+                        render: (_: unknown, row: FinancialEntry) => {
+                          if (row.type === 'expense') {
+                            return <Tag>{row.category.name}</Tag>;
+                          }
+                          return row.donor.name;
+                        },
                       },
                       {
                         title: 'Опис',
                         dataIndex: 'description',
-                        width: 240,
+                        width: 220,
                         ellipsis: true,
                         render: renderDescription,
                       },
                       {
-                        title: 'Ким',
-                        dataIndex: ['createdBy', 'fullName'],
-                      },
-                      {
                         title: 'Документи',
                         key: 'documents',
-                        width: 120,
-                        render: (_, r) => {
-                          const count = documentCountByExpense.get(r.id) ?? 0;
+                        width: 90,
+                        align: 'center' as const,
+                        render: (_: unknown, row: FinancialEntry) => {
+                          if (row.type !== 'expense') return null;
+                          const expenseRow = row as ExpenseFinancialEntry;
+                          const count = expenseRow.documentCount;
                           return (
-                            <Button
-                              size="small"
-                              icon={<PaperClipOutlined />}
-                              disabled={count === 0}
-                              onClick={() => {
-                                setDocumentPurposeFilter(['expense']);
-                                setDocumentExpenseIdFilter(r.id);
-                                setActiveTab('documents');
-                              }}
+                            <Tooltip
+                              title={count > 0 ? 'Переглянути документи' : 'Немає документів'}
                             >
-                              {count}
-                            </Button>
+                              <Badge count={count} size="small">
+                                <Button
+                                  type="text"
+                                  icon={<PaperClipOutlined />}
+                                  disabled={count === 0}
+                                  onClick={() =>
+                                    setDocModalExpense({
+                                      vehicleId: row.vehicle.id,
+                                      expenseId: row.id,
+                                    })
+                                  }
+                                />
+                              </Badge>
+                            </Tooltip>
                           );
                         },
                       },
                       ...(canMutate
                         ? [
                             {
-                              title: '',
+                              title: 'Дії',
                               key: 'actions',
-                              width: 80,
-                              render: (_: unknown, r: ExpenseResponse) => (
-                                <Space>
-                                  <Button
-                                    size="small"
-                                    icon={<EditOutlined />}
-                                    onClick={() => {
-                                      setEditingExpense(r);
-                                      setExpenseOpen(true);
+                              width: 90,
+                              align: 'center' as const,
+                              render: (_: unknown, row: FinancialEntry) => (
+                                <Space size={0}>
+                                  <Tooltip title="Редагувати">
+                                    <Button
+                                      type="text"
+                                      icon={<EditOutlined />}
+                                      onClick={() => {
+                                        if (row.type === 'expense') {
+                                          void expensesApi.get(row.id).then((expense) => {
+                                            setEditingExpense(expense);
+                                            setExpenseOpen(true);
+                                          });
+                                        } else {
+                                          void donationsApi.get(row.id).then((donation) => {
+                                            setEditingDonation(donation);
+                                            setDonationOpen(true);
+                                          });
+                                        }
+                                      }}
+                                    />
+                                  </Tooltip>
+                                  <Popconfirm
+                                    title="Видалити запис?"
+                                    okText="Так"
+                                    cancelText="Ні"
+                                    onConfirm={() => {
+                                      if (row.type === 'expense') {
+                                        deleteExpense.mutate(row.id, {
+                                          onSuccess: () => {
+                                            void queryClient.invalidateQueries({
+                                              queryKey: ['financial-entries'],
+                                            });
+                                          },
+                                        });
+                                      } else {
+                                        deleteDonation.mutate(row.id, {
+                                          onSuccess: () => {
+                                            void queryClient.invalidateQueries({
+                                              queryKey: ['financial-entries'],
+                                            });
+                                          },
+                                        });
+                                      }
                                     }}
-                                  />
-                                  <Button
-                                    size="small"
-                                    danger
-                                    icon={<DeleteOutlined />}
-                                    onClick={() => void handleDeleteExpense(r)}
-                                  />
+                                  >
+                                    <Tooltip title="Видалити">
+                                      <Button type="text" danger icon={<DeleteOutlined />} />
+                                    </Tooltip>
+                                  </Popconfirm>
                                 </Space>
                               ),
-                            } as ColumnsType<ExpenseResponse>[number],
+                            } as ColumnsType<FinancialEntry>[number],
                           ]
                         : []),
-                    ] as ColumnsType<ExpenseResponse>
+                    ] as ColumnsType<FinancialEntry>
                   }
                 />
               </Space>
@@ -962,6 +938,18 @@ export function VehicleCardPage() {
         vehicle={vehicle}
         lastHistoryEntry={history?.items[0]}
         onClose={() => setTransitionOpen(false)}
+        onPaidTransition={() => {
+          Modal.confirm({
+            title: 'Додати витрату на купівлю авто?',
+            content: 'Бажаєте додати витрату «Купівля авто»?',
+            okText: 'Додати витрату',
+            cancelText: 'Пропустити',
+            onOk: () => {
+              setEditingExpense(undefined);
+              setExpenseOpen(true);
+            },
+          });
+        }}
       />
       {historyEditEntry && (
         <StatusHistoryEditModal
@@ -983,6 +971,22 @@ export function VehicleCardPage() {
           setEditingExpense(undefined);
         }}
       />
+      <DonationFormModal
+        open={donationOpen}
+        vehicleId={vehicle.id}
+        donation={editingDonation}
+        onClose={() => {
+          setDonationOpen(false);
+          setEditingDonation(undefined);
+        }}
+      />
+      {docModalExpense && (
+        <ExpenseDocsModal
+          vehicleId={docModalExpense.vehicleId}
+          expenseId={docModalExpense.expenseId}
+          onClose={() => setDocModalExpense(null)}
+        />
+      )}
       <DocumentFormModal
         open={docOpen}
         vehicleId={vehicle.id}
@@ -996,6 +1000,24 @@ export function VehicleCardPage() {
         }}
       />
     </Space>
+  );
+}
+
+interface ExpenseDocsModalProps {
+  vehicleId: string;
+  expenseId: string;
+  onClose: () => void;
+}
+
+function ExpenseDocsModal({ vehicleId, expenseId, onClose }: ExpenseDocsModalProps) {
+  const { data } = useVehicleDocuments(vehicleId, { expenseId, pageSize: 100 });
+  const documentIds = (data?.items ?? []).map((d) => d.id);
+  return (
+    <DocumentDetailsModal
+      open={documentIds.length > 0}
+      documentIds={documentIds}
+      onClose={onClose}
+    />
   );
 }
 
