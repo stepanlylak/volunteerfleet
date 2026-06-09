@@ -3,7 +3,7 @@ id: FIN-11
 epic: financial-flow
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [FIN-5]
 parallelizable: true
 branch: feat/fin-11-donor-picker-page
