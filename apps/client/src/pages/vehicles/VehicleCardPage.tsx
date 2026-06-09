@@ -59,7 +59,7 @@ import {
   useVehicleDocuments,
 } from '../../hooks/useDocuments';
 import { useDeleteExpense, useVehicleExpenses } from '../../hooks/useExpenses';
-import { useDictionaries } from '../../hooks/useDictionaries';
+import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
 import { documentsApi } from '../../api/documents.api';
 import { exchangeRatesApi } from '../../api/exchange-rates.api';
@@ -148,8 +148,6 @@ export function VehicleCardPage() {
     'expense',
   ]);
   const [documentExpenseIdFilter, setDocumentExpenseIdFilter] = useState<string | null>(null);
-  const [statusEditing, setStatusEditing] = useState(false);
-  const { data: dictionaries } = useDictionaries();
 
   const { data: expensesData, isLoading: expensesLoading } = useVehicleExpenses(id);
   const deleteExpense = useDeleteExpense(id);
@@ -359,39 +357,11 @@ export function VehicleCardPage() {
     </Space>
   );
 
-  const statusTag =
-    isAdmin && !vehicle.deletedAt && statusEditing ? (
-      <Select
-        size="small"
-        autoFocus
-        defaultOpen
-        style={{ minWidth: 160 }}
-        value={vehicle.statusId}
-        loading={updateVehicle.isPending}
-        options={(dictionaries?.vehicleStatuses ?? []).map((s) => ({
-          value: s.id,
-          label: s.name,
-        }))}
-        onBlur={() => setStatusEditing(false)}
-        onChange={async (statusId) => {
-          setStatusEditing(false);
-          if (statusId === vehicle.statusId) return;
-          await updateVehicle.mutateAsync({ id: vehicle.id, payload: { statusId } });
-          message.success('Статус оновлено');
-        }}
-      />
-    ) : (
-      <Tag
-        color={vehicle.deletedAt ? 'red' : (vehicle.status?.color ?? 'blue')}
-        style={isAdmin && !vehicle.deletedAt ? { cursor: 'pointer' } : undefined}
-        onClick={() => {
-          if (isAdmin && !vehicle.deletedAt) setStatusEditing(true);
-        }}
-      >
-        {vehicle.status?.name ?? '—'}
-        {isAdmin && !vehicle.deletedAt ? <EditOutlined style={{ marginLeft: 6 }} /> : null}
-      </Tag>
-    );
+  const statusTag = (
+    <Tag color={vehicle.deletedAt ? 'red' : VEHICLE_STATUS_CONFIG[vehicle.status].color}>
+      {VEHICLE_STATUS_CONFIG[vehicle.status].label}
+    </Tag>
+  );
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -816,9 +786,15 @@ export function VehicleCardPage() {
                     <List.Item.Meta
                       title={
                         <Space wrap>
-                          <Tag>{item.oldStatus?.name ?? 'Старт'}</Tag>
+                          <Tag>
+                            {item.oldStatus
+                              ? VEHICLE_STATUS_CONFIG[item.oldStatus]?.label
+                              : 'Старт'}
+                          </Tag>
                           <Typography.Text>→</Typography.Text>
-                          <Tag color="blue">{item.newStatus?.name ?? '—'}</Tag>
+                          <Tag color="blue">
+                            {VEHICLE_STATUS_CONFIG[item.newStatus]?.label ?? '—'}
+                          </Tag>
                         </Space>
                       }
                       description={`${dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')} · ${
@@ -886,6 +862,7 @@ export function VehicleCardPage() {
         open={expenseOpen}
         vehicleId={vehicle.id}
         vehicleBorderCrossingDate={vehicle.borderCrossingDate}
+        vehicleStartDate={vehicle.startDate}
         expense={editingExpense}
         onClose={() => {
           setExpenseOpen(false);

@@ -1,17 +1,13 @@
 import { z } from 'zod';
 import { nonEmptyString, uuidSchema } from './common.js';
 import { pageQuerySchema, pageResultSchema } from './pagination.js';
-import { vehicleStatusSchema } from './dictionary.js';
+import { vehicleStatusSchema } from './vehicle-status.js';
 
 // Base fields for vehicle
 const vehicleYearSchema = z.number().int().min(1900).max(2100).optional().nullable();
 const vehicleVinSchema = z.string().trim().max(64).optional().nullable();
 const vehicleDescriptionSchema = z.string().trim().max(2000).optional().nullable();
-const borderCrossingDateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .optional()
-  .nullable();
+const startDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 // Public fields
 const publicSummarySchema = z.string().trim().max(5000).optional().nullable();
@@ -24,8 +20,7 @@ export const vehicleCreateSchema = z.object({
   model: nonEmptyString.max(128),
   year: vehicleYearSchema,
   vin: vehicleVinSchema,
-  borderCrossingDate: borderCrossingDateSchema,
-  statusId: uuidSchema,
+  startDate: startDateSchema,
   description: vehicleDescriptionSchema,
 });
 export type VehicleCreate = z.infer<typeof vehicleCreateSchema>;
@@ -37,8 +32,7 @@ export const vehicleUpdateSchema = z.object({
   model: nonEmptyString.max(128).optional(),
   year: vehicleYearSchema,
   vin: vehicleVinSchema,
-  borderCrossingDate: borderCrossingDateSchema,
-  statusId: uuidSchema.optional(),
+  startDate: startDateSchema.optional(),
   description: vehicleDescriptionSchema,
   // Public fields (admin only in controller)
   isPublic: z.boolean().optional(),
@@ -63,9 +57,9 @@ export const vehicleResponseSchema = z.object({
   model: z.string(),
   year: z.number().int().nullable(),
   vin: z.string().nullable(),
+  startDate: z.string(),
   borderCrossingDate: z.string().nullable(),
-  statusId: uuidSchema,
-  status: vehicleStatusSchema.optional(),
+  status: vehicleStatusSchema,
   description: z.string().nullable(),
   isPublic: z.boolean(),
   publicSummary: z.string().nullable(),
@@ -82,7 +76,7 @@ export type VehicleResponse = z.infer<typeof vehicleResponseSchema>;
 
 // List query schema (pagination + filters)
 export const vehicleListQuerySchema = pageQuerySchema.extend({
-  statusId: uuidSchema.optional(),
+  status: vehicleStatusSchema.optional(),
   search: z.string().optional(),
   includeDeleted: z.coerce.boolean().default(false),
 });
@@ -96,13 +90,29 @@ export type VehicleListResponse = z.infer<typeof vehicleListResponseSchema>;
 export const vehicleStatusHistorySchema = z.object({
   id: uuidSchema,
   vehicleId: uuidSchema,
-  oldStatusId: uuidSchema.nullable(),
-  oldStatus: vehicleStatusSchema.nullable().optional(),
-  newStatusId: uuidSchema,
-  newStatus: vehicleStatusSchema.optional(),
+  oldStatus: vehicleStatusSchema.nullable(),
+  newStatus: vehicleStatusSchema,
   changedBy: vehicleUserInfoSchema,
   note: z.string().nullable(),
   changedAt: z.string(),
+  transitionDate: z.string(),
+
+  purchasePrice: z.number().nullable(),
+  purchaseCurrency: z.enum(['UAH', 'USD', 'EUR']).nullable(),
+  purchaseRate: z.number().nullable(),
+  purchaseRateSource: z.enum(['default', 'manual']).nullable(),
+  isLocalPurchase: z.boolean().nullable(),
+
+  repairNote: z.string().nullable(),
+  isRegisteredAtServiceCenter: z.boolean().nullable(),
+  lostReason: z.string().nullable(),
+
+  registrationDocId: uuidSchema.nullable(),
+  customsDeclarationDocId: uuidSchema.nullable(),
+  stampedCustomsDeclarationDocId: uuidSchema.nullable(),
+  transferActDraftDocId: uuidSchema.nullable(),
+  transferActSignedDocId: uuidSchema.nullable(),
+  returnActDocId: uuidSchema.nullable(),
 });
 export type VehicleStatusHistory = z.infer<typeof vehicleStatusHistorySchema>;
 

@@ -9,6 +9,7 @@ import type {
 import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
 import { vehiclePhotos, vehicles } from '../../db/schema/index.js';
+import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
 import { ReportsService } from '../reports/reports.service.js';
 import { VehiclePhotosService } from '../vehicles/vehicle-photos.service.js';
 
@@ -28,9 +29,6 @@ export class PublicService {
         eq(vehicles.isPublic, true),
         isNull(vehicles.deletedAt),
       ),
-      with: {
-        status: true,
-      },
     });
 
     if (!row) throw new NotFoundException('PUBLIC_VEHICLE_NOT_FOUND');
@@ -40,7 +38,7 @@ export class PublicService {
       brand: row.brand,
       model: row.model,
       year: row.year,
-      status: { name: row.status?.name ?? '—' },
+      status: { name: VEHICLE_STATUS_CONFIG[row.status].label },
       publicSummary: row.publicSummary,
       publicCollectedAmountUah: row.publicCollectedAmountUah
         ? Number(row.publicCollectedAmountUah)

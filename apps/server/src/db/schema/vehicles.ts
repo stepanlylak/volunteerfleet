@@ -12,7 +12,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { vehicleStatuses } from './dictionaries.js';
+import { vehicleStatusEnum } from './enums.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
 
@@ -31,9 +31,8 @@ export const vehicles = pgTable(
     year: smallint('year'),
     vin: varchar('vin', { length: 64 }),
     borderCrossingDate: date('border_crossing_date'),
-    statusId: uuid('status_id')
-      .notNull()
-      .references(() => vehicleStatuses.id, { onDelete: 'restrict' }),
+    startDate: date('start_date').notNull(),
+    status: vehicleStatusEnum('status').notNull().default('new'),
     description: text('description'),
     isPublic: boolean('is_public').notNull().default(false),
     publicSummary: text('public_summary'),
@@ -66,7 +65,7 @@ export const vehicles = pgTable(
       .on(table.identifier)
       .where(sql`${table.deletedAt} IS NULL`),
     organizationIdx: index('vehicles_organization_id_idx').on(table.organizationId),
-    statusIdx: index('vehicles_status_id_idx').on(table.statusId),
+    statusIdx: index('vehicles_status_idx').on(table.status),
     brandModelIdx: index('vehicles_brand_model_idx').on(table.brand, table.model),
     vinLowerIdx: index('vehicles_vin_lower_idx').on(sql`lower(${table.vin})`),
     isPublicIdx: index('vehicles_is_public_idx').on(table.isPublic),

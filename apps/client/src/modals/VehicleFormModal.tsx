@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from 'antd';
+import { DatePicker, Form, Input, InputNumber, Modal, message } from 'antd';
 import dayjs from 'dayjs';
 import {
   vehicleCreateSchema,
@@ -13,7 +13,6 @@ import {
   type FileAttachmentExistingItem,
   type FileAttachmentNewFile,
 } from '../components/files/FileAttachmentField';
-import { useDictionaries } from '../hooks/useDictionaries';
 import {
   useCreateVehicle,
   useDeleteVehiclePhotoForVehicle,
@@ -31,8 +30,8 @@ interface VehicleFormModalProps {
   onCreated?: (vehicle: VehicleResponse) => void;
 }
 
-type VehicleFormValues = Omit<VehicleCreate, 'borderCrossingDate'> & {
-  borderCrossingDate?: dayjs.Dayjs | null;
+type VehicleFormValues = Omit<VehicleCreate, 'startDate'> & {
+  startDate: dayjs.Dayjs;
 };
 
 const MAX_PHOTO_SIZE_BYTES = 26_214_400;
@@ -45,8 +44,7 @@ function optionalText(value: string | null | undefined) {
 export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: VehicleFormModalProps) {
   const [form] = Form.useForm<VehicleFormValues>();
   const isEdit = Boolean(vehicleId);
-  const { data: dictionaries } = useDictionaries();
-  const { data: vehicle, isFetching } = useVehicle(open && vehicleId ? vehicleId : undefined, true);
+  const { data: vehicle } = useVehicle(open && vehicleId ? vehicleId : undefined, true);
   const { data: photosData, isLoading: photosLoading } = useVehiclePhotos(
     open && vehicleId ? vehicleId : undefined,
   );
@@ -63,6 +61,7 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
     setRemovedPhotoIds([]);
     if (!vehicleId) {
       form.resetFields();
+      form.setFieldValue('startDate', dayjs());
       return;
     }
     if (vehicle) {
@@ -72,8 +71,7 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
         model: vehicle.model,
         year: vehicle.year,
         vin: vehicle.vin,
-        borderCrossingDate: vehicle.borderCrossingDate ? dayjs(vehicle.borderCrossingDate) : null,
-        statusId: vehicle.statusId,
+        startDate: dayjs(vehicle.startDate),
         description: vehicle.description,
       });
     }
@@ -96,7 +94,7 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
       ...values,
       year: values.year ?? null,
       vin: optionalText(values.vin),
-      borderCrossingDate: values.borderCrossingDate?.format('YYYY-MM-DD') ?? null,
+      startDate: values.startDate.format('YYYY-MM-DD'),
       description: optionalText(values.description),
     };
     const parsed = (isEdit ? vehicleUpdateSchema : vehicleCreateSchema).safeParse(normalized);
@@ -201,21 +199,12 @@ export function VehicleFormModal({ open, vehicleId, onClose, onCreated }: Vehicl
         >
           <Input />
         </Form.Item>
-        <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
-          <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
-        </Form.Item>
         <Form.Item
-          name="statusId"
-          label="Статус"
-          rules={[{ validator: zodValidator(vehicleCreateSchema.shape.statusId) }]}
+          name="startDate"
+          label="Початкова дата"
+          rules={[{ required: true, message: 'Вкажіть початкову дату' }]}
         >
-          <Select
-            loading={isFetching}
-            options={(dictionaries?.vehicleStatuses ?? []).map((status) => ({
-              value: status.id,
-              label: status.name,
-            }))}
-          />
+          <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
         </Form.Item>
         <Form.Item
           name="description"

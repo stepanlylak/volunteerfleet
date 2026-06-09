@@ -63,8 +63,7 @@ describe('PublicService', () => {
       model: 'Hilux',
       year: 2012,
       vin: 'PRIVATE-VIN',
-      statusId: '22222222-2222-2222-2222-222222222222',
-      status: { name: 'в ремонті' },
+      status: 'in_repair',
       description: 'private description',
       isPublic: true,
       publicSummary: 'Публічний опис без приватних деталей',
@@ -88,7 +87,7 @@ describe('PublicService', () => {
       brand: 'Toyota',
       model: 'Hilux',
       year: 2012,
-      status: { name: 'в ремонті' },
+      status: { name: 'На ремонті' },
       publicSummary: 'Публічний опис без приватних деталей',
       publicCollectedAmountUah: 10000,
       publicGoalAmountUah: 25000,
@@ -183,14 +182,10 @@ describe('PublicService', () => {
     });
 
     await expect(
-      service.getFundingReport(
-        'org-1-id',
-        '44444444-4444-4444-4444-444444444444',
-        {
-          dateFrom: '2026-05-01',
-          dateTo: '2026-05-31',
-        },
-      ),
+      service.getFundingReport('org-1-id', '44444444-4444-4444-4444-444444444444', {
+        dateFrom: '2026-05-01',
+        dateTo: '2026-05-31',
+      }),
     ).rejects.toThrow(NotFoundException);
   });
 });

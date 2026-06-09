@@ -1,12 +1,11 @@
 import { z } from 'zod';
-import { uuidSchema } from './common.js';
-import { VEHICLE_STATUS_KINDS } from './dictionary.js';
+import { vehicleStatusSchema } from './vehicle-status.js';
 
 export const dashboardStatusCountSchema = z.object({
-  statusId: uuidSchema,
+  status: vehicleStatusSchema,
   statusName: z.string(),
   count: z.number().int().min(0),
-  kind: z.enum(VEHICLE_STATUS_KINDS),
+  kind: z.enum(['in_work', 'final', 'other']),
   color: z.string(),
   sortOrder: z.number().int(),
 });

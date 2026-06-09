@@ -3,7 +3,12 @@ import { and, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import type { DashboardStats } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
-import { documents, expenses, vehicles, vehicleStatuses } from '../../db/schema/index.js';
+import { documents, expenses, vehicles } from '../../db/schema/index.js';
+import {
+  VEHICLE_STATUSES,
+  VEHICLE_STATUS_DASHBOARD_GROUP,
+  VEHICLE_STATUS_CONFIG,
+} from '@volunteerfleet/shared';
 
 @Injectable()
 export class DashboardService {
@@ -16,32 +21,26 @@ export class DashboardService {
       .where(and(isNull(vehicles.deletedAt), eq(vehicles.organizationId, organizationId)));
     const totalVehicles = totalResult[0]?.count ?? 0;
 
-    const statusRows = await this.db
+    // Count vehicles by status enum
+    const statusCountResult = await this.db
       .select({
-        statusId: vehicleStatuses.id,
-        statusName: vehicleStatuses.name,
-        kind: vehicleStatuses.kind,
-        color: vehicleStatuses.color,
-        sortOrder: vehicleStatuses.sortOrder,
+        status: vehicles.status,
         count: sql<number>`count(${vehicles.id})::int`,
       })
-      .from(vehicleStatuses)
-      .leftJoin(
-        vehicles,
-        and(
-          eq(vehicles.statusId, vehicleStatuses.id),
-          isNull(vehicles.deletedAt),
-          eq(vehicles.organizationId, organizationId),
-        ),
-      )
-      .groupBy(
-        vehicleStatuses.id,
-        vehicleStatuses.name,
-        vehicleStatuses.kind,
-        vehicleStatuses.color,
-        vehicleStatuses.sortOrder,
-      )
-      .orderBy(vehicleStatuses.sortOrder);
+      .from(vehicles)
+      .where(and(isNull(vehicles.deletedAt), eq(vehicles.organizationId, organizationId)))
+      .groupBy(vehicles.status);
+
+    const statusCountMap = new Map(statusCountResult.map((r) => [r.status, r.count]));
+
+    // Build status counts with config
+    const statusRows = VEHICLE_STATUSES.map((status) => ({
+      status,
+      count: statusCountMap.get(status) ?? 0,
+      kind: VEHICLE_STATUS_DASHBOARD_GROUP[status],
+      color: VEHICLE_STATUS_CONFIG[status].color,
+      sortOrder: VEHICLE_STATUS_CONFIG[status].sortOrder,
+    }));
 
     const inWorkVehicles = statusRows
       .filter((r) => r.kind === 'in_work')
@@ -101,8 +100,8 @@ export class DashboardService {
       inWorkVehicles,
       transferredVehicles,
       statusCounts: statusRows.map((row) => ({
-        statusId: row.statusId,
-        statusName: row.statusName,
+        status: row.status,
+        statusName: VEHICLE_STATUS_CONFIG[row.status].label,
         count: row.count,
         kind: row.kind,
         color: row.color,

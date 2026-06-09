@@ -2,7 +2,7 @@ import { relations } from 'drizzle-orm';
 import { users } from './users.js';
 import { organizations } from './organizations.js';
 import { organizationMembers } from './organization-members.js';
-import { vehicleStatuses, expenseCategories, fundingSources } from './dictionaries.js';
+import { expenseCategories, fundingSources } from './dictionaries.js';
 import { vehicles } from './vehicles.js';
 import { vehicleStatusHistory } from './vehicle-status-history.js';
 import { expenses } from './expenses.js';
@@ -58,20 +58,10 @@ export const organizationMembersRelations = relations(organizationMembers, ({ on
   }),
 }));
 
-export const vehicleStatusesRelations = relations(vehicleStatuses, ({ many }) => ({
-  vehicles: many(vehicles),
-  oldStatusHistory: many(vehicleStatusHistory, { relationName: 'oldStatus' }),
-  newStatusHistory: many(vehicleStatusHistory, { relationName: 'newStatus' }),
-}));
-
 export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [vehicles.organizationId],
     references: [organizations.id],
-  }),
-  status: one(vehicleStatuses, {
-    fields: [vehicles.statusId],
-    references: [vehicleStatuses.id],
   }),
   createdByUser: one(users, {
     fields: [vehicles.createdBy],
@@ -129,19 +119,39 @@ export const vehicleStatusHistoryRelations = relations(vehicleStatusHistory, ({ 
     fields: [vehicleStatusHistory.vehicleId],
     references: [vehicles.id],
   }),
-  oldStatus: one(vehicleStatuses, {
-    fields: [vehicleStatusHistory.oldStatusId],
-    references: [vehicleStatuses.id],
-    relationName: 'oldStatus',
-  }),
-  newStatus: one(vehicleStatuses, {
-    fields: [vehicleStatusHistory.newStatusId],
-    references: [vehicleStatuses.id],
-    relationName: 'newStatus',
-  }),
   changedByUser: one(users, {
     fields: [vehicleStatusHistory.changedBy],
     references: [users.id],
+  }),
+  registrationDoc: one(documents, {
+    fields: [vehicleStatusHistory.registrationDocId],
+    references: [documents.id],
+    relationName: 'registrationDoc',
+  }),
+  customsDeclarationDoc: one(documents, {
+    fields: [vehicleStatusHistory.customsDeclarationDocId],
+    references: [documents.id],
+    relationName: 'customsDeclarationDoc',
+  }),
+  stampedCustomsDeclarationDoc: one(documents, {
+    fields: [vehicleStatusHistory.stampedCustomsDeclarationDocId],
+    references: [documents.id],
+    relationName: 'stampedCustomsDeclarationDoc',
+  }),
+  transferActDraftDoc: one(documents, {
+    fields: [vehicleStatusHistory.transferActDraftDocId],
+    references: [documents.id],
+    relationName: 'transferActDraftDoc',
+  }),
+  transferActSignedDoc: one(documents, {
+    fields: [vehicleStatusHistory.transferActSignedDocId],
+    references: [documents.id],
+    relationName: 'transferActSignedDoc',
+  }),
+  returnActDoc: one(documents, {
+    fields: [vehicleStatusHistory.returnActDocId],
+    references: [documents.id],
+    relationName: 'returnActDoc',
   }),
 }));
 

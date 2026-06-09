@@ -1,19 +1,17 @@
 import { useEffect } from 'react';
-import { ColorPicker, Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
-import type { ExpenseCategory, FundingSource, VehicleStatus } from '@volunteerfleet/shared';
+import { Form, Input, InputNumber, Modal, Select, message } from 'antd';
+import type { ExpenseCategory, FundingSource } from '@volunteerfleet/shared';
 import {
   expenseCategoryCreateSchema,
   expenseCategoryUpdateSchema,
   fundingSourceCreateSchema,
   fundingSourceUpdateSchema,
-  vehicleStatusCreateSchema,
-  vehicleStatusUpdateSchema,
 } from '@volunteerfleet/shared';
 import type { DictionaryType } from '../api/dictionaries.api';
 import { useCreateDictionaryItem, useUpdateDictionaryItem } from '../hooks/useDictionaries';
 import { zodToAntdFields, zodValidator } from '../utils/zod-antd';
 
-type DictionaryItem = VehicleStatus | ExpenseCategory | FundingSource;
+type DictionaryItem = ExpenseCategory | FundingSource;
 
 interface DictionaryItemModalProps {
   open: boolean;
@@ -26,16 +24,11 @@ interface DictionaryFormValues {
   name: string;
   sortOrder?: number;
   isDefault?: boolean;
-  kind?: 'in_work' | 'final' | 'other';
-  color?: string;
   type?: 'donor' | 'fundraiser' | 'initiative' | 'other';
   description?: string | null;
 }
 
 function schemaFor(type: DictionaryType, isEdit: boolean) {
-  if (type === 'vehicle-statuses') {
-    return isEdit ? vehicleStatusUpdateSchema : vehicleStatusCreateSchema;
-  }
   if (type === 'expense-categories') {
     return isEdit ? expenseCategoryUpdateSchema : expenseCategoryCreateSchema;
   }
@@ -43,15 +36,12 @@ function schemaFor(type: DictionaryType, isEdit: boolean) {
 }
 
 function titleFor(type: DictionaryType) {
-  if (type === 'vehicle-statuses') return 'статус';
   if (type === 'expense-categories') return 'категорію витрат';
   return 'джерело фінансування';
 }
 
-function sortOrderSchemaFor(type: DictionaryType) {
-  return type === 'vehicle-statuses'
-    ? vehicleStatusCreateSchema.shape.sortOrder
-    : expenseCategoryCreateSchema.shape.sortOrder;
+function sortOrderSchema() {
+  return expenseCategoryCreateSchema.shape.sortOrder;
 }
 
 export function DictionaryItemModal({ open, type, item, onClose }: DictionaryItemModalProps) {
@@ -67,9 +57,6 @@ export function DictionaryItemModal({ open, type, item, onClose }: DictionaryIte
     } else {
       form.setFieldsValue({
         sortOrder: 0,
-        isDefault: false,
-        kind: 'other',
-        color: '#8c8c8c',
         type: 'donor',
         description: null,
       });
@@ -122,35 +109,10 @@ export function DictionaryItemModal({ open, type, item, onClose }: DictionaryIte
           <Form.Item
             name="sortOrder"
             label="Порядок"
-            rules={[{ validator: zodValidator(sortOrderSchemaFor(type)) }]}
+            rules={[{ validator: zodValidator(sortOrderSchema()) }]}
           >
             <InputNumber min={0} max={32767} style={{ width: '100%' }} />
           </Form.Item>
-        ) : null}
-        {type === 'vehicle-statuses' ? (
-          <>
-            <Form.Item name="isDefault" label="За замовчуванням" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-            <Form.Item name="kind" label="Тип">
-              <Select
-                options={[
-                  { value: 'in_work', label: 'У роботі' },
-                  { value: 'final', label: 'Кінцевий' },
-                  { value: 'other', label: 'Інший' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item
-              name="color"
-              label="Колір"
-              getValueFromEvent={(color: { toHexString: () => string }) =>
-                color.toHexString().slice(0, 7)
-              }
-            >
-              <ColorPicker format="hex" showText disabledAlpha />
-            </Form.Item>
-          </>
         ) : null}
         {type === 'funding-sources' ? (
           <>

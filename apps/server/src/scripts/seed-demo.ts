@@ -14,15 +14,9 @@ import {
   organizationMembers,
   organizations,
   users,
-  vehicleStatuses,
   vehicles,
 } from '../db/schema/index.js';
-import {
-  SEED_EXPENSE_CATEGORY_IDS,
-  SEED_FUNDING_SOURCE_IDS,
-  SEED_ORG_IDS,
-  SEED_VEHICLE_STATUS_IDS,
-} from './seed-ids.js';
+import { SEED_EXPENSE_CATEGORY_IDS, SEED_FUNDING_SOURCE_IDS, SEED_ORG_IDS } from './seed-ids.js';
 
 type OrgKey = 'A' | 'B';
 
@@ -175,23 +169,6 @@ async function seedOrganizations(
   console.log('[seed-demo] organizations and memberships created (A, B)');
 }
 
-async function loadStatusMap(db: ReturnType<typeof createDb>): Promise<Map<string, string>> {
-  const rows = await db
-    .select({ id: vehicleStatuses.id, name: vehicleStatuses.name })
-    .from(vehicleStatuses);
-  const map = new Map<string, string>();
-  const seeds = [
-    ['в ремонті', SEED_VEHICLE_STATUS_IDS.repairing],
-    ['готове', SEED_VEHICLE_STATUS_IDS.ready],
-    ['передано', SEED_VEHICLE_STATUS_IDS.transferred],
-  ] as const;
-  for (const [name, seedId] of seeds) {
-    const row = rows.find((item) => item.id === seedId || item.name.toLowerCase() === name);
-    if (row) map.set(name, row.id);
-  }
-  return map;
-}
-
 async function loadCategoryMap(db: ReturnType<typeof createDb>): Promise<Map<string, string>> {
   const rows = await db
     .select({ id: expenseCategories.id, name: expenseCategories.name })
@@ -228,6 +205,29 @@ async function getFundingSourceId(db: ReturnType<typeof createDb>): Promise<stri
   }
   return row.id;
 }
+
+const STATUS_NAME_TO_ENUM: Record<
+  string,
+  | 'new'
+  | 'paid'
+  | 'in_transit'
+  | 'arrived'
+  | 'in_repair'
+  | 'ready'
+  | 'transferred'
+  | 'returned'
+  | 'lost'
+> = {
+  нове: 'new',
+  оплачено: 'paid',
+  'в дорозі': 'in_transit',
+  прибуло: 'arrived',
+  'в ремонті': 'in_repair',
+  готове: 'ready',
+  передано: 'transferred',
+  повернено: 'returned',
+  втрачено: 'lost',
+};
 
 interface VehicleSeedSpec {
   identifier: string;
@@ -272,13 +272,12 @@ const DEMO_VEHICLES: VehicleSeedSpec[] = [
 
 async function seedVehicles(
   db: ReturnType<typeof createDb>,
-  statusMap: Map<string, string>,
   creatorByOrg: Record<OrgKey, string>,
 ): Promise<VehicleRecord[]> {
   const records: VehicleRecord[] = [];
   for (const spec of DEMO_VEHICLES) {
-    const statusId = statusMap.get(spec.statusName);
-    if (!statusId) {
+    const status = STATUS_NAME_TO_ENUM[spec.statusName];
+    if (!status) {
       throw new Error(`Unknown status: ${spec.statusName}`);
     }
     const createdBy = creatorByOrg[spec.org];
@@ -290,7 +289,8 @@ async function seedVehicles(
         brand: spec.brand,
         model: spec.model,
         year: spec.year,
-        statusId,
+        startDate: '2024-01-01',
+        status,
         createdBy,
         updatedBy: createdBy,
       })
@@ -556,7 +556,6 @@ async function main(): Promise<void> {
     const coordinatorBId = await getOrCreateUser(db, COORDINATOR_B);
     const memberAId = await getOrCreateUser(db, MEMBER_A);
 
-    const statusMap = await loadStatusMap(db);
     const categoryMap = await loadCategoryMap(db);
     const fundingSourceId = await getFundingSourceId(db);
     const rates = await loadRates();
@@ -568,7 +567,7 @@ async function main(): Promise<void> {
     await db.execute(sql`BEGIN`);
     try {
       await seedOrganizations(db, superuserId, coordinatorBId, memberAId);
-      const vehicleRecords = await seedVehicles(db, statusMap, vehicleCreatorByOrg);
+      const vehicleRecords = await seedVehicles(db, vehicleCreatorByOrg);
       const expenseRecords = await seedExpenses(
         db,
         vehicleRecords,

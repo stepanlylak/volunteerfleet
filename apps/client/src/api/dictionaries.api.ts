@@ -5,38 +5,25 @@ import type {
   FundingSource,
   FundingSourceCreate,
   FundingSourceUpdate,
-  VehicleStatus,
-  VehicleStatusCreate,
-  VehicleStatusUpdate,
 } from '@volunteerfleet/shared';
 import { http } from './client';
 
-export type DictionaryType = 'vehicle-statuses' | 'expense-categories' | 'funding-sources';
+export type DictionaryType = 'expense-categories' | 'funding-sources';
 
 export interface DictionariesSnapshot {
-  vehicleStatuses: VehicleStatus[];
   expenseCategories: ExpenseCategory[];
   fundingSources: FundingSource[];
 }
 
-type DictionaryPayload<T extends DictionaryType> = T extends 'vehicle-statuses'
-  ? VehicleStatusCreate | VehicleStatusUpdate
-  : T extends 'expense-categories'
-    ? ExpenseCategoryCreate | ExpenseCategoryUpdate
-    : FundingSourceCreate | FundingSourceUpdate;
+type DictionaryPayload<T extends DictionaryType> = T extends 'expense-categories'
+  ? ExpenseCategoryCreate | ExpenseCategoryUpdate
+  : FundingSourceCreate | FundingSourceUpdate;
 
-type DictionaryItem<T extends DictionaryType> = T extends 'vehicle-statuses'
-  ? VehicleStatus
-  : T extends 'expense-categories'
-    ? ExpenseCategory
-    : FundingSource;
+type DictionaryItem<T extends DictionaryType> = T extends 'expense-categories'
+  ? ExpenseCategory
+  : FundingSource;
 
 export const dictionariesApi = {
-  async getVehicleStatuses(): Promise<VehicleStatus[]> {
-    const res = await http.get<VehicleStatus[]>('/dictionaries/vehicle-statuses');
-    return res.data;
-  },
-
   async getExpenseCategories(): Promise<ExpenseCategory[]> {
     const res = await http.get<ExpenseCategory[]>('/dictionaries/expense-categories');
     return res.data;
@@ -48,12 +35,11 @@ export const dictionariesApi = {
   },
 
   async getAll(): Promise<DictionariesSnapshot> {
-    const [vehicleStatuses, expenseCategories, fundingSources] = await Promise.all([
-      this.getVehicleStatuses(),
+    const [expenseCategories, fundingSources] = await Promise.all([
       this.getExpenseCategories(),
       this.getFundingSources(),
     ]);
-    return { vehicleStatuses, expenseCategories, fundingSources };
+    return { expenseCategories, fundingSources };
   },
 
   async create<T extends DictionaryType>(

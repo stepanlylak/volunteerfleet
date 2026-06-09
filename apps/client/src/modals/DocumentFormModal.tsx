@@ -160,6 +160,7 @@ export function DocumentFormModal({
         const created = await linkDoc.mutateAsync({
           name: item.name,
           url: item.url,
+          documentType: 'other',
           vehicleId: effectiveVehicleId,
           expenseId: expenseId ?? null,
         });

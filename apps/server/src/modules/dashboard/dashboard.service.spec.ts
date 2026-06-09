@@ -5,20 +5,12 @@ const NOW = new Date('2026-05-15T12:00:00.000Z');
 
 function makeStatusRow(
   overrides: {
-    statusId?: string;
-    statusName?: string;
-    kind?: 'in_work' | 'final' | 'other';
-    color?: string;
-    sortOrder?: number;
+    status?: string;
     count?: number;
   } = {},
 ) {
   return {
-    statusId: '11111111-1111-1111-1111-111111111111',
-    statusName: 'тест',
-    kind: 'in_work' as const,
-    color: '#1677ff',
-    sortOrder: 10,
+    status: 'new',
     count: 0,
     ...overrides,
   };
@@ -39,13 +31,12 @@ describe('DashboardService', () => {
 
   it('returns correct inWorkVehicles when multiple in_work statuses', async () => {
     const statusRows = [
-      makeStatusRow({ kind: 'in_work', count: 3 }),
+      makeStatusRow({ count: 3 }),
       makeStatusRow({
-        statusId: '22222222-2222-2222-2222-222222222222',
-        kind: 'in_work',
+        status: 'paid',
         count: 2,
       }),
-      makeStatusRow({ statusId: '33333333-3333-3333-3333-333333333333', kind: 'final', count: 5 }),
+      makeStatusRow({ status: 'transferred', count: 5 }),
     ];
 
     let callIndex = 0;
@@ -58,12 +49,9 @@ describe('DashboardService', () => {
       }
       if (callIndex === 2) {
         return {
-          select: vi.fn(),
           from: vi.fn().mockReturnValue({
-            leftJoin: vi.fn().mockReturnValue({
-              groupBy: vi.fn().mockReturnValue({
-                orderBy: vi.fn().mockResolvedValue(statusRows),
-              }),
+            where: vi.fn().mockReturnValue({
+              groupBy: vi.fn().mockResolvedValue(statusRows),
             }),
           }),
         };
@@ -103,10 +91,8 @@ describe('DashboardService', () => {
       if (callIndex === 2) {
         return {
           from: vi.fn().mockReturnValue({
-            leftJoin: vi.fn().mockReturnValue({
-              groupBy: vi.fn().mockReturnValue({
-                orderBy: vi.fn().mockResolvedValue([]),
-              }),
+            where: vi.fn().mockReturnValue({
+              groupBy: vi.fn().mockResolvedValue([]),
             }),
           }),
         };
@@ -129,9 +115,7 @@ describe('DashboardService', () => {
   });
 
   it('statusCounts include kind, color, sortOrder', async () => {
-    const statusRows = [
-      makeStatusRow({ kind: 'final', color: '#52c41a', sortOrder: 50, count: 3 }),
-    ];
+    const statusRows = [makeStatusRow({ status: 'transferred', count: 3 })];
 
     let callIndex = 0;
     db.select.mockImplementation(() => {
@@ -144,10 +128,8 @@ describe('DashboardService', () => {
       if (callIndex === 2) {
         return {
           from: vi.fn().mockReturnValue({
-            leftJoin: vi.fn().mockReturnValue({
-              groupBy: vi.fn().mockReturnValue({
-                orderBy: vi.fn().mockResolvedValue(statusRows),
-              }),
+            where: vi.fn().mockReturnValue({
+              groupBy: vi.fn().mockResolvedValue(statusRows),
             }),
           }),
         };
@@ -163,9 +145,9 @@ describe('DashboardService', () => {
     });
 
     const result = await svc.getStats('66666666-6666-6666-6666-666666666666');
-    const sc = result.statusCounts[0]!;
+    const sc = result.statusCounts.find((item) => item.status === 'transferred')!;
     expect(sc.kind).toBe('final');
-    expect(sc.color).toBe('#52c41a');
-    expect(sc.sortOrder).toBe(50);
+    expect(sc.color).toBe('#389e0d');
+    expect(sc.sortOrder).toBe(70);
   });
 });

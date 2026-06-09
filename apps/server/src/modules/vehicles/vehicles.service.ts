@@ -12,7 +12,7 @@ import type {
 } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
-import { vehicles, vehicleStatusHistory, vehicleStatuses } from '../../db/schema/index.js';
+import { vehicles, vehicleStatusHistory } from '../../db/schema/index.js';
 
 const VEHICLE_SORT_WHITELIST = [
   'identifier',
@@ -38,7 +38,7 @@ export class VehiclesService {
     orgRole: OrgRole | null | undefined,
     activeOrgId: string,
   ): Promise<VehicleListResponse> {
-    const { page, pageSize, sort, search, statusId, includeDeleted } = query;
+    const { page, pageSize, sort, search, status, includeDeleted } = query;
 
     // Only coordinator can see deleted vehicles
     if (includeDeleted && orgRole !== 'coordinator') {
@@ -51,8 +51,8 @@ export class VehiclesService {
       conditions.push(isNull(vehicles.deletedAt));
     }
 
-    if (statusId) {
-      conditions.push(eq(vehicles.statusId, statusId));
+    if (status) {
+      conditions.push(eq(vehicles.status, status));
     }
 
     if (search) {
@@ -92,7 +92,6 @@ export class VehiclesService {
       limit: pageSize,
       offset: (page - 1) * pageSize,
       with: {
-        status: true,
         createdByUser: { columns: { id: true, fullName: true } },
         updatedByUser: { columns: { id: true, fullName: true } },
         deletedByUser: { columns: { id: true, fullName: true } },
@@ -122,7 +121,6 @@ export class VehiclesService {
     const row = await this.db.query.vehicles.findFirst({
       where,
       with: {
-        status: true,
         createdByUser: { columns: { id: true, fullName: true } },
         updatedByUser: { columns: { id: true, fullName: true } },
         deletedByUser: { columns: { id: true, fullName: true } },
@@ -156,14 +154,15 @@ export class VehiclesService {
       const vehicle = inserted[0];
       if (!vehicle) throw new Error('Insert returned no rows');
 
-      // Create status history entry with null oldStatusId
+      // Create status history entry with null oldStatus
       await tx.insert(vehicleStatusHistory).values({
         organizationId: vehicle.organizationId,
         vehicleId: vehicle.id,
-        oldStatusId: null,
-        newStatusId: vehicle.statusId,
+        oldStatus: null,
+        newStatus: vehicle.status,
         changedBy: userId,
         note: null,
+        transitionDate: input.startDate,
       });
 
       return vehicle;
@@ -191,10 +190,6 @@ export class VehiclesService {
       throw new NotFoundException(`Vehicle ${id} not found`);
     }
 
-    const oldStatusId = vehicle.statusId;
-    const newStatusId = input.statusId ?? oldStatusId;
-    const statusChanged = input.statusId !== undefined && input.statusId !== oldStatusId;
-
     // Build update values with proper type conversion
     const updateValues: Record<string, unknown> = {
       updatedBy: userId,
@@ -206,10 +201,7 @@ export class VehiclesService {
     if (input.model !== undefined) updateValues.model = input.model;
     if (input.year !== undefined) updateValues.year = input.year;
     if (input.vin !== undefined) updateValues.vin = input.vin;
-    if (input.borderCrossingDate !== undefined) {
-      updateValues.borderCrossingDate = input.borderCrossingDate;
-    }
-    if (input.statusId !== undefined) updateValues.statusId = input.statusId;
+    if (input.startDate !== undefined) updateValues.startDate = input.startDate;
     if (input.description !== undefined) updateValues.description = input.description;
     if (input.isPublic !== undefined) updateValues.isPublic = input.isPublic;
     if (input.publicSummary !== undefined) updateValues.publicSummary = input.publicSummary;
@@ -230,18 +222,6 @@ export class VehiclesService {
 
       const updatedVehicle = updated[0];
       if (!updatedVehicle) throw new NotFoundException(`Vehicle ${id} not found`);
-
-      // Create status history if status changed
-      if (statusChanged) {
-        await tx.insert(vehicleStatusHistory).values({
-          organizationId: updatedVehicle.organizationId,
-          vehicleId: id,
-          oldStatusId,
-          newStatusId,
-          changedBy: userId,
-          note: null,
-        });
-      }
 
       return updatedVehicle;
     });
@@ -312,8 +292,6 @@ export class VehiclesService {
       where: eq(vehicleStatusHistory.vehicleId, vehicleId),
       orderBy: [desc(vehicleStatusHistory.changedAt)],
       with: {
-        oldStatus: true,
-        newStatus: true,
         changedByUser: { columns: { id: true, fullName: true } },
       },
     });
@@ -321,35 +299,26 @@ export class VehiclesService {
     const items = rows.map((r) => ({
       id: r.id,
       vehicleId: r.vehicleId,
-      oldStatusId: r.oldStatusId,
-      oldStatus: r.oldStatus
-        ? {
-            id: r.oldStatus.id,
-            name: r.oldStatus.name,
-            sortOrder: r.oldStatus.sortOrder,
-            isDefault: r.oldStatus.isDefault,
-            kind: r.oldStatus.kind,
-            color: r.oldStatus.color,
-            createdAt: r.oldStatus.createdAt.toISOString(),
-            updatedAt: r.oldStatus.updatedAt.toISOString(),
-          }
-        : null,
-      newStatusId: r.newStatusId,
-      newStatus: r.newStatus
-        ? {
-            id: r.newStatus.id,
-            name: r.newStatus.name,
-            sortOrder: r.newStatus.sortOrder,
-            isDefault: r.newStatus.isDefault,
-            kind: r.newStatus.kind,
-            color: r.newStatus.color,
-            createdAt: r.newStatus.createdAt.toISOString(),
-            updatedAt: r.newStatus.updatedAt.toISOString(),
-          }
-        : undefined,
+      oldStatus: r.oldStatus,
+      newStatus: r.newStatus,
       changedBy: { id: r.changedByUser.id, fullName: r.changedByUser.fullName },
       note: r.note,
       changedAt: r.changedAt.toISOString(),
+      transitionDate: r.transitionDate,
+      purchasePrice: r.purchasePrice === null ? null : Number(r.purchasePrice),
+      purchaseCurrency: r.purchaseCurrency,
+      purchaseRate: r.purchaseRate === null ? null : Number(r.purchaseRate),
+      purchaseRateSource: r.purchaseRateSource,
+      isLocalPurchase: r.isLocalPurchase,
+      repairNote: r.repairNote,
+      isRegisteredAtServiceCenter: r.isRegisteredAtServiceCenter,
+      lostReason: r.lostReason,
+      registrationDocId: r.registrationDocId,
+      customsDeclarationDocId: r.customsDeclarationDocId,
+      stampedCustomsDeclarationDocId: r.stampedCustomsDeclarationDocId,
+      transferActDraftDocId: r.transferActDraftDocId,
+      transferActSignedDocId: r.transferActSignedDocId,
+      returnActDocId: r.returnActDocId,
     }));
 
     return { items, total: items.length };
@@ -382,7 +351,6 @@ export class VehiclesService {
 
   private toResponse(
     row: typeof vehicles.$inferSelect & {
-      status?: typeof vehicleStatuses.$inferSelect;
       createdByUser?: { id: string; fullName: string };
       updatedByUser?: { id: string; fullName: string };
       deletedByUser?: { id: string; fullName: string } | null;
@@ -395,20 +363,9 @@ export class VehiclesService {
       model: row.model,
       year: row.year,
       vin: row.vin,
+      startDate: row.startDate,
       borderCrossingDate: row.borderCrossingDate,
-      statusId: row.statusId,
-      status: row.status
-        ? {
-            id: row.status.id,
-            name: row.status.name,
-            sortOrder: row.status.sortOrder,
-            isDefault: row.status.isDefault,
-            kind: row.status.kind,
-            color: row.status.color,
-            createdAt: row.status.createdAt.toISOString(),
-            updatedAt: row.status.updatedAt.toISOString(),
-          }
-        : undefined,
+      status: row.status,
       description: row.description,
       isPublic: row.isPublic,
       publicSummary: row.publicSummary,

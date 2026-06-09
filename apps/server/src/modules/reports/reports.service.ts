@@ -22,13 +22,11 @@ import {
   fundingSources,
   users,
   vehicles,
-  vehicleStatuses,
   vehicleStatusHistory,
 } from '../../db/schema/index.js';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service.js';
 
 type VehicleRow = typeof vehicles.$inferSelect & {
-  status?: typeof vehicleStatuses.$inferSelect;
   createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   updatedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   deletedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'> | null;
@@ -52,8 +50,6 @@ type DocumentRow = typeof documents.$inferSelect & {
 };
 
 type StatusHistoryRow = typeof vehicleStatusHistory.$inferSelect & {
-  oldStatus?: typeof vehicleStatuses.$inferSelect | null;
-  newStatus?: typeof vehicleStatuses.$inferSelect;
   changedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
 };
 
@@ -165,7 +161,6 @@ export class ReportsService {
         isNull(vehicles.deletedAt),
       ),
       with: {
-        status: true,
         createdByUser: { columns: { id: true, fullName: true } },
         updatedByUser: { columns: { id: true, fullName: true } },
         deletedByUser: { columns: { id: true, fullName: true } },
@@ -209,8 +204,6 @@ export class ReportsService {
       where: eq(vehicleStatusHistory.vehicleId, vehicleId),
       orderBy: [desc(vehicleStatusHistory.changedAt)],
       with: {
-        oldStatus: true,
-        newStatus: true,
         changedByUser: { columns: { id: true, fullName: true } },
       },
     });
@@ -427,20 +420,9 @@ export class ReportsService {
       model: row.model,
       year: row.year,
       vin: row.vin,
+      startDate: row.startDate,
       borderCrossingDate: row.borderCrossingDate,
-      statusId: row.statusId,
-      status: row.status
-        ? {
-            id: row.status.id,
-            name: row.status.name,
-            sortOrder: row.status.sortOrder,
-            isDefault: row.status.isDefault,
-            kind: row.status.kind,
-            color: row.status.color,
-            createdAt: row.status.createdAt.toISOString(),
-            updatedAt: row.status.updatedAt.toISOString(),
-          }
-        : undefined,
+      status: row.status,
       description: row.description,
       isPublic: row.isPublic,
       publicSummary: row.publicSummary,
@@ -461,35 +443,26 @@ export class ReportsService {
     return {
       id: row.id,
       vehicleId: row.vehicleId,
-      oldStatusId: row.oldStatusId,
-      oldStatus: row.oldStatus
-        ? {
-            id: row.oldStatus.id,
-            name: row.oldStatus.name,
-            sortOrder: row.oldStatus.sortOrder,
-            isDefault: row.oldStatus.isDefault,
-            kind: row.oldStatus.kind,
-            color: row.oldStatus.color,
-            createdAt: row.oldStatus.createdAt.toISOString(),
-            updatedAt: row.oldStatus.updatedAt.toISOString(),
-          }
-        : null,
-      newStatusId: row.newStatusId,
-      newStatus: row.newStatus
-        ? {
-            id: row.newStatus.id,
-            name: row.newStatus.name,
-            sortOrder: row.newStatus.sortOrder,
-            isDefault: row.newStatus.isDefault,
-            kind: row.newStatus.kind,
-            color: row.newStatus.color,
-            createdAt: row.newStatus.createdAt.toISOString(),
-            updatedAt: row.newStatus.updatedAt.toISOString(),
-          }
-        : undefined,
+      oldStatus: row.oldStatus,
+      newStatus: row.newStatus,
       changedBy: this.toVehicleUserInfo(row.changedByUser),
       note: row.note,
       changedAt: row.changedAt.toISOString(),
+      transitionDate: row.transitionDate,
+      purchasePrice: row.purchasePrice === null ? null : Number(row.purchasePrice),
+      purchaseCurrency: row.purchaseCurrency,
+      purchaseRate: row.purchaseRate === null ? null : Number(row.purchaseRate),
+      purchaseRateSource: row.purchaseRateSource,
+      isLocalPurchase: row.isLocalPurchase,
+      repairNote: row.repairNote,
+      isRegisteredAtServiceCenter: row.isRegisteredAtServiceCenter,
+      lostReason: row.lostReason,
+      registrationDocId: row.registrationDocId,
+      customsDeclarationDocId: row.customsDeclarationDocId,
+      stampedCustomsDeclarationDocId: row.stampedCustomsDeclarationDocId,
+      transferActDraftDocId: row.transferActDraftDocId,
+      transferActSignedDocId: row.transferActSignedDocId,
+      returnActDocId: row.returnActDocId,
     };
   }
 
@@ -544,6 +517,7 @@ export class ReportsService {
       id: row.id,
       name: row.name,
       kind: row.kind,
+      documentType: row.documentType,
       fileKey: row.fileKey,
       url: row.url,
       mimeType: row.mimeType,
