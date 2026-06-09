@@ -50,6 +50,9 @@ export const vehicleStatusHistory = pgTable(
     registrationDocId: uuid('registration_doc_id').references(() => documents.id, {
       onDelete: 'restrict',
     }),
+    stampedRegistrationDocId: uuid('stamped_registration_doc_id').references(() => documents.id, {
+      onDelete: 'restrict',
+    }),
     customsDeclarationDocId: uuid('customs_declaration_doc_id').references(() => documents.id, {
       onDelete: 'restrict',
     }),

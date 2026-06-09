@@ -332,6 +332,7 @@ export class VehiclesService {
       isRegisteredAtServiceCenter: r.isRegisteredAtServiceCenter,
       lostReason: r.lostReason,
       registrationDocId: r.registrationDocId,
+      stampedRegistrationDocId: r.stampedRegistrationDocId,
       customsDeclarationDocId: r.customsDeclarationDocId,
       stampedCustomsDeclarationDocId: r.stampedCustomsDeclarationDocId,
       transferActDraftDocId: r.transferActDraftDocId,

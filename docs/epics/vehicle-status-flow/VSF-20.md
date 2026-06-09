@@ -3,7 +3,7 @@ id: VSF-20
 epic: vehicle-status-flow
 phase: 2
 type: feat
-status: todo
+status: done
 depends_on: [VSF-9, VSF-11, VSF-16]
 parallelizable: true
 branch: feat/vsf-20-split-registration-doc

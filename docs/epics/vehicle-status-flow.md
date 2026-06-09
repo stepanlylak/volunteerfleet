@@ -125,16 +125,16 @@ paid → arrived             (лише якщо перехід → paid має i
 
 ### Дані при переходах
 
-| Перехід         | Додаткові поля                                                                                                                                                                                                                            |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| → `paid`        | `purchasePrice`, `purchaseCurrency`, `purchaseRate`, `purchaseRateSource` — ціна первинної покупки (інформативно, НЕ потрапляє у витрати); `isLocalPurchase` (bool, request default false); `registrationDocId` (uuid, null) — техпаспорт |
-| → `in_transit`  | `customsDeclarationDocId` (uuid, null) — митна декларація; для локальної покупки цей статус можна оминути                                                                                                                                 |
-| → `arrived`     | `borderCrossingDate` (date, null) — фактична дата перетину кордону, пишеться у `vehicles.border_crossing_date`; `registrationDocId` (uuid, null) — техпаспорт; `stampedCustomsDeclarationDocId` (uuid, null) — скан митної з печатками    |
-| → `in_repair`   | `repairNote` (text, null) — де на ремонті, інфо                                                                                                                                                                                           |
-| → `ready`       | `transferActDraftDocId` (uuid, null) — акт приймання-передачі (заповнений, не підписаний)                                                                                                                                                 |
-| → `transferred` | `transferActSignedDocId` (uuid, null) — підписаний акт; `isRegisteredAtServiceCenter` (bool, default false)                                                                                                                               |
-| → `returned`    | `returnActDocId` (uuid, null) — акт повернення                                                                                                                                                                                            |
-| → `lost`        | `lostReason` (text, NOT NULL) — причина втрати (обов'язкове поле)                                                                                                                                                                         |
+| Перехід         | Додаткові поля                                                                                                                                                                                                                                           |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| → `paid`        | `purchasePrice`, `purchaseCurrency`, `purchaseRate`, `purchaseRateSource` — ціна первинної покупки (інформативно, НЕ потрапляє у витрати); `isLocalPurchase` (bool, request default false); `registrationDocId` (uuid, null) — техпаспорт без печатки    |
+| → `in_transit`  | `customsDeclarationDocId` (uuid, null) — митна декларація; для локальної покупки цей статус можна оминути                                                                                                                                                |
+| → `arrived`     | `borderCrossingDate` (date, null) — фактична дата перетину кордону, пишеться у `vehicles.border_crossing_date`; `stampedRegistrationDocId` (uuid, null) — техпаспорт з печаткою; `stampedCustomsDeclarationDocId` (uuid, null) — скан митної з печатками |
+| → `in_repair`   | `repairNote` (text, null) — де на ремонті, інфо                                                                                                                                                                                                          |
+| → `ready`       | `transferActDraftDocId` (uuid, null) — акт приймання-передачі (заповнений, не підписаний)                                                                                                                                                                |
+| → `transferred` | `transferActSignedDocId` (uuid, null) — підписаний акт; `isRegisteredAtServiceCenter` (bool, default false)                                                                                                                                              |
+| → `returned`    | `returnActDocId` (uuid, null) — акт повернення                                                                                                                                                                                                           |
+| → `lost`        | `lostReason` (text, NOT NULL) — причина втрати (обов'язкове поле)                                                                                                                                                                                        |
 
 **Спільне для всіх переходів:**
 
@@ -191,15 +191,16 @@ transition (`null` до появи `→ paid`), але окрема колонк
 блокують переходи — лише сигналізують про пропущені документи/дані. UI рендерить усі як Ant Design
 `Alert` type="warning". Тому `VEHICLE_ALERT_CONFIG` не містить `severity`.
 
-| Алерт                                 | Умова                                                                                                           |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `missing_registration_doc`            | Статус у `paid/in_transit/arrived/in_repair/ready/transferred/returned` і техпаспорт не прикріплений            |
-| `missing_customs_declaration`         | Статус у `in_transit/arrived/in_repair/ready/transferred/returned`, покупка не локальна, декларація відсутня    |
-| `missing_stamped_customs_declaration` | Статус у `arrived/in_repair/ready/transferred/returned`, покупка не локальна, скан з печатками відсутній        |
-| `missing_transfer_act_draft`          | Статус у `ready/transferred` і актуальна чернетка акту не прикріплена                                           |
-| `missing_transfer_act_signed`         | Статус = `transferred` і підписаний акт не прикріплений (якщо перехід був з `returned`, новий акт обов'язковий) |
-| `not_registered_at_service_center`    | Статус = `transferred` і `isRegisteredAtServiceCenter = false`                                                  |
-| `missing_return_act`                  | Статус = `returned` і акт повернення не прикріплений                                                            |
+| Алерт                                 | Умова                                                                                                            |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `missing_registration_doc`            | Статус у `paid/in_transit/arrived/in_repair/ready/transferred/returned` і техпаспорт без печатки не прикріплений |
+| `missing_stamped_registration_doc`    | Статус у `arrived/in_repair/ready/transferred/returned` і техпаспорт з печаткою не прикріплений                  |
+| `missing_customs_declaration`         | Статус у `in_transit/arrived/in_repair/ready/transferred/returned`, покупка не локальна, декларація відсутня     |
+| `missing_stamped_customs_declaration` | Статус у `arrived/in_repair/ready/transferred/returned`, покупка не локальна, скан з печатками відсутній         |
+| `missing_transfer_act_draft`          | Статус у `ready/transferred` і актуальна чернетка акту не прикріплена                                            |
+| `missing_transfer_act_signed`         | Статус = `transferred` і підписаний акт не прикріплений (якщо перехід був з `returned`, новий акт обов'язковий)  |
+| `not_registered_at_service_center`    | Статус = `transferred` і `isRegisteredAtServiceCenter = false`                                                   |
+| `missing_return_act`                  | Статус = `returned` і акт повернення не прикріплений                                                             |
 
 ### Алерти — обчислювані на льоту (Postgres Views)
 

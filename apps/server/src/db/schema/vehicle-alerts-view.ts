@@ -28,6 +28,22 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
       )
 
     UNION ALL
+    SELECT v.id AS vehicle_id, 'missing_stamped_registration_doc'::text AS type
+    FROM vehicles v
+    WHERE v.deleted_at IS NULL
+      AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')
+      AND NOT EXISTS (
+        SELECT 1
+        FROM vehicle_status_history h
+        JOIN documents d
+          ON d.id = h.stamped_registration_doc_id
+         AND d.deleted_at IS NULL
+         AND d.organization_id = v.organization_id
+        WHERE h.vehicle_id = v.id
+          AND h.organization_id = v.organization_id
+      )
+
+    UNION ALL
     SELECT v.id, 'missing_customs_declaration'
     FROM vehicles v
     WHERE v.deleted_at IS NULL

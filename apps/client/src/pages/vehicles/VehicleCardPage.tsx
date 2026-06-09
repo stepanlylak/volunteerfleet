@@ -810,7 +810,11 @@ export function VehicleCardPage() {
                   items={(history?.items ?? []).map((item) => {
                     const cfg = VEHICLE_STATUS_CONFIG[item.newStatus];
                     const docs: { label: string; docId: string | null }[] = [
-                      { label: 'Техпаспорт', docId: item.registrationDocId ?? null },
+                      { label: 'Техпаспорт без печатки', docId: item.registrationDocId ?? null },
+                      {
+                        label: 'Техпаспорт з печаткою',
+                        docId: item.stampedRegistrationDocId ?? null,
+                      },
                       { label: 'Митна декларація', docId: item.customsDeclarationDocId ?? null },
                       {
                         label: 'Митна декларація з печатками',

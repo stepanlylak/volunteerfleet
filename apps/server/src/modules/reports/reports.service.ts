@@ -463,6 +463,7 @@ export class ReportsService {
       isRegisteredAtServiceCenter: row.isRegisteredAtServiceCenter,
       lostReason: row.lostReason,
       registrationDocId: row.registrationDocId,
+      stampedRegistrationDocId: row.stampedRegistrationDocId,
       customsDeclarationDocId: row.customsDeclarationDocId,
       stampedCustomsDeclarationDocId: row.stampedCustomsDeclarationDocId,
       transferActDraftDocId: row.transferActDraftDocId,

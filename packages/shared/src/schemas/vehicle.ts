@@ -115,6 +115,7 @@ export const vehicleStatusHistorySchema = z.object({
   lostReason: z.string().nullable(),
 
   registrationDocId: uuidSchema.nullable(),
+  stampedRegistrationDocId: uuidSchema.nullable(),
   customsDeclarationDocId: uuidSchema.nullable(),
   stampedCustomsDeclarationDocId: uuidSchema.nullable(),
   transferActDraftDocId: uuidSchema.nullable(),

@@ -43,7 +43,7 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
       return [
         {
           fieldKey: 'registrationDocId',
-          label: 'Техпаспорт',
+          label: 'Техпаспорт без печатки митниці',
           documentType: 'registration_certificate',
           currentDocId: entry.registrationDocId ?? null,
         },
@@ -60,10 +60,10 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
     case 'arrived':
       return [
         {
-          fieldKey: 'registrationDocId',
-          label: 'Техпаспорт',
+          fieldKey: 'stampedRegistrationDocId',
+          label: 'Техпаспорт з печаткою митниці',
           documentType: 'registration_certificate',
-          currentDocId: entry.registrationDocId ?? null,
+          currentDocId: entry.stampedRegistrationDocId ?? null,
         },
         {
           fieldKey: 'stampedCustomsDeclarationDocId',
@@ -245,7 +245,7 @@ export function StatusHistoryEditModal({
             borderCrossingDate: values.borderCrossingDate
               ? values.borderCrossingDate.format('YYYY-MM-DD')
               : null,
-            registrationDocId: docIds['registrationDocId'] ?? null,
+            stampedRegistrationDocId: docIds['stampedRegistrationDocId'] ?? null,
             stampedCustomsDeclarationDocId: docIds['stampedCustomsDeclarationDocId'] ?? null,
           };
           break;

@@ -91,7 +91,7 @@ export const transitionToPaidSchema = baseTransitionSchema
     targetStatus: z.literal('paid'),
     ...purchasePriceFields,
     isLocalPurchase: z.boolean().default(false),
-    registrationDocId: documentRefField('Техпаспорт'),
+    registrationDocId: documentRefField('Техпаспорт без печатки митниці'),
   })
   .strict();
 
@@ -110,7 +110,7 @@ export const transitionToArrivedSchema = baseTransitionSchema
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional()
       .nullable(),
-    registrationDocId: documentRefField('Техпаспорт'),
+    stampedRegistrationDocId: documentRefField('Техпаспорт з печаткою митниці'),
     stampedCustomsDeclarationDocId: documentRefField('Скан митної декларації з печатками'),
   })
   .strict();
@@ -176,6 +176,7 @@ export type VehicleStatusHistoryEditRequest = z.infer<typeof vehicleStatusHistor
 
 export const VEHICLE_ALERT_TYPES = [
   'missing_registration_doc',
+  'missing_stamped_registration_doc',
   'missing_customs_declaration',
   'missing_stamped_customs_declaration',
   'missing_transfer_act_draft',
@@ -186,7 +187,8 @@ export const VEHICLE_ALERT_TYPES = [
 export type VehicleAlertType = (typeof VEHICLE_ALERT_TYPES)[number];
 
 export const VEHICLE_ALERT_CONFIG: Record<VehicleAlertType, { message: string }> = {
-  missing_registration_doc: { message: 'Відсутній техпаспорт' },
+  missing_registration_doc: { message: 'Відсутній техпаспорт без печатки митниці' },
+  missing_stamped_registration_doc: { message: 'Відсутній техпаспорт з печаткою митниці' },
   missing_customs_declaration: { message: 'Відсутня митна декларація' },
   missing_stamped_customs_declaration: { message: 'Відсутній скан митної декларації з печатками' },
   missing_transfer_act_draft: { message: 'Відсутній чернетковий акт приймання-передачі' },

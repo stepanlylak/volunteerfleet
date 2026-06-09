@@ -45,7 +45,7 @@ const TRANSITION_DOC_SLOTS: Partial<Record<VehicleStatus, DocSlot[]>> = {
   paid: [
     {
       fieldKey: 'registrationDocId',
-      label: 'Техпаспорт',
+      label: 'Техпаспорт без печатки митниці',
       documentType: 'registration_certificate',
     },
   ],
@@ -58,8 +58,8 @@ const TRANSITION_DOC_SLOTS: Partial<Record<VehicleStatus, DocSlot[]>> = {
   ],
   arrived: [
     {
-      fieldKey: 'registrationDocId',
-      label: 'Техпаспорт',
+      fieldKey: 'stampedRegistrationDocId',
+      label: 'Техпаспорт з печаткою митниці',
       documentType: 'registration_certificate',
     },
     {
@@ -248,7 +248,7 @@ export function StatusTransitionModal({
             borderCrossingDate: values.borderCrossingDate
               ? values.borderCrossingDate.format('YYYY-MM-DD')
               : null,
-            registrationDocId: docIds['registrationDocId'] ?? null,
+            stampedRegistrationDocId: docIds['stampedRegistrationDocId'] ?? null,
             stampedCustomsDeclarationDocId: docIds['stampedCustomsDeclarationDocId'] ?? null,
           };
           break;
