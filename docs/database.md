@@ -236,15 +236,17 @@ CREATE TYPE funding_source_type  AS ENUM ('donor', 'fundraiser', 'initiative', '
 ## Міграції
 
 Цикл: змінити `src/db/schema/*.ts` → `pnpm db:generate` (drizzle-kit згенерує `drizzle/000X_*.sql`) →
-перевірити SQL очима й закоммітити → `pnpm db:migrate`. Початкова `0000_init.sql` створює всі enums,
-таблиці й індекси. Наявні міграції:
+перевірити SQL очима й закоммітити → `pnpm db:migrate`.
 
-| Міграція                                | Що додає                                            |
-| --------------------------------------- | --------------------------------------------------- |
-| `0000_init.sql`                         | Базова схема: enums, всі таблиці, індекси, CHECK-и. |
-| `0001_vehicle_photos.sql`               | Таблиця `vehicle_photos`.                           |
-| `0002_vehicle_status_kind_color.sql`    | `vehicle_statuses.kind` + `color` (з backfill).     |
-| `0003_vehicle_border_crossing_date.sql` | `vehicles.border_crossing_date`.                    |
+Історію міграцій скинуто 2026-06-10, оскільки проєкт у pre-prod і БД можна перестворити:
+
+| Міграція                       | Що додає                                                       |
+| ------------------------------ | -------------------------------------------------------------- |
+| `0000_init.sql`                | Фінальна базова схема: enums, таблиці, індекси, CHECK-и, view. |
+| `0001_vehicle_alerts_view.sql` | Custom `CREATE OR REPLACE VIEW vehicle_alerts_view`.           |
+
+Цей baseline застосовується лише до чистої БД. Ручний повторний прогін окремих SQL-файлів поверх
+старої схеми не підтримується; локальну БД у такому разі потрібно перестворити.
 
 ## Seed-дані
 
