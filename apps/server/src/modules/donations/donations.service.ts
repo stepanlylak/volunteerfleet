@@ -77,7 +77,7 @@ export class DonationsService {
 
     const conditions: SQL<unknown>[] = [eq(donations.organizationId, organizationId)];
     if (!includeDeleted) {
-      conditions.push(isNull(donations.deletedAt));
+      conditions.push(isNull(donations.deletedAt), this.hasJoinedActiveVehicle());
     }
     if (donorId) conditions.push(eq(donations.donorId, donorId));
     if (vehicleId) conditions.push(eq(donations.vehicleId, vehicleId));
@@ -91,6 +91,7 @@ export class DonationsService {
     const countResult = await this.db
       .select({ count: sql<number>`count(*)::int` })
       .from(donations)
+      .leftJoin(vehicles, eq(vehicles.id, donations.vehicleId))
       .where(whereClause);
     const total = countResult[0]?.count ?? 0;
 
@@ -102,6 +103,7 @@ export class DonationsService {
     const pageRows = await this.db
       .select({ id: donations.id })
       .from(donations)
+      .leftJoin(vehicles, eq(vehicles.id, donations.vehicleId))
       .where(whereClause)
       .orderBy(...orderBy)
       .limit(pageSize)
@@ -138,11 +140,13 @@ export class DonationsService {
       const visibleRows = await this.db
         .select({ id: donations.id })
         .from(donations)
+        .leftJoin(vehicles, eq(vehicles.id, donations.vehicleId))
         .where(
           and(
             eq(donations.id, id),
             eq(donations.organizationId, organizationId),
             isNull(donations.deletedAt),
+            this.hasJoinedActiveVehicle(),
           ),
         )
         .limit(1);
@@ -417,9 +421,22 @@ export class DonationsService {
     if (input.currency !== undefined) updateValues.currency = input.currency;
     if (input.description !== undefined) updateValues.description = input.description;
 
-    // Rate resolution: PATCH does not recalculate rate
-    // Only update rate if explicitly provided in input
-    if (input.rate !== undefined) {
+    // Rate resolution
+    if (input.currency !== undefined && input.currency !== existing.currency) {
+      if (input.currency === BASE_CURRENCY) {
+        updateValues.rate = '1.000000';
+        updateValues.rateSource = 'default';
+      } else if (input.rate !== undefined) {
+        updateValues.rate = input.rate.toFixed(6);
+        updateValues.rateSource = 'manual';
+      } else {
+        const date = input.donationDate ?? existing.donationDate;
+        updateValues.rate = this.exchangeRates
+          .getRate(new Date(date), input.currency as Currency)
+          .toFixed(6);
+        updateValues.rateSource = 'default';
+      }
+    } else if (input.rate !== undefined) {
       updateValues.rate = input.rate.toFixed(6);
       updateValues.rateSource = 'manual';
     }
@@ -503,6 +520,10 @@ export class DonationsService {
       updatedByUser: { columns: { id: true, fullName: true } },
       deletedByUser: { columns: { id: true, fullName: true } },
     } as const;
+  }
+
+  private hasJoinedActiveVehicle(): SQL<unknown> {
+    return isNull(vehicles.deletedAt);
   }
 
   private toUserInfo(row: { id: string; fullName: string } | null | undefined): ExpenseUserInfo {

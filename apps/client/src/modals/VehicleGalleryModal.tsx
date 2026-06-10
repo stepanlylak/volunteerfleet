@@ -17,8 +17,6 @@ import {
   message,
 } from 'antd';
 import {
-  ArrowDownOutlined,
-  ArrowUpOutlined,
   CheckCircleOutlined,
   CheckCircleTwoTone,
   DeleteOutlined,
@@ -46,6 +44,33 @@ import {
 } from '../hooks/useVehicleGalleries';
 import { vehicleGalleriesApi } from '../api/vehicle-galleries.api';
 import { zodToAntdFields } from '../utils/zod-antd';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface SortableItemWrapperProps {
+  id: string;
+  disabled: boolean;
+  children: (sortable: ReturnType<typeof useSortable>) => React.ReactNode;
+}
+
+function SortableItemWrapper({ id, disabled, children }: SortableItemWrapperProps) {
+  const sortable = useSortable({ id, disabled });
+  return <>{children(sortable)}</>;
+}
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
 const MAX_UPLOAD_BYTES = 26_214_400;
@@ -92,8 +117,45 @@ export function VehicleGalleryModal({
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [moveTargetGalleryId, setMoveTargetGalleryId] = useState<string | null>(null);
 
-  const currentItemCount = gallery?.items.length ?? 0;
+  const [localItems, setLocalItems] = useState<VehicleGalleryItemResponse[]>([]);
+
+  useEffect(() => {
+    setLocalItems(gallery?.items ?? []);
+  }, [gallery?.items]);
+
+  const currentItemCount = localItems.length;
   const remainingSlots = VEHICLE_GALLERY_MAX_ITEMS - currentItemCount;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !gallery) return;
+
+    const oldIndex = localItems.findIndex((item) => item.id === active.id);
+    const newIndex = localItems.findIndex((item) => item.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const items = [...localItems];
+      const [movedItem] = items.splice(oldIndex, 1);
+      items.splice(newIndex, 0, movedItem!);
+
+      setLocalItems(items);
+
+      try {
+        await reorderItems.mutateAsync({
+          galleryId: gallery.id,
+          payload: { itemIds: items.map((it) => it.id) },
+        });
+      } catch (err: unknown) {
+        setLocalItems(gallery.items);
+        handleApiError(err);
+      }
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -119,11 +181,11 @@ export function VehicleGalleryModal({
 
       if (isEdit && gallery) {
         const updatePayload = isMain
-          ? { description: values.description.trim() || null }
+          ? { description: values.description?.trim() || null }
           : {
-              name: values.name.trim(),
-              description: values.description.trim() || null,
-              isPublic: values.isPublic,
+              name: values.name?.trim() || '',
+              description: values.description?.trim() || null,
+              isPublic: values.isPublic ?? false,
             };
         const parsed = vehicleGalleryUpdateSchema.safeParse(updatePayload);
         if (!parsed.success) {
@@ -133,9 +195,9 @@ export function VehicleGalleryModal({
         await updateGallery.mutateAsync({ galleryId: gallery.id, payload: parsed.data });
       } else {
         const createPayload = {
-          name: values.name.trim(),
-          description: values.description.trim() || null,
-          isPublic: values.isPublic,
+          name: values.name?.trim() || '',
+          description: values.description?.trim() || null,
+          isPublic: values.isPublic ?? false,
         };
         const parsed = vehicleGalleryCreateSchema.safeParse(createPayload);
         if (!parsed.success) {
@@ -172,24 +234,6 @@ export function VehicleGalleryModal({
       });
       setEditingCaptionId(null);
       message.success('Підпис оновлено');
-    } catch (err: unknown) {
-      handleApiError(err);
-    }
-  };
-
-  const handleReorder = async (itemIndex: number, direction: -1 | 1) => {
-    if (!gallery) return;
-    const items = [...gallery.items];
-    const targetIndex = itemIndex + direction;
-    if (targetIndex < 0 || targetIndex >= items.length) return;
-    const temp = items[itemIndex]!;
-    items[itemIndex] = items[targetIndex]!;
-    items[targetIndex] = temp;
-    try {
-      await reorderItems.mutateAsync({
-        galleryId: gallery.id,
-        payload: { itemIds: items.map((it) => it.id) },
-      });
     } catch (err: unknown) {
       handleApiError(err);
     }
@@ -271,61 +315,76 @@ export function VehicleGalleryModal({
     >
       <Form form={form} layout="vertical" onFinish={handleFinish} disabled={!canMutate}>
         {!isMain && (
-          <Form.Item
-            name="name"
-            label="Назва"
-            rules={[{ required: true, message: 'Введіть назву галереї' }]}
-          >
-            <Input maxLength={255} placeholder="Назва галереї" />
-          </Form.Item>
+          <Space size="large" align="start" style={{ width: '100%', marginBottom: 16 }}>
+            <Form.Item
+              name="name"
+              label="Назва"
+              rules={[{ required: true, message: 'Введіть назву галереї' }]}
+              style={{ flex: 1, marginBottom: 0 }}
+            >
+              <Input maxLength={255} placeholder="Назва галереї" />
+            </Form.Item>
+            <Form.Item name="isPublic" label="Публічна" valuePropName="checked" style={{ marginBottom: 0 }}>
+              <Switch />
+            </Form.Item>
+          </Space>
         )}
-        <Form.Item name="description" label="Опис">
-          <Input.TextArea rows={3} maxLength={2000} showCount placeholder="Опис галереї" />
-        </Form.Item>
-        {!isMain && (
-          <Form.Item name="isPublic" label="Публічна" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-        )}
-      </Form>
 
-      {isEdit && gallery && (
-        <>
-          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-            Фото: {currentItemCount} / {VEHICLE_GALLERY_MAX_ITEMS}
-          </Typography.Text>
+        {isEdit && gallery && (
+          <>
+            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+              Фото: {currentItemCount} / {VEHICLE_GALLERY_MAX_ITEMS}
+            </Typography.Text>
 
-          {gallery.items.length > 0 ? (
-            <Image.PreviewGroup>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                  gap: 12,
-                  marginBottom: 16,
-                }}
-              >
-                {gallery.items.map((item, index) => {
-                  const isExplicitCover = gallery.explicitCoverItemId === item.id;
-                  const isEffectiveCover = gallery.effectiveCoverItemId === item.id;
-                  const isEditingCaption = editingCaptionId === item.id;
-                  const isMoving = movingItemId === item.id;
+          {localItems.length > 0 ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={localItems.map((i) => i.id)} strategy={rectSortingStrategy}>
+                <Image.PreviewGroup>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                      gap: 12,
+                      marginBottom: 16,
+                    }}
+                  >
+                    {localItems.map((item) => {
+                      const isExplicitCover = gallery.explicitCoverItemId === item.id;
+                      const isEffectiveCover = gallery.effectiveCoverItemId === item.id;
+                      const isEditingCaption = editingCaptionId === item.id;
+                      const isMoving = movingItemId === item.id;
 
-                  return (
-                    <div
-                      key={item.id}
-                      style={{
-                        border: isExplicitCover
-                          ? '2px solid #1677ff'
-                          : isEffectiveCover
-                            ? '2px dashed #1677ff'
-                            : '1px solid #d9d9d9',
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        background: '#fff',
-                      }}
-                    >
-                      <div style={{ position: 'relative', aspectRatio: '4 / 3' }}>
+                      return (
+                        <SortableItemWrapper
+                          key={item.id}
+                          id={item.id}
+                          disabled={!canMutate || isEditingCaption || isMoving}
+                        >
+                          {({ setNodeRef, attributes, listeners, transform, transition, isDragging }) => (
+                            <div
+                              ref={setNodeRef}
+                              {...attributes}
+                              {...listeners}
+                              style={{
+                                transform: CSS.Transform.toString(transform),
+                                transition,
+                                border: isExplicitCover
+                                  ? '2px solid #52c41a'
+                                  : isEffectiveCover
+                                    ? '2px dashed #52c41a'
+                                    : '1px solid #d9d9d9',
+                                borderRadius: 8,
+                                overflow: 'hidden',
+                                background: '#fff',
+                                opacity: isDragging ? 0.5 : 1,
+                                cursor: canMutate && !isEditingCaption ? 'grab' : 'default',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                aspectRatio: '4 / 3',
+                                zIndex: isDragging ? 10 : 'auto',
+                              }}
+                            >
+                      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                         <Image
                           src={vehicleGalleriesApi.getItemDownloadUrl(
                             vehicleId,
@@ -333,7 +392,8 @@ export function VehicleGalleryModal({
                             item.id,
                           )}
                           alt={item.caption ?? item.originalName}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          wrapperStyle={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
                         />
                         {isEffectiveCover && (
                           <Tag
@@ -424,28 +484,6 @@ export function VehicleGalleryModal({
                                 aria-label="Редагувати підпис"
                               />
                             </Tooltip>
-                            {index > 0 && (
-                              <Tooltip title="Вгору">
-                                <Button
-                                  size="small"
-                                  icon={<ArrowUpOutlined />}
-                                  loading={reorderItems.isPending}
-                                  onClick={() => void handleReorder(index, -1)}
-                                  aria-label="Перемістити вгору"
-                                />
-                              </Tooltip>
-                            )}
-                            {index < gallery.items.length - 1 && (
-                              <Tooltip title="Вниз">
-                                <Button
-                                  size="small"
-                                  icon={<ArrowDownOutlined />}
-                                  loading={reorderItems.isPending}
-                                  onClick={() => void handleReorder(index, 1)}
-                                  aria-label="Перемістити вниз"
-                                />
-                              </Tooltip>
-                            )}
                             <Tooltip
                               title={
                                 isExplicitCover ? 'Скинути обкладинку' : 'Встановити обкладинкою'
@@ -504,11 +542,15 @@ export function VehicleGalleryModal({
                           </Space>
                         )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Image.PreviewGroup>
+                            </div>
+                          )}
+                        </SortableItemWrapper>
+                      );
+                    })}
+                  </div>
+                </Image.PreviewGroup>
+              </SortableContext>
+            </DndContext>
           ) : (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -519,40 +561,45 @@ export function VehicleGalleryModal({
         </>
       )}
 
-      {canMutate && (isEdit ? remainingSlots > 0 : true) && (
-        <Upload.Dragger
-          multiple
-          accept={ALLOWED_MIME_TYPES.join(',')}
-          beforeUpload={(file, fileList) => {
-            if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-              message.error('Підтримуються лише JPG, PNG, WebP або HEIC');
-              return Upload.LIST_IGNORE;
-            }
-            if (file.size > MAX_UPLOAD_BYTES) {
-              message.error('Файл перевищує 25 МБ');
-              return Upload.LIST_IGNORE;
-            }
-            const totalAfter = currentItemCount + pendingFiles.length + fileList.indexOf(file) + 1;
-            if (isEdit && totalAfter > VEHICLE_GALLERY_MAX_ITEMS) {
-              message.error(`Максимум ${VEHICLE_GALLERY_MAX_ITEMS} фото у галереї`);
-              return Upload.LIST_IGNORE;
-            }
-            return false;
-          }}
-          fileList={pendingFiles}
-          onChange={({ fileList }) => setPendingFiles(fileList)}
-        >
-          <p className="ant-upload-drag-icon">
-            <InboxOutlined />
-          </p>
-          <p className="ant-upload-text">Натисніть або перетягніть фото</p>
-          {isEdit && (
-            <p className="ant-upload-hint">
-              Залишилось місць: {Math.max(0, remainingSlots - pendingFiles.length)}
+        {canMutate && (isEdit ? remainingSlots > 0 : true) && (
+          <Upload.Dragger
+            multiple
+            accept={ALLOWED_MIME_TYPES.join(',')}
+            beforeUpload={(file, fileList) => {
+              if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+                message.error('Підтримуються лише JPG, PNG, WebP або HEIC');
+                return Upload.LIST_IGNORE;
+              }
+              if (file.size > MAX_UPLOAD_BYTES) {
+                message.error('Файл перевищує 25 МБ');
+                return Upload.LIST_IGNORE;
+              }
+              const totalAfter = currentItemCount + pendingFiles.length + fileList.indexOf(file) + 1;
+              if (isEdit && totalAfter > VEHICLE_GALLERY_MAX_ITEMS) {
+                message.error(`Максимум ${VEHICLE_GALLERY_MAX_ITEMS} фото у галереї`);
+                return Upload.LIST_IGNORE;
+              }
+              return false;
+            }}
+            fileList={pendingFiles}
+            onChange={({ fileList }) => setPendingFiles(fileList)}
+          >
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
             </p>
-          )}
-        </Upload.Dragger>
-      )}
+            <p className="ant-upload-text">Натисніть або перетягніть фото</p>
+            {isEdit && (
+              <p className="ant-upload-hint">
+                Залишилось місць: {Math.max(0, remainingSlots - pendingFiles.length)}
+              </p>
+            )}
+          </Upload.Dragger>
+        )}
+
+        <Form.Item name="description" label="Опис" style={{ marginTop: 16 }}>
+          <Input.TextArea rows={3} maxLength={2000} showCount placeholder="Опис галереї" />
+        </Form.Item>
+      </Form>
     </Modal>
   );
 }

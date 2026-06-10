@@ -1,9 +1,8 @@
 import { EditOutlined } from '@ant-design/icons';
 import { Button, Form, InputNumber, Select, Space, Tooltip, Typography } from 'antd';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormInstance } from 'antd';
 import type { Currency } from '@volunteerfleet/shared';
-import { useExchangeRate } from '../hooks/useExchangeRate';
 import { formatCurrency } from '../utils/format';
 
 const CURRENCIES: Currency[] = ['UAH', 'USD', 'EUR'];
@@ -40,35 +39,53 @@ export function MoneyFields({
   onRateChange,
   onRateSourceChange,
   onAmountChange,
-  isEdit = false,
   disabled = false,
 }: MoneyFieldsProps) {
   const isRateManuallyChangedRef = useRef(false);
   const isUAH = currency === 'UAH';
   const amountUahMinor = Math.round(amount * 100 * rate);
 
-  const shouldFetchRate = !isUAH && !!date && !isEdit;
-  const { data: rateData, isFetching: rateFetching } = useExchangeRate(
-    shouldFetchRate ? date : undefined,
-    shouldFetchRate ? currency : undefined,
-  );
+  const [rateFetching, setRateFetching] = useState(false);
 
   useEffect(() => {
-    if (rateData && !isRateManuallyChangedRef.current) {
-      onRateChange(rateData.rate);
-      onRateSourceChange('default');
-      form.setFieldValue(rateFieldName, rateData.rate);
-    }
-  }, [rateData, form, rateFieldName, onRateChange, onRateSourceChange]);
+    let ignore = false;
 
-  useEffect(() => {
     if (isUAH) {
       isRateManuallyChangedRef.current = false;
       onRateChange(1);
       onRateSourceChange('default');
       form.setFieldValue(rateFieldName, 1);
+      return;
     }
-  }, [isUAH, form, rateFieldName, onRateChange, onRateSourceChange]);
+
+    if (!date || isRateManuallyChangedRef.current) return;
+
+    const fetchRate = async () => {
+      setRateFetching(true);
+      try {
+        const { exchangeRatesApi } = await import('../api/exchange-rates.api');
+        const data = await exchangeRatesApi.getRate(date, currency);
+        if (!ignore) {
+          onRateChange(data.rate);
+          onRateSourceChange('default');
+          form.setFieldValue(rateFieldName, data.rate);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (err) {
+        // ignore
+      } finally {
+        if (!ignore) {
+          setRateFetching(false);
+        }
+      }
+    };
+
+    void fetchRate();
+
+    return () => {
+      ignore = true;
+    };
+  }, [currency, date, isUAH, form, rateFieldName, onRateChange, onRateSourceChange]);
 
   const handleReset = useCallback(async () => {
     if (!date || isUAH) return;
@@ -90,13 +107,14 @@ export function MoneyFields({
           label="Сума"
           style={{ flex: 1 }}
           rules={[{ required: true, message: 'Введіть суму' }]}
+          normalize={(val) => (val === null || val === undefined || val === '' ? null : Number(val))}
         >
           <InputNumber
             min={0.01}
             precision={2}
             style={{ width: '100%' }}
             disabled={disabled}
-            onChange={(v) => onAmountChange?.(v ?? 0)}
+            onChange={(v) => onAmountChange?.(Number(v) || 0)}
           />
         </Form.Item>
         <Form.Item
@@ -139,6 +157,7 @@ export function MoneyFields({
             </Space>
           }
           rules={[{ required: true, message: 'Введіть курс' }]}
+          normalize={(val) => (val === null || val === undefined || val === '' ? null : Number(val))}
         >
           <Space.Compact style={{ width: '100%' }}>
             <InputNumber
@@ -149,10 +168,11 @@ export function MoneyFields({
               value={rate}
               onChange={(v) => {
                 if (v !== null) {
-                  onRateChange(v);
+                  const numValue = Number(v);
+                  onRateChange(numValue);
                   isRateManuallyChangedRef.current = true;
                   onRateSourceChange('manual');
-                  form.setFieldValue(rateFieldName, v);
+                  form.setFieldValue(rateFieldName, numValue);
                 }
               }}
             />

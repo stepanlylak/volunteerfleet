@@ -227,9 +227,20 @@ export class ExpensesService {
     if (input.categoryId !== undefined) updateValues.categoryId = input.categoryId;
     if (input.description !== undefined) updateValues.description = input.description;
 
-    if (input.currency === BASE_CURRENCY) {
-      updateValues.rate = '1.000000';
-      updateValues.rateSource = 'default';
+    if (input.currency !== undefined && input.currency !== existing.currency) {
+      if (input.currency === BASE_CURRENCY) {
+        updateValues.rate = '1.000000';
+        updateValues.rateSource = 'default';
+      } else if (input.rate !== undefined) {
+        updateValues.rate = input.rate.toFixed(6);
+        updateValues.rateSource = 'manual';
+      } else {
+        const date = input.expenseDate ?? existing.expenseDate;
+        updateValues.rate = this.exchangeRates
+          .getRate(new Date(date), input.currency as Currency)
+          .toFixed(6);
+        updateValues.rateSource = 'default';
+      }
     } else if (input.rate !== undefined) {
       updateValues.rate = input.rate.toFixed(6);
       updateValues.rateSource = 'manual';

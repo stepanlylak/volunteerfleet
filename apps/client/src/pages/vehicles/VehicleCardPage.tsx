@@ -175,6 +175,12 @@ export function VehicleCardPage() {
   const documents = documentsData?.items ?? [];
   const financialItems = financialData?.items ?? [];
   const financialSummary = financialData?.summary;
+  const galleries = galleriesData?.items ?? [];
+  const currentEditingGallery = editingGallery
+    ? galleries.find((g) => g.id === editingGallery.id) ?? editingGallery
+    : undefined;
+  const mainGallery = galleries.find((g) => g.kind === 'main');
+  const customGalleries = galleries.filter((g) => g.kind === 'custom');
   const filteredDocuments = documents.filter((doc) => {
     const purpose: DocumentPurpose = doc.expenseId ? 'expense' : 'general';
     if (!documentPurposeFilter.includes(purpose)) return false;
@@ -313,24 +319,81 @@ export function VehicleCardPage() {
 
       <Row gutter={[24, 24]} align="top">
         <Col xs={24} lg={8}>
-          <VehicleGalleriesSection
+          <VehicleMainGallerySection
             vehicleId={vehicle.id}
-            galleries={galleriesData?.items ?? []}
+            mainGallery={mainGallery}
             loading={galleriesLoading}
             canMutate={canMutate}
             onOpenGallery={(g) => {
               setEditingGallery(g);
               setGalleryModalOpen(true);
             }}
-            onCreateGallery={() => {
-              setEditingGallery(undefined);
-              setGalleryModalOpen(true);
-            }}
-            onDeleteGallery={async (g) => {
-              await deleteGallery.mutateAsync(g.id);
-              message.success('Галерею видалено');
-            }}
           />
+          {(customGalleries.length > 0 || canMutate) && (
+            <>
+              <Space
+                align="center"
+                style={{ justifyContent: 'space-between', width: '100%', marginBottom: 8, marginTop: 16 }}
+              >
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  ДОДАТКОВІ ГАЛЕРЕЇ
+                </Typography.Text>
+                {canMutate && (
+                  <Button
+                    size="small"
+                    type="dashed"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      setEditingGallery(undefined);
+                      setGalleryModalOpen(true);
+                    }}
+                  >
+                    Додати галерею
+                  </Button>
+                )}
+              </Space>
+              <div
+                style={{
+                  display: 'flex',
+                  overflowX: 'auto',
+                  gap: 12,
+                  paddingBottom: 8,
+                }}
+              >
+                {customGalleries.map((g) => {
+                  const coverId = g.effectiveCoverItemId;
+                  const coverUrl = coverId
+                    ? vehicleGalleriesApi.getItemDownloadUrl(vehicle.id, g.id, coverId)
+                    : null;
+                  return (
+                    <div key={g.id} style={{ minWidth: 200, width: 200, flexShrink: 0 }}>
+                      <GalleryCard
+                        gallery={g}
+                        vehicleId={vehicle.id}
+                        label={g.name ?? ''}
+                        coverUrl={coverUrl}
+                        canMutate={canMutate}
+                        small
+                        onEdit={() => {
+                          setEditingGallery(g);
+                          setGalleryModalOpen(true);
+                        }}
+                        onDelete={async () => {
+                          await deleteGallery.mutateAsync(g.id);
+                          message.success('Галерею видалено');
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+                {customGalleries.length === 0 && (
+                  <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                    Немає додаткових галерей
+                  </Typography.Text>
+                )}
+              </div>
+            </>
+          )}
         </Col>
         <Col xs={24} lg={16}>
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
@@ -1053,7 +1116,7 @@ export function VehicleCardPage() {
       <VehicleGalleryModal
         open={galleryModalOpen}
         vehicleId={vehicle.id}
-        gallery={editingGallery}
+        gallery={currentEditingGallery}
         allGalleries={galleriesData?.items ?? []}
         canMutate={canMutate}
         onClose={() => {
@@ -1083,29 +1146,22 @@ function ExpenseDocsModal({ vehicleId, expenseId, onClose }: ExpenseDocsModalPro
   );
 }
 
-interface VehicleGalleriesSectionProps {
+interface VehicleMainGallerySectionProps {
   vehicleId: string;
-  galleries: VehicleGalleryResponse[];
+  mainGallery?: VehicleGalleryResponse;
   loading: boolean;
   canMutate: boolean;
   onOpenGallery: (gallery: VehicleGalleryResponse) => void;
-  onCreateGallery: () => void;
-  onDeleteGallery: (gallery: VehicleGalleryResponse) => void;
 }
 
-function VehicleGalleriesSection({
+function VehicleMainGallerySection({
   vehicleId,
-  galleries,
+  mainGallery,
   loading,
   canMutate,
   onOpenGallery,
-  onCreateGallery,
-  onDeleteGallery,
-}: VehicleGalleriesSectionProps) {
-  const mainGallery = galleries.find((g) => g.kind === 'main');
-  const customGalleries = galleries.filter((g) => g.kind === 'custom');
-
-  if (loading && galleries.length === 0) {
+}: VehicleMainGallerySectionProps) {
+  if (loading && !mainGallery) {
     return <Skeleton.Image active style={{ width: '100%', height: 360 }} />;
   }
 
@@ -1123,27 +1179,8 @@ function VehicleGalleriesSection({
         label={VEHICLE_GALLERY_PRESENTATION.main.label}
         coverUrl={mainGallery ? getCoverUrl(mainGallery) : null}
         canMutate={canMutate}
-        onOpen={() => mainGallery && onOpenGallery(mainGallery)}
+        onEdit={() => mainGallery && onOpenGallery(mainGallery)}
       />
-
-      {customGalleries.map((g) => (
-        <GalleryCard
-          key={g.id}
-          gallery={g}
-          vehicleId={vehicleId}
-          label={g.name ?? ''}
-          coverUrl={getCoverUrl(g)}
-          canMutate={canMutate}
-          onOpen={() => onOpenGallery(g)}
-          onDelete={() => onDeleteGallery(g)}
-        />
-      ))}
-
-      {canMutate && (
-        <Button type="dashed" icon={<PlusOutlined />} block onClick={onCreateGallery}>
-          Додати галерею
-        </Button>
-      )}
     </Space>
   );
 }
@@ -1154,80 +1191,45 @@ interface GalleryCardProps {
   label: string;
   coverUrl: string | null;
   canMutate: boolean;
-  onOpen: () => void;
+  onEdit: () => void;
   onDelete?: () => void;
+  small?: boolean;
 }
 
-function GalleryCard({ gallery, label, coverUrl, canMutate, onOpen, onDelete }: GalleryCardProps) {
+function GalleryCard({ gallery, vehicleId, label, coverUrl, canMutate, onEdit, onDelete, small }: GalleryCardProps) {
+  const [previewVisible, setPreviewVisible] = useState(false);
   const isMain = gallery?.kind === 'main';
   const itemCount = gallery?.items.length ?? 0;
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') onOpen();
-      }}
       style={{
         border: '1px solid #d9d9d9',
         borderRadius: 8,
         overflow: 'hidden',
-        cursor: 'pointer',
         background: '#fff',
+        position: 'relative',
       }}
     >
-      <div
-        style={{
-          width: '100%',
-          aspectRatio: '16 / 9',
-          background: '#f5f5f5',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {coverUrl ? (
-          <img
-            src={coverUrl}
-            alt={label}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+      {canMutate && gallery && (
+        <Space
+          size={4}
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 6,
+            zIndex: 10,
+          }}
+        >
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
           />
-        ) : (
-          <PictureOutlined style={{ fontSize: 36, color: '#bfbfbf' }} />
-        )}
-      </div>
-      <div style={{ padding: '8px 12px' }}>
-        <Space style={{ justifyContent: 'space-between', width: '100%' }}>
-          <Space size="small">
-            <Typography.Text strong>{label}</Typography.Text>
-            {gallery && !gallery.isPublic && (
-              <Tooltip title="Приватна">
-                <EyeInvisibleOutlined style={{ color: '#8c8c8c' }} />
-              </Tooltip>
-            )}
-            {gallery?.isPublic && !isMain && (
-              <Tooltip title="Публічна">
-                <EyeOutlined style={{ color: '#52c41a' }} />
-              </Tooltip>
-            )}
-          </Space>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {itemCount} / {VEHICLE_GALLERY_MAX_ITEMS}
-          </Typography.Text>
-        </Space>
-        {gallery?.description && (
-          <Typography.Paragraph
-            type="secondary"
-            ellipsis={{ rows: 1 }}
-            style={{ margin: '4px 0 0', fontSize: 12 }}
-          >
-            {gallery.description}
-          </Typography.Paragraph>
-        )}
-        {canMutate && !isMain && onDelete && (
-          <Space style={{ marginTop: 4 }}>
+          {!isMain && onDelete && (
             <Popconfirm
               title="Видалити галерею?"
               description="Усі фото в цій галереї буде видалено."
@@ -1244,13 +1246,95 @@ function GalleryCard({ gallery, label, coverUrl, canMutate, onOpen, onDelete }: 
                 danger
                 icon={<DeleteOutlined />}
                 onClick={(e) => e.stopPropagation()}
-              >
-                Видалити
-              </Button>
+              />
             </Popconfirm>
+          )}
+        </Space>
+      )}
+
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          if (itemCount > 0) setPreviewVisible(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            if (itemCount > 0) setPreviewVisible(true);
+          }
+        }}
+        style={{ cursor: itemCount > 0 ? 'pointer' : 'default' }}
+      >
+        <div
+          style={{
+            width: '100%',
+            aspectRatio: '16 / 9',
+            background: '#f5f5f5',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {coverUrl ? (
+            <img
+              src={coverUrl}
+              alt={label}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <PictureOutlined style={{ fontSize: small ? 24 : 36, color: '#bfbfbf' }} />
+          )}
+        </div>
+        <div style={{ padding: small ? '6px 8px' : '8px 12px' }}>
+          <Space style={{ justifyContent: 'space-between', width: '100%' }}>
+            <Space size="small">
+              <Typography.Text strong style={{ fontSize: small ? 13 : undefined }}>
+                {label}
+              </Typography.Text>
+              {gallery && !gallery.isPublic && (
+                <Tooltip title="Приватна">
+                  <EyeInvisibleOutlined style={{ color: '#8c8c8c' }} />
+                </Tooltip>
+              )}
+              {gallery?.isPublic && !isMain && (
+                <Tooltip title="Публічна">
+                  <EyeOutlined style={{ color: '#52c41a' }} />
+                </Tooltip>
+              )}
+            </Space>
+            <Typography.Text type="secondary" style={{ fontSize: small ? 11 : 12 }}>
+              {itemCount} / {VEHICLE_GALLERY_MAX_ITEMS}
+            </Typography.Text>
           </Space>
-        )}
+          {!small && gallery?.description && (
+            <Typography.Paragraph
+              type="secondary"
+              ellipsis={{ rows: 1 }}
+              style={{ margin: '4px 0 0', fontSize: 12 }}
+            >
+              {gallery.description}
+            </Typography.Paragraph>
+          )}
+        </div>
       </div>
+
+      {gallery && gallery.items.length > 0 && (
+        <div style={{ display: 'none' }}>
+          <Image.PreviewGroup
+            preview={{
+              visible: previewVisible,
+              onVisibleChange: (vis) => setPreviewVisible(vis),
+            }}
+          >
+            {gallery.items.map((item) => (
+              <Image
+                key={item.id}
+                src={vehicleGalleriesApi.getItemDownloadUrl(vehicleId, gallery.id, item.id)}
+              />
+            ))}
+          </Image.PreviewGroup>
+        </div>
+      )}
     </div>
   );
 }

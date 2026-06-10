@@ -175,11 +175,11 @@ export function ExpenseFormModal({
       return;
     }
     const normalizedExpenseDate = values.expenseDate.format('YYYY-MM-DD');
-    const effectiveRate = values.currency === 'UAH' ? 1 : values.rate;
+    const effectiveRate = values.currency === 'UAH' ? 1 : Number(values.rate);
     const payload: ExpenseCreate = {
       vehicleId: effectiveVehicleId,
       expenseDate: normalizedExpenseDate,
-      amountMinor: Math.round(values.amount * 100),
+      amountMinor: Math.round(Number(values.amount) * 100),
       currency: values.currency,
       rate: effectiveRate,
       categoryId: values.categoryId,
