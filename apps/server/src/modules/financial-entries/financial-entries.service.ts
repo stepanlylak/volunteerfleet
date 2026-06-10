@@ -242,7 +242,7 @@ export class FinancialEntriesService {
         d.created_at,
         0::int AS document_count
       FROM ${donations} d
-      INNER JOIN ${vehicles} v ON v.id = d.vehicle_id
+      INNER JOIN ${vehicles} v ON v.id = d.vehicle_id AND v.deleted_at IS NULL
       LEFT JOIN financial_categories fc ON fc.id = d.category_id
       INNER JOIN donors dn ON dn.id = d.donor_id
       WHERE d.organization_id = ${organizationId}

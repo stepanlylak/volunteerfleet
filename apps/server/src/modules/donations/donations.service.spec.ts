@@ -332,6 +332,7 @@ describe('DonationsService', () => {
         donorId,
         rate: '41.230000',
         rateSource: 'default',
+        currency: 'USD',
       });
       mockUpdate();
 
@@ -368,6 +369,29 @@ describe('DonationsService', () => {
       );
 
       expect(insertedValues).toMatchObject({ rate: '45.500000', rateSource: 'manual' });
+    });
+
+    it('forces UAH rate to 1 on update without explicit rate', async () => {
+      db.query.donations.findFirst.mockResolvedValue({
+        id: '22222222-2222-2222-2222-222222222222',
+        organizationId: orgId,
+        donorId,
+        rate: '41.230000',
+        rateSource: 'default',
+        currency: 'USD',
+      });
+      mockUpdate();
+
+      await svc.update(
+        '22222222-2222-2222-2222-222222222222',
+        {
+          currency: 'UAH',
+        },
+        userId,
+        orgId,
+      );
+
+      expect(insertedValues).toMatchObject({ rate: '1.000000', rateSource: 'default' });
     });
 
     it('throws 404 when donation not found on update', async () => {
@@ -445,14 +469,18 @@ describe('DonationsService', () => {
       db.select
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([{ count: 0 }]),
+            leftJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([{ count: 0 }]),
+            }),
           }),
         })
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              orderBy: vi.fn().mockReturnValue({
-                limit: limitMock,
+            leftJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockReturnValue({
+                  limit: limitMock,
+                }),
               }),
             }),
           }),
@@ -483,8 +511,10 @@ describe('DonationsService', () => {
     it('returns donation by id', async () => {
       db.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{ id: '22222222-2222-2222-2222-222222222222' }]),
+          leftJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ id: '22222222-2222-2222-2222-222222222222' }]),
+            }),
           }),
         }),
       });
@@ -518,8 +548,10 @@ describe('DonationsService', () => {
     it('throws 404 when donation not found', async () => {
       db.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
+          leftJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([]),
+            }),
           }),
         }),
       });
