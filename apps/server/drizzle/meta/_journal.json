@@ -5,43 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1780968357154,
-      "tag": "0000_wealthy_catseye",
+      "when": 1781050131956,
+      "tag": "0000_init",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1781000000000,
+      "when": 1781050136977,
       "tag": "0001_vehicle_alerts_view",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1781009884951,
-      "tag": "0002_nervous_king_cobra",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1781010072921,
-      "tag": "0003_groovy_pandemic",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1781010204160,
-      "tag": "0004_spotty_boomerang",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1781010745447,
-      "tag": "0005_youthful_absorbing_man",
       "breakpoints": true
     }
   ]

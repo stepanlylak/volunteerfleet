@@ -1,6 +1,6 @@
 {
-  "id": "81e1c54d-827e-44fb-bbf8-a26f5d6f4f09",
-  "prevId": "ac515fb1-9704-4fea-a7cb-70292d38ee8a",
+  "id": "03f8b644-7df4-417f-aa75-164e83ec3f0f",
+  "prevId": "74a15c27-7285-4aa3-bb51-eb213cfbe938",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -86,25 +86,25 @@
             }
           ],
           "isUnique": true,
-          "where": "\"users\".\"deleted_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"users\".\"deleted_at\" IS NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "users_last_active_org_id_organizations_id_fk": {
           "name": "users_last_active_org_id_organizations_id_fk",
           "tableFrom": "users",
-          "tableTo": "organizations",
           "columnsFrom": [
             "last_active_org_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -182,25 +182,25 @@
             }
           ],
           "isUnique": true,
-          "where": "\"organizations\".\"deleted_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"organizations\".\"deleted_at\" IS NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "organizations_created_by_users_id_fk": {
           "name": "organizations_created_by_users_id_fk",
           "tableFrom": "organizations",
-          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -272,9 +272,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "organization_members_user_id_idx": {
           "name": "organization_members_user_id_idx",
@@ -287,9 +287,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "organization_members_organization_id_idx": {
           "name": "organization_members_organization_id_idx",
@@ -302,37 +302,37 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "organization_members_organization_id_organizations_id_fk": {
           "name": "organization_members_organization_id_organizations_id_fk",
           "tableFrom": "organization_members",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "organization_members_user_id_users_id_fk": {
           "name": "organization_members_user_id_users_id_fk",
           "tableFrom": "organization_members",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -341,8 +341,619 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.expense_categories": {
-      "name": "expense_categories",
+    "public.donors": {
+      "name": "donors",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "normalized_name": {
+          "name": "normalized_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "donors_normalized_name_idx": {
+          "name": "donors_normalized_name_idx",
+          "columns": [
+            {
+              "expression": "normalized_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "donors_created_by_users_id_fk": {
+          "name": "donors_created_by_users_id_fk",
+          "tableFrom": "donors",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.organization_donors": {
+      "name": "organization_donors",
+      "schema": "",
+      "columns": {
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "donor_id": {
+          "name": "donor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "added_by": {
+          "name": "added_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "organization_donors_organization_active_idx": {
+          "name": "organization_donors_organization_active_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "is_active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "organization_donors_donor_id_idx": {
+          "name": "organization_donors_donor_id_idx",
+          "columns": [
+            {
+              "expression": "donor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "organization_donors_organization_id_organizations_id_fk": {
+          "name": "organization_donors_organization_id_organizations_id_fk",
+          "tableFrom": "organization_donors",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "tableTo": "organizations",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "organization_donors_donor_id_donors_id_fk": {
+          "name": "organization_donors_donor_id_donors_id_fk",
+          "tableFrom": "organization_donors",
+          "columnsFrom": [
+            "donor_id"
+          ],
+          "tableTo": "donors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "organization_donors_added_by_users_id_fk": {
+          "name": "organization_donors_added_by_users_id_fk",
+          "tableFrom": "organization_donors",
+          "columnsFrom": [
+            "added_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "organization_donors_updated_by_users_id_fk": {
+          "name": "organization_donors_updated_by_users_id_fk",
+          "tableFrom": "organization_donors",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {
+        "organization_donors_pkey": {
+          "name": "organization_donors_pkey",
+          "columns": [
+            "organization_id",
+            "donor_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.donations": {
+      "name": "donations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "donor_id": {
+          "name": "donor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "donation_date": {
+          "name": "donation_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_minor": {
+          "name": "amount_minor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "currency_code",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rate": {
+          "name": "rate",
+          "type": "numeric(14, 6)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rate_source": {
+          "name": "rate_source",
+          "type": "rate_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "donations_organization_id_idx": {
+          "name": "donations_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "donations_organization_date_idx": {
+          "name": "donations_organization_date_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "donation_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "donations_organization_donor_vehicle_idx": {
+          "name": "donations_organization_donor_vehicle_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "donor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "donations_donor_organization_vehicle_idx": {
+          "name": "donations_donor_organization_vehicle_idx",
+          "columns": [
+            {
+              "expression": "donor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "donations_organization_category_idx": {
+          "name": "donations_organization_category_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "donations_organization_vehicle_idx": {
+          "name": "donations_organization_vehicle_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "donations_organization_id_organizations_id_fk": {
+          "name": "donations_organization_id_organizations_id_fk",
+          "tableFrom": "donations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "tableTo": "organizations",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "donations_donor_id_donors_id_fk": {
+          "name": "donations_donor_id_donors_id_fk",
+          "tableFrom": "donations",
+          "columnsFrom": [
+            "donor_id"
+          ],
+          "tableTo": "donors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "donations_vehicle_id_vehicles_id_fk": {
+          "name": "donations_vehicle_id_vehicles_id_fk",
+          "tableFrom": "donations",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "tableTo": "vehicles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "donations_category_id_financial_categories_id_fk": {
+          "name": "donations_category_id_financial_categories_id_fk",
+          "tableFrom": "donations",
+          "columnsFrom": [
+            "category_id"
+          ],
+          "tableTo": "financial_categories",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "donations_created_by_users_id_fk": {
+          "name": "donations_created_by_users_id_fk",
+          "tableFrom": "donations",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "donations_updated_by_users_id_fk": {
+          "name": "donations_updated_by_users_id_fk",
+          "tableFrom": "donations",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "donations_deleted_by_users_id_fk": {
+          "name": "donations_deleted_by_users_id_fk",
+          "tableFrom": "donations",
+          "columnsFrom": [
+            "deleted_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "donations_organization_donor_fk": {
+          "name": "donations_organization_donor_fk",
+          "tableFrom": "donations",
+          "columnsFrom": [
+            "organization_id",
+            "donor_id"
+          ],
+          "tableTo": "organization_donors",
+          "columnsTo": [
+            "organization_id",
+            "donor_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "donations_amount_minor_positive": {
+          "name": "donations_amount_minor_positive",
+          "value": "\"donations\".\"amount_minor\" > 0"
+        },
+        "donations_rate_positive": {
+          "name": "donations_rate_positive",
+          "value": "\"donations\".\"rate\" > 0"
+        },
+        "donations_rate_one_for_uah": {
+          "name": "donations_rate_one_for_uah",
+          "value": "\"donations\".\"currency\" != 'UAH' OR \"donations\".\"rate\" = 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.financial_categories": {
+      "name": "financial_categories",
       "schema": "",
       "columns": {
         "id": {
@@ -384,93 +995,12 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "expense_categories_name_unique": {
-          "name": "expense_categories_name_unique",
-          "nullsNotDistinct": false,
+        "financial_categories_name_unique": {
+          "name": "financial_categories_name_unique",
           "columns": [
             "name"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.funding_sources": {
-      "name": "funding_sources",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "funding_source_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "funding_sources_organization_id_organizations_id_fk": {
-          "name": "funding_sources_organization_id_organizations_id_fk",
-          "tableFrom": "funding_sources",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
           ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "funding_sources_name_unique": {
-          "name": "funding_sources_name_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -563,15 +1093,15 @@
           "primaryKey": false,
           "notNull": false
         },
-        "public_collected_amount_uah": {
-          "name": "public_collected_amount_uah",
-          "type": "numeric(14, 2)",
+        "public_collected_amount_uah_minor": {
+          "name": "public_collected_amount_uah_minor",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false
         },
-        "public_goal_amount_uah": {
-          "name": "public_goal_amount_uah",
-          "type": "numeric(14, 2)",
+        "public_goal_amount_uah_minor": {
+          "name": "public_goal_amount_uah_minor",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false
         },
@@ -626,10 +1156,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"vehicles\".\"deleted_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"vehicles\".\"deleted_at\" IS NULL",
+          "concurrently": false
         },
         "vehicles_organization_id_idx": {
           "name": "vehicles_organization_id_idx",
@@ -642,9 +1172,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vehicles_status_idx": {
           "name": "vehicles_status_idx",
@@ -657,9 +1187,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vehicles_brand_model_idx": {
           "name": "vehicles_brand_model_idx",
@@ -678,24 +1208,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vehicles_vin_lower_idx": {
           "name": "vehicles_vin_lower_idx",
           "columns": [
             {
               "expression": "lower(\"vin\")",
-              "asc": true,
               "isExpression": true,
+              "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vehicles_is_public_idx": {
           "name": "vehicles_is_public_idx",
@@ -708,63 +1238,611 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "vehicles_organization_id_organizations_id_fk": {
           "name": "vehicles_organization_id_organizations_id_fk",
           "tableFrom": "vehicles",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicles_created_by_users_id_fk": {
           "name": "vehicles_created_by_users_id_fk",
           "tableFrom": "vehicles",
-          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicles_updated_by_users_id_fk": {
           "name": "vehicles_updated_by_users_id_fk",
           "tableFrom": "vehicles",
-          "tableTo": "users",
           "columnsFrom": [
             "updated_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicles_deleted_by_users_id_fk": {
           "name": "vehicles_deleted_by_users_id_fk",
           "tableFrom": "vehicles",
-          "tableTo": "users",
           "columnsFrom": [
             "deleted_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vehicle_galleries": {
+      "name": "vehicle_galleries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "vehicle_gallery_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_public": {
+          "name": "is_public",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cover_item_id": {
+          "name": "cover_item_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "vehicle_galleries_main_active_unique": {
+          "name": "vehicle_galleries_main_active_unique",
+          "columns": [
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"vehicle_galleries\".\"kind\" = 'main' AND \"vehicle_galleries\".\"deleted_at\" IS NULL",
+          "concurrently": false
+        },
+        "vehicle_galleries_name_active_unique": {
+          "name": "vehicle_galleries_name_active_unique",
+          "columns": [
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lower(trim(\"name\"))",
+              "isExpression": true,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"vehicle_galleries\".\"deleted_at\" IS NULL",
+          "concurrently": false
+        },
+        "vehicle_galleries_org_vehicle_idx": {
+          "name": "vehicle_galleries_org_vehicle_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vehicle_galleries_vehicle_order_idx": {
+          "name": "vehicle_galleries_vehicle_order_idx",
+          "columns": [
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vehicle_galleries_organization_id_organizations_id_fk": {
+          "name": "vehicle_galleries_organization_id_organizations_id_fk",
+          "tableFrom": "vehicle_galleries",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "tableTo": "organizations",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_galleries_vehicle_id_vehicles_id_fk": {
+          "name": "vehicle_galleries_vehicle_id_vehicles_id_fk",
+          "tableFrom": "vehicle_galleries",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "tableTo": "vehicles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_galleries_cover_item_id_vehicle_gallery_items_id_fk": {
+          "name": "vehicle_galleries_cover_item_id_vehicle_gallery_items_id_fk",
+          "tableFrom": "vehicle_galleries",
+          "columnsFrom": [
+            "cover_item_id"
+          ],
+          "tableTo": "vehicle_gallery_items",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "vehicle_galleries_created_by_users_id_fk": {
+          "name": "vehicle_galleries_created_by_users_id_fk",
+          "tableFrom": "vehicle_galleries",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_galleries_updated_by_users_id_fk": {
+          "name": "vehicle_galleries_updated_by_users_id_fk",
+          "tableFrom": "vehicle_galleries",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_galleries_deleted_by_users_id_fk": {
+          "name": "vehicle_galleries_deleted_by_users_id_fk",
+          "tableFrom": "vehicle_galleries",
+          "columnsFrom": [
+            "deleted_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "vehicle_galleries_main_shape_check": {
+          "name": "vehicle_galleries_main_shape_check",
+          "value": "\"vehicle_galleries\".\"kind\" <> 'main' OR (\"vehicle_galleries\".\"name\" IS NULL AND \"vehicle_galleries\".\"is_public\" = true AND \"vehicle_galleries\".\"sort_order\" = 0)"
+        },
+        "vehicle_galleries_custom_shape_check": {
+          "name": "vehicle_galleries_custom_shape_check",
+          "value": "\"vehicle_galleries\".\"kind\" <> 'custom' OR (\"vehicle_galleries\".\"name\" IS NOT NULL AND length(trim(\"vehicle_galleries\".\"name\")) > 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.vehicle_gallery_items": {
+      "name": "vehicle_gallery_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gallery_id": {
+          "name": "gallery_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "vehicle_gallery_item_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_key": {
+          "name": "file_key",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_name": {
+          "name": "original_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "caption": {
+          "name": "caption",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "vehicle_gallery_items_org_vehicle_gallery_idx": {
+          "name": "vehicle_gallery_items_org_vehicle_gallery_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "gallery_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vehicle_gallery_items_gallery_order_idx": {
+          "name": "vehicle_gallery_items_gallery_order_idx",
+          "columns": [
+            {
+              "expression": "gallery_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vehicle_gallery_items_gallery_order_active_unique": {
+          "name": "vehicle_gallery_items_gallery_order_active_unique",
+          "columns": [
+            {
+              "expression": "gallery_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"vehicle_gallery_items\".\"deleted_at\" IS NULL",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vehicle_gallery_items_organization_id_organizations_id_fk": {
+          "name": "vehicle_gallery_items_organization_id_organizations_id_fk",
+          "tableFrom": "vehicle_gallery_items",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "tableTo": "organizations",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_gallery_items_vehicle_id_vehicles_id_fk": {
+          "name": "vehicle_gallery_items_vehicle_id_vehicles_id_fk",
+          "tableFrom": "vehicle_gallery_items",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "tableTo": "vehicles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_gallery_items_gallery_id_vehicle_galleries_id_fk": {
+          "name": "vehicle_gallery_items_gallery_id_vehicle_galleries_id_fk",
+          "tableFrom": "vehicle_gallery_items",
+          "columnsFrom": [
+            "gallery_id"
+          ],
+          "tableTo": "vehicle_galleries",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_gallery_items_created_by_users_id_fk": {
+          "name": "vehicle_gallery_items_created_by_users_id_fk",
+          "tableFrom": "vehicle_gallery_items",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_gallery_items_updated_by_users_id_fk": {
+          "name": "vehicle_gallery_items_updated_by_users_id_fk",
+          "tableFrom": "vehicle_gallery_items",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_gallery_items_deleted_by_users_id_fk": {
+          "name": "vehicle_gallery_items_deleted_by_users_id_fk",
+          "tableFrom": "vehicle_gallery_items",
+          "columnsFrom": [
+            "deleted_by"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -836,41 +1914,9 @@
           "notNull": true,
           "default": "now()"
         },
-        "purchase_price": {
-          "name": "purchase_price",
-          "type": "numeric(14, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "purchase_currency": {
-          "name": "purchase_currency",
-          "type": "currency_code",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "purchase_rate": {
-          "name": "purchase_rate",
-          "type": "numeric(14, 6)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "purchase_rate_source": {
-          "name": "purchase_rate_source",
-          "type": "rate_source",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
         "is_local_purchase": {
           "name": "is_local_purchase",
           "type": "boolean",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "repair_note": {
-          "name": "repair_note",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -888,6 +1934,12 @@
         },
         "registration_doc_id": {
           "name": "registration_doc_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stamped_registration_doc_id": {
+          "name": "stamped_registration_doc_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -935,9 +1987,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vehicle_status_history_vehicle_changed_at_idx": {
           "name": "vehicle_status_history_vehicle_changed_at_idx",
@@ -956,9 +2008,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vehicle_status_history_transition_date_idx": {
           "name": "vehicle_status_history_transition_date_idx",
@@ -971,9 +2023,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vehicle_status_history_unique_paid_per_vehicle": {
           "name": "vehicle_status_history_unique_paid_per_vehicle",
@@ -986,144 +2038,148 @@
             }
           ],
           "isUnique": true,
-          "where": "\"vehicle_status_history\".\"new_status\" = 'paid'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"vehicle_status_history\".\"new_status\" = 'paid'",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "vehicle_status_history_organization_id_organizations_id_fk": {
           "name": "vehicle_status_history_organization_id_organizations_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicle_status_history_vehicle_id_vehicles_id_fk": {
           "name": "vehicle_status_history_vehicle_id_vehicles_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "vehicles",
           "columnsFrom": [
             "vehicle_id"
           ],
+          "tableTo": "vehicles",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "vehicle_status_history_changed_by_users_id_fk": {
           "name": "vehicle_status_history_changed_by_users_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "users",
           "columnsFrom": [
             "changed_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicle_status_history_registration_doc_id_documents_id_fk": {
           "name": "vehicle_status_history_registration_doc_id_documents_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
           "columnsFrom": [
             "registration_doc_id"
           ],
+          "tableTo": "documents",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "vehicle_status_history_stamped_registration_doc_id_documents_id_fk": {
+          "name": "vehicle_status_history_stamped_registration_doc_id_documents_id_fk",
+          "tableFrom": "vehicle_status_history",
+          "columnsFrom": [
+            "stamped_registration_doc_id"
+          ],
+          "tableTo": "documents",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicle_status_history_customs_declaration_doc_id_documents_id_fk": {
           "name": "vehicle_status_history_customs_declaration_doc_id_documents_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
           "columnsFrom": [
             "customs_declaration_doc_id"
           ],
+          "tableTo": "documents",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicle_status_history_stamped_customs_declaration_doc_id_documents_id_fk": {
           "name": "vehicle_status_history_stamped_customs_declaration_doc_id_documents_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
           "columnsFrom": [
             "stamped_customs_declaration_doc_id"
           ],
+          "tableTo": "documents",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicle_status_history_transfer_act_draft_doc_id_documents_id_fk": {
           "name": "vehicle_status_history_transfer_act_draft_doc_id_documents_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
           "columnsFrom": [
             "transfer_act_draft_doc_id"
           ],
+          "tableTo": "documents",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicle_status_history_transfer_act_signed_doc_id_documents_id_fk": {
           "name": "vehicle_status_history_transfer_act_signed_doc_id_documents_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
           "columnsFrom": [
             "transfer_act_signed_doc_id"
           ],
+          "tableTo": "documents",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "vehicle_status_history_return_act_doc_id_documents_id_fk": {
           "name": "vehicle_status_history_return_act_doc_id_documents_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
           "columnsFrom": [
             "return_act_doc_id"
           ],
+          "tableTo": "documents",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "vehicle_status_history_purchase_currency_group": {
-          "name": "vehicle_status_history_purchase_currency_group",
-          "value": "(\n        (\"vehicle_status_history\".\"purchase_price\" IS NULL AND \"vehicle_status_history\".\"purchase_currency\" IS NULL AND \"vehicle_status_history\".\"purchase_rate\" IS NULL AND \"vehicle_status_history\".\"purchase_rate_source\" IS NULL)\n        OR\n        (\"vehicle_status_history\".\"purchase_price\" IS NOT NULL AND \"vehicle_status_history\".\"purchase_currency\" IS NOT NULL AND \"vehicle_status_history\".\"purchase_rate\" IS NOT NULL AND \"vehicle_status_history\".\"purchase_rate_source\" IS NOT NULL)\n      )"
-        },
-        "vehicle_status_history_purchase_rate_one_for_uah": {
-          "name": "vehicle_status_history_purchase_rate_one_for_uah",
-          "value": "(\n        \"vehicle_status_history\".\"purchase_currency\" IS NULL\n        OR\n        \"vehicle_status_history\".\"purchase_currency\" != 'UAH'\n        OR\n        \"vehicle_status_history\".\"purchase_rate\" = 1\n      )"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.expenses": {
@@ -1147,7 +2203,7 @@
           "name": "vehicle_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "expense_date": {
           "name": "expense_date",
@@ -1155,9 +2211,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "amount": {
-          "name": "amount",
-          "type": "numeric(14, 2)",
+        "amount_minor": {
+          "name": "amount_minor",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true
         },
@@ -1183,12 +2239,6 @@
         },
         "category_id": {
           "name": "category_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "funding_source_id": {
-          "name": "funding_source_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -1250,9 +2300,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "expenses_vehicle_id_idx": {
           "name": "expenses_vehicle_id_idx",
@@ -1265,9 +2315,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "expenses_expense_date_idx": {
           "name": "expenses_expense_date_idx",
@@ -1280,24 +2330,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
-        },
-        "expenses_funding_source_id_idx": {
-          "name": "expenses_funding_source_id_idx",
-          "columns": [
-            {
-              "expression": "funding_source_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "expenses_category_id_idx": {
           "name": "expenses_category_id_idx",
@@ -1310,111 +2345,98 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "expenses_organization_id_organizations_id_fk": {
           "name": "expenses_organization_id_organizations_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "expenses_vehicle_id_vehicles_id_fk": {
           "name": "expenses_vehicle_id_vehicles_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "vehicles",
           "columnsFrom": [
             "vehicle_id"
           ],
+          "tableTo": "vehicles",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
-        "expenses_category_id_expense_categories_id_fk": {
-          "name": "expenses_category_id_expense_categories_id_fk",
+        "expenses_category_id_financial_categories_id_fk": {
+          "name": "expenses_category_id_financial_categories_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "expense_categories",
           "columnsFrom": [
             "category_id"
           ],
+          "tableTo": "financial_categories",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "expenses_funding_source_id_funding_sources_id_fk": {
-          "name": "expenses_funding_source_id_funding_sources_id_fk",
-          "tableFrom": "expenses",
-          "tableTo": "funding_sources",
-          "columnsFrom": [
-            "funding_source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "expenses_created_by_users_id_fk": {
           "name": "expenses_created_by_users_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "expenses_updated_by_users_id_fk": {
           "name": "expenses_updated_by_users_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "users",
           "columnsFrom": [
             "updated_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "expenses_deleted_by_users_id_fk": {
           "name": "expenses_deleted_by_users_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "users",
           "columnsFrom": [
             "deleted_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "expenses_amount_positive": {
-          "name": "expenses_amount_positive",
-          "value": "\"expenses\".\"amount\" > 0"
+        "expenses_amount_minor_positive": {
+          "name": "expenses_amount_minor_positive",
+          "value": "\"expenses\".\"amount_minor\" > 0"
         },
         "expenses_rate_positive": {
           "name": "expenses_rate_positive",
@@ -1548,9 +2570,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "documents_vehicle_id_idx": {
           "name": "documents_vehicle_id_idx",
@@ -1563,9 +2585,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "documents_expense_id_idx": {
           "name": "documents_expense_id_idx",
@@ -1578,89 +2600,89 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "documents_organization_id_organizations_id_fk": {
           "name": "documents_organization_id_organizations_id_fk",
           "tableFrom": "documents",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "documents_vehicle_id_vehicles_id_fk": {
           "name": "documents_vehicle_id_vehicles_id_fk",
           "tableFrom": "documents",
-          "tableTo": "vehicles",
           "columnsFrom": [
             "vehicle_id"
           ],
+          "tableTo": "vehicles",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "documents_expense_id_expenses_id_fk": {
           "name": "documents_expense_id_expenses_id_fk",
           "tableFrom": "documents",
-          "tableTo": "expenses",
           "columnsFrom": [
             "expense_id"
           ],
+          "tableTo": "expenses",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "documents_created_by_users_id_fk": {
           "name": "documents_created_by_users_id_fk",
           "tableFrom": "documents",
-          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "documents_updated_by_users_id_fk": {
           "name": "documents_updated_by_users_id_fk",
           "tableFrom": "documents",
-          "tableTo": "users",
           "columnsFrom": [
             "updated_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "documents_deleted_by_users_id_fk": {
           "name": "documents_deleted_by_users_id_fk",
           "tableFrom": "documents",
-          "tableTo": "users",
           "columnsFrom": [
             "deleted_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -1676,552 +2698,6 @@
           "value": "\"documents\".\"vehicle_id\" IS NOT NULL OR \"documents\".\"expense_id\" IS NOT NULL"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.vehicle_galleries": {
-      "name": "vehicle_galleries",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "vehicle_id": {
-          "name": "vehicle_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "vehicle_gallery_kind",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is_public": {
-          "name": "is_public",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "cover_item_id": {
-          "name": "cover_item_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deleted_by": {
-          "name": "deleted_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "vehicle_galleries_main_active_unique": {
-          "name": "vehicle_galleries_main_active_unique",
-          "columns": [
-            {
-              "expression": "vehicle_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"vehicle_galleries\".\"kind\" = 'main' AND \"vehicle_galleries\".\"deleted_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "vehicle_galleries_name_active_unique": {
-          "name": "vehicle_galleries_name_active_unique",
-          "columns": [
-            {
-              "expression": "vehicle_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "lower(trim(\"name\"))",
-              "isExpression": true,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"vehicle_galleries\".\"deleted_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "vehicle_galleries_org_vehicle_idx": {
-          "name": "vehicle_galleries_org_vehicle_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "vehicle_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "vehicle_galleries_vehicle_order_idx": {
-          "name": "vehicle_galleries_vehicle_order_idx",
-          "columns": [
-            {
-              "expression": "vehicle_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sort_order",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "vehicle_galleries_organization_id_organizations_id_fk": {
-          "name": "vehicle_galleries_organization_id_organizations_id_fk",
-          "tableFrom": "vehicle_galleries",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_galleries_vehicle_id_vehicles_id_fk": {
-          "name": "vehicle_galleries_vehicle_id_vehicles_id_fk",
-          "tableFrom": "vehicle_galleries",
-          "tableTo": "vehicles",
-          "columnsFrom": [
-            "vehicle_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_galleries_cover_item_id_vehicle_gallery_items_id_fk": {
-          "name": "vehicle_galleries_cover_item_id_vehicle_gallery_items_id_fk",
-          "tableFrom": "vehicle_galleries",
-          "tableTo": "vehicle_gallery_items",
-          "columnsFrom": [
-            "cover_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "vehicle_galleries_created_by_users_id_fk": {
-          "name": "vehicle_galleries_created_by_users_id_fk",
-          "tableFrom": "vehicle_galleries",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_galleries_updated_by_users_id_fk": {
-          "name": "vehicle_galleries_updated_by_users_id_fk",
-          "tableFrom": "vehicle_galleries",
-          "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_galleries_deleted_by_users_id_fk": {
-          "name": "vehicle_galleries_deleted_by_users_id_fk",
-          "tableFrom": "vehicle_galleries",
-          "tableTo": "users",
-          "columnsFrom": [
-            "deleted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "vehicle_galleries_main_shape_check": {
-          "name": "vehicle_galleries_main_shape_check",
-          "value": "\"vehicle_galleries\".\"kind\" <> 'main' OR (\"vehicle_galleries\".\"name\" IS NULL AND \"vehicle_galleries\".\"is_public\" = true AND \"vehicle_galleries\".\"sort_order\" = 0)"
-        },
-        "vehicle_galleries_custom_shape_check": {
-          "name": "vehicle_galleries_custom_shape_check",
-          "value": "\"vehicle_galleries\".\"kind\" <> 'custom' OR (\"vehicle_galleries\".\"name\" IS NOT NULL AND length(trim(\"vehicle_galleries\".\"name\")) > 0)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.vehicle_gallery_items": {
-      "name": "vehicle_gallery_items",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "vehicle_id": {
-          "name": "vehicle_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "gallery_id": {
-          "name": "gallery_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "vehicle_gallery_item_type",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "file_key": {
-          "name": "file_key",
-          "type": "varchar(512)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "original_name": {
-          "name": "original_name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mime_type": {
-          "name": "mime_type",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "size_bytes": {
-          "name": "size_bytes",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "caption": {
-          "name": "caption",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deleted_by": {
-          "name": "deleted_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "vehicle_gallery_items_org_vehicle_gallery_idx": {
-          "name": "vehicle_gallery_items_org_vehicle_gallery_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "vehicle_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "gallery_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "vehicle_gallery_items_gallery_order_idx": {
-          "name": "vehicle_gallery_items_gallery_order_idx",
-          "columns": [
-            {
-              "expression": "gallery_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sort_order",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "vehicle_gallery_items_gallery_order_active_unique": {
-          "name": "vehicle_gallery_items_gallery_order_active_unique",
-          "columns": [
-            {
-              "expression": "gallery_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sort_order",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"vehicle_gallery_items\".\"deleted_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "vehicle_gallery_items_organization_id_organizations_id_fk": {
-          "name": "vehicle_gallery_items_organization_id_organizations_id_fk",
-          "tableFrom": "vehicle_gallery_items",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_gallery_items_vehicle_id_vehicles_id_fk": {
-          "name": "vehicle_gallery_items_vehicle_id_vehicles_id_fk",
-          "tableFrom": "vehicle_gallery_items",
-          "tableTo": "vehicles",
-          "columnsFrom": [
-            "vehicle_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_gallery_items_gallery_id_vehicle_galleries_id_fk": {
-          "name": "vehicle_gallery_items_gallery_id_vehicle_galleries_id_fk",
-          "tableFrom": "vehicle_gallery_items",
-          "tableTo": "vehicle_galleries",
-          "columnsFrom": [
-            "gallery_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_gallery_items_created_by_users_id_fk": {
-          "name": "vehicle_gallery_items_created_by_users_id_fk",
-          "tableFrom": "vehicle_gallery_items",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_gallery_items_updated_by_users_id_fk": {
-          "name": "vehicle_gallery_items_updated_by_users_id_fk",
-          "tableFrom": "vehicle_gallery_items",
-          "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "vehicle_gallery_items_deleted_by_users_id_fk": {
-          "name": "vehicle_gallery_items_deleted_by_users_id_fk",
-          "tableFrom": "vehicle_gallery_items",
-          "tableTo": "users",
-          "columnsFrom": [
-            "deleted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     }
   },
@@ -2256,16 +2732,6 @@
         "other"
       ]
     },
-    "public.funding_source_type": {
-      "name": "funding_source_type",
-      "schema": "public",
-      "values": [
-        "donor",
-        "fundraiser",
-        "initiative",
-        "other"
-      ]
-    },
     "public.org_role": {
       "name": "org_role",
       "schema": "public",
@@ -2291,6 +2757,21 @@
         "user"
       ]
     },
+    "public.vehicle_gallery_item_type": {
+      "name": "vehicle_gallery_item_type",
+      "schema": "public",
+      "values": [
+        "image"
+      ]
+    },
+    "public.vehicle_gallery_kind": {
+      "name": "vehicle_gallery_kind",
+      "schema": "public",
+      "values": [
+        "main",
+        "custom"
+      ]
+    },
     "public.vehicle_status": {
       "name": "vehicle_status",
       "schema": "public",
@@ -2305,27 +2786,9 @@
         "returned",
         "lost"
       ]
-    },
-    "public.vehicle_gallery_kind": {
-      "name": "vehicle_gallery_kind",
-      "schema": "public",
-      "values": [
-        "main",
-        "custom"
-      ]
-    },
-    "public.vehicle_gallery_item_type": {
-      "name": "vehicle_gallery_item_type",
-      "schema": "public",
-      "values": [
-        "image"
-      ]
     }
   },
   "schemas": {},
-  "sequences": {},
-  "roles": {},
-  "policies": {},
   "views": {
     "public.vehicle_alerts_view": {
       "name": "vehicle_alerts_view",
@@ -2342,13 +2805,22 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "vehicle_status_history_id": {
+          "name": "vehicle_status_history_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "definition": "SELECT v.id AS vehicle_id, 'missing_registration_doc'::text AS type FROM vehicles v WHERE v.deleted_at IS NULL AND v.status IN ('paid', 'in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned') AND NOT EXISTS (SELECT 1 FROM vehicle_status_history h JOIN documents d ON d.id = h.registration_doc_id AND d.deleted_at IS NULL AND d.organization_id = v.organization_id WHERE h.vehicle_id = v.id AND h.organization_id = v.organization_id) UNION ALL SELECT v.id, 'missing_customs_declaration' FROM vehicles v WHERE v.deleted_at IS NULL AND v.status IN ('in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned') AND EXISTS (SELECT 1 FROM vehicle_status_history p WHERE p.vehicle_id = v.id AND p.organization_id = v.organization_id AND p.new_status = 'paid' AND p.is_local_purchase = false) AND NOT EXISTS (SELECT 1 FROM vehicle_status_history h JOIN documents d ON d.id = h.customs_declaration_doc_id AND d.deleted_at IS NULL AND d.organization_id = v.organization_id WHERE h.vehicle_id = v.id AND h.organization_id = v.organization_id) UNION ALL SELECT v.id, 'missing_stamped_customs_declaration' FROM vehicles v WHERE v.deleted_at IS NULL AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned') AND EXISTS (SELECT 1 FROM vehicle_status_history p WHERE p.vehicle_id = v.id AND p.organization_id = v.organization_id AND p.new_status = 'paid' AND p.is_local_purchase = false) AND NOT EXISTS (SELECT 1 FROM vehicle_status_history h JOIN documents d ON d.id = h.stamped_customs_declaration_doc_id AND d.deleted_at IS NULL AND d.organization_id = v.organization_id WHERE h.vehicle_id = v.id AND h.organization_id = v.organization_id) UNION ALL SELECT v.id, 'missing_transfer_act_draft' FROM vehicles v WHERE v.deleted_at IS NULL AND v.status IN ('ready', 'transferred') AND NOT EXISTS (SELECT 1 FROM vehicle_status_history h JOIN documents d ON d.id = h.transfer_act_draft_doc_id AND d.deleted_at IS NULL AND d.organization_id = v.organization_id WHERE h.vehicle_id = v.id AND h.organization_id = v.organization_id) UNION ALL SELECT v.id, 'missing_transfer_act_signed' FROM vehicles v WHERE v.deleted_at IS NULL AND v.status = 'transferred' AND NOT EXISTS (SELECT 1 FROM vehicle_status_history h JOIN documents d ON d.id = h.transfer_act_signed_doc_id AND d.deleted_at IS NULL AND d.organization_id = v.organization_id WHERE h.vehicle_id = v.id AND h.organization_id = v.organization_id AND h.new_status = 'transferred' AND h.changed_at = (SELECT max(h2.changed_at) FROM vehicle_status_history h2 WHERE h2.vehicle_id = v.id AND h2.organization_id = v.organization_id AND h2.new_status = 'transferred')) UNION ALL SELECT v.id, 'not_registered_at_service_center' FROM vehicles v WHERE v.deleted_at IS NULL AND v.status = 'transferred' AND EXISTS (SELECT 1 FROM vehicle_status_history h WHERE h.vehicle_id = v.id AND h.organization_id = v.organization_id AND h.new_status = 'transferred' AND h.is_registered_at_service_center IS NOT TRUE AND h.changed_at = (SELECT max(h2.changed_at) FROM vehicle_status_history h2 WHERE h2.vehicle_id = v.id AND h2.organization_id = v.organization_id AND h2.new_status = 'transferred')) UNION ALL SELECT v.id, 'missing_return_act' FROM vehicles v WHERE v.deleted_at IS NULL AND v.status = 'returned' AND NOT EXISTS (SELECT 1 FROM vehicle_status_history h JOIN documents d ON d.id = h.return_act_doc_id AND d.deleted_at IS NULL AND d.organization_id = v.organization_id WHERE h.vehicle_id = v.id AND h.organization_id = v.organization_id AND h.new_status = 'returned' AND h.changed_at = (SELECT max(h2.changed_at) FROM vehicle_status_history h2 WHERE h2.vehicle_id = v.id AND h2.organization_id = v.organization_id AND h2.new_status = 'returned'))",
-      "isExisting": false,
-      "materialized": false
+      "definition": "\n    SELECT v.id AS vehicle_id, 'missing_registration_doc'::text AS type, h_target.id AS vehicle_status_history_id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'paid'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('paid', 'in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.registration_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id AS vehicle_id, 'missing_stamped_registration_doc'::text AS type, h_target.id AS vehicle_status_history_id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'arrived'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND EXISTS (\n        SELECT 1\n        FROM vehicle_status_history p\n        WHERE p.vehicle_id = v.id\n          AND p.organization_id = v.organization_id\n          AND p.new_status = 'paid'\n          AND p.is_local_purchase = false\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.stamped_registration_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_customs_declaration', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'in_transit'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND EXISTS (\n        SELECT 1\n        FROM vehicle_status_history p\n        WHERE p.vehicle_id = v.id\n          AND p.organization_id = v.organization_id\n          AND p.new_status = 'paid'\n          AND p.is_local_purchase = false\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.customs_declaration_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_stamped_customs_declaration', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'arrived'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND EXISTS (\n        SELECT 1\n        FROM vehicle_status_history p\n        WHERE p.vehicle_id = v.id\n          AND p.organization_id = v.organization_id\n          AND p.new_status = 'paid'\n          AND p.is_local_purchase = false\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.stamped_customs_declaration_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_transfer_act_draft', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'ready'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('ready', 'transferred')\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'ready'\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.transfer_act_draft_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_transfer_act_signed', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'transferred'\n    WHERE v.deleted_at IS NULL\n      AND v.status = 'transferred'\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'transferred'\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.transfer_act_signed_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n          AND h.new_status = 'transferred'\n          AND h.changed_at = h_target.changed_at\n      )\n\n    UNION ALL\n    SELECT v.id, 'not_registered_at_service_center', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'transferred'\n    WHERE v.deleted_at IS NULL\n      AND v.status = 'transferred'\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'transferred'\n      )\n      AND h_target.is_registered_at_service_center IS NOT TRUE\n\n    UNION ALL\n    SELECT v.id, 'missing_return_act', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'returned'\n    WHERE v.deleted_at IS NULL\n      AND v.status = 'returned'\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'returned'\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.return_act_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n          AND h.new_status = 'returned'\n          AND h.changed_at = h_target.changed_at\n      )\n  ",
+      "materialized": false,
+      "isExisting": false
     }
   },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
   "_meta": {
     "columns": {},
     "schemas": {},
