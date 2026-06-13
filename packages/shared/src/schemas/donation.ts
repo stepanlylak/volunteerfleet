@@ -50,6 +50,7 @@ export const donationResponseSchema = z.object({
   donor: donorSummarySchema,
   vehicleId: uuidSchema,
   vehicle: expenseVehicleSummarySchema,
+  documentGroupId: uuidSchema.nullable(),
   categoryId: uuidSchema.nullable(),
   category: financialCategorySchema.nullable(),
   donationDate: dateOnlySchema,

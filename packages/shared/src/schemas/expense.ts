@@ -43,6 +43,7 @@ export type ExpenseVehicleSummary = z.infer<typeof expenseVehicleSummarySchema>;
 export const expenseResponseSchema = z.object({
   id: uuidSchema,
   vehicleId: uuidSchema,
+  documentGroupId: uuidSchema.nullable(),
   vehicle: expenseVehicleSummarySchema,
   expenseDate: dateOnlySchema,
   amountMinor: positiveMinorAmountSchema,

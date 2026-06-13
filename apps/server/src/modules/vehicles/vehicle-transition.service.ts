@@ -5,7 +5,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { and, desc, eq, isNull, asc } from 'drizzle-orm';
+import { and, desc, eq, isNull, asc, sql } from 'drizzle-orm';
 import {
   isValidTransition,
   type VehicleTransitionRequest,
@@ -14,8 +14,15 @@ import {
 } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
-import { vehicles, vehicleStatusHistory, documents } from '../../db/schema/index.js';
+import {
+  vehicles,
+  vehicleStatusHistory,
+  documents,
+  documentGroups,
+} from '../../db/schema/index.js';
 import { VehiclesService } from './vehicles.service.js';
+
+type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 @Injectable()
 export class VehicleTransitionService {
@@ -72,48 +79,10 @@ export class VehicleTransitionService {
         );
       }
 
-      // Verify documents if present
-      const docChecks: { id: string; type: string }[] = [];
-      if ('registrationDocId' in dto && dto.registrationDocId) {
-        docChecks.push({ id: dto.registrationDocId, type: 'registration_certificate' });
-      }
-      if ('stampedRegistrationDocId' in dto && dto.stampedRegistrationDocId) {
-        docChecks.push({ id: dto.stampedRegistrationDocId, type: 'registration_certificate' });
-      }
-      if ('customsDeclarationDocId' in dto && dto.customsDeclarationDocId) {
-        docChecks.push({ id: dto.customsDeclarationDocId, type: 'customs_declaration' });
-      }
-      if ('stampedCustomsDeclarationDocId' in dto && dto.stampedCustomsDeclarationDocId) {
-        docChecks.push({
-          id: dto.stampedCustomsDeclarationDocId,
-          type: 'stamped_customs_declaration',
-        });
-      }
-      if ('transferActDraftDocId' in dto && dto.transferActDraftDocId) {
-        docChecks.push({ id: dto.transferActDraftDocId, type: 'transfer_act_draft' });
-      }
-      if ('transferActSignedDocId' in dto && dto.transferActSignedDocId) {
-        docChecks.push({ id: dto.transferActSignedDocId, type: 'transfer_act_signed' });
-      }
-      if ('returnActDocId' in dto && dto.returnActDocId) {
-        docChecks.push({ id: dto.returnActDocId, type: 'return_act' });
-      }
-
-      for (const check of docChecks) {
-        const doc = await tx.query.documents.findFirst({
-          where: and(
-            eq(documents.id, check.id),
-            eq(documents.organizationId, organizationId),
-            eq(documents.vehicleId, vehicleId),
-            isNull(documents.deletedAt),
-            eq(documents.documentType, check.type as 'other'),
-          ),
-        });
-        if (!doc) {
-          throw new BadRequestException(
-            `Document ${check.id} not found, deleted, or invalid type/vehicle`,
-          );
-        }
+      // Verify document groups if present (each referenced group must belong to
+      // this vehicle/org and hold at least one active document).
+      for (const groupId of this.collectGroupIds(dto)) {
+        await this.assertGroupHasDocuments(tx, groupId, vehicleId, organizationId);
       }
 
       // Special rule: paid -> arrived
@@ -135,9 +104,9 @@ export class VehicleTransitionService {
 
         if (
           prevTransfer &&
-          'transferActSignedDocId' in dto &&
-          dto.transferActSignedDocId &&
-          dto.transferActSignedDocId === prevTransfer.transferActSignedDocId
+          'transferActSignedGroupId' in dto &&
+          dto.transferActSignedGroupId &&
+          dto.transferActSignedGroupId === prevTransfer.transferActSignedGroupId
         ) {
           throw new BadRequestException('Cannot reuse previous transfer act for a new transfer');
         }
@@ -158,19 +127,20 @@ export class VehicleTransitionService {
       if (dto.targetStatus === 'paid') {
         const d = dto;
         historyValues.isLocalPurchase = d.isLocalPurchase ?? false;
-        historyValues.registrationDocId = d.registrationDocId || null;
+        historyValues.registrationGroupId = d.registrationGroupId || null;
       } else if (dto.targetStatus === 'in_transit') {
-        historyValues.customsDeclarationDocId = dto.customsDeclarationDocId || null;
+        historyValues.customsDeclarationGroupId = dto.customsDeclarationGroupId || null;
       } else if (dto.targetStatus === 'arrived') {
-        historyValues.stampedRegistrationDocId = dto.stampedRegistrationDocId || null;
-        historyValues.stampedCustomsDeclarationDocId = dto.stampedCustomsDeclarationDocId || null;
+        historyValues.stampedRegistrationGroupId = dto.stampedRegistrationGroupId || null;
+        historyValues.stampedCustomsDeclarationGroupId =
+          dto.stampedCustomsDeclarationGroupId || null;
       } else if (dto.targetStatus === 'ready') {
-        historyValues.transferActDraftDocId = dto.transferActDraftDocId || null;
+        historyValues.transferActDraftGroupId = dto.transferActDraftGroupId || null;
       } else if (dto.targetStatus === 'transferred') {
-        historyValues.transferActSignedDocId = dto.transferActSignedDocId || null;
+        historyValues.transferActSignedGroupId = dto.transferActSignedGroupId || null;
         historyValues.isRegisteredAtServiceCenter = dto.isRegisteredAtServiceCenter ?? false;
       } else if (dto.targetStatus === 'returned') {
-        historyValues.returnActDocId = dto.returnActDocId || null;
+        historyValues.returnActGroupId = dto.returnActGroupId || null;
       } else if (dto.targetStatus === 'lost') {
         historyValues.lostReason = dto.lostReason;
       }
@@ -317,47 +287,8 @@ export class VehicleTransitionService {
         }
       }
 
-      const docChecks: { id: string; type: string }[] = [];
-      if ('registrationDocId' in dto && dto.registrationDocId) {
-        docChecks.push({ id: dto.registrationDocId, type: 'registration_certificate' });
-      }
-      if ('stampedRegistrationDocId' in dto && dto.stampedRegistrationDocId) {
-        docChecks.push({ id: dto.stampedRegistrationDocId, type: 'registration_certificate' });
-      }
-      if ('customsDeclarationDocId' in dto && dto.customsDeclarationDocId) {
-        docChecks.push({ id: dto.customsDeclarationDocId, type: 'customs_declaration' });
-      }
-      if ('stampedCustomsDeclarationDocId' in dto && dto.stampedCustomsDeclarationDocId) {
-        docChecks.push({
-          id: dto.stampedCustomsDeclarationDocId,
-          type: 'stamped_customs_declaration',
-        });
-      }
-      if ('transferActDraftDocId' in dto && dto.transferActDraftDocId) {
-        docChecks.push({ id: dto.transferActDraftDocId, type: 'transfer_act_draft' });
-      }
-      if ('transferActSignedDocId' in dto && dto.transferActSignedDocId) {
-        docChecks.push({ id: dto.transferActSignedDocId, type: 'transfer_act_signed' });
-      }
-      if ('returnActDocId' in dto && dto.returnActDocId) {
-        docChecks.push({ id: dto.returnActDocId, type: 'return_act' });
-      }
-
-      for (const check of docChecks) {
-        const doc = await tx.query.documents.findFirst({
-          where: and(
-            eq(documents.id, check.id),
-            eq(documents.organizationId, organizationId),
-            eq(documents.vehicleId, vehicleId),
-            isNull(documents.deletedAt),
-            eq(documents.documentType, check.type as 'other'),
-          ),
-        });
-        if (!doc) {
-          throw new BadRequestException(
-            `Document ${check.id} not found, deleted, or invalid type/vehicle`,
-          );
-        }
+      for (const groupId of this.collectGroupIds(dto)) {
+        await this.assertGroupHasDocuments(tx, groupId, vehicleId, organizationId);
       }
 
       if (history.oldStatus === 'returned' && dto.targetStatus === 'transferred') {
@@ -367,9 +298,9 @@ export class VehicleTransitionService {
           .find((h) => h.newStatus === 'transferred');
         if (
           prevTransfer &&
-          'transferActSignedDocId' in dto &&
-          dto.transferActSignedDocId &&
-          dto.transferActSignedDocId === prevTransfer.transferActSignedDocId
+          'transferActSignedGroupId' in dto &&
+          dto.transferActSignedGroupId &&
+          dto.transferActSignedGroupId === prevTransfer.transferActSignedGroupId
         ) {
           throw new BadRequestException('Cannot reuse previous transfer act for a new transfer');
         }
@@ -382,33 +313,33 @@ export class VehicleTransitionService {
 
       if (dto.targetStatus === 'paid') {
         updateValues.isLocalPurchase = dto.isLocalPurchase ?? false;
-        updateValues.registrationDocId = dto.registrationDocId || null;
+        updateValues.registrationGroupId = dto.registrationGroupId || null;
       } else if (dto.targetStatus === 'in_transit') {
-        updateValues.customsDeclarationDocId =
+        updateValues.customsDeclarationGroupId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
-            .customsDeclarationDocId || null;
+            .customsDeclarationGroupId || null;
       } else if (dto.targetStatus === 'arrived') {
-        updateValues.stampedRegistrationDocId =
+        updateValues.stampedRegistrationGroupId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
-            .stampedRegistrationDocId || null;
-        updateValues.stampedCustomsDeclarationDocId =
+            .stampedRegistrationGroupId || null;
+        updateValues.stampedCustomsDeclarationGroupId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
-            .stampedCustomsDeclarationDocId || null;
+            .stampedCustomsDeclarationGroupId || null;
       } else if (dto.targetStatus === 'ready') {
-        updateValues.transferActDraftDocId =
+        updateValues.transferActDraftGroupId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
-            .transferActDraftDocId || null;
+            .transferActDraftGroupId || null;
       } else if (dto.targetStatus === 'transferred') {
-        updateValues.transferActSignedDocId =
+        updateValues.transferActSignedGroupId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
-            .transferActSignedDocId || null;
+            .transferActSignedGroupId || null;
         updateValues.isRegisteredAtServiceCenter =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
             .isRegisteredAtServiceCenter ?? false;
       } else if (dto.targetStatus === 'returned') {
-        updateValues.returnActDocId =
+        updateValues.returnActGroupId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
-            .returnActDocId || null;
+            .returnActGroupId || null;
       } else if (dto.targetStatus === 'lost') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         updateValues.lostReason = (dto as any).lostReason;
@@ -419,5 +350,51 @@ export class VehicleTransitionService {
         .set(updateValues)
         .where(eq(vehicleStatusHistory.id, historyId));
     });
+  }
+
+  private collectGroupIds(
+    dto: VehicleTransitionRequest | VehicleStatusHistoryEditRequest,
+  ): string[] {
+    const slots = [
+      'registrationGroupId',
+      'stampedRegistrationGroupId',
+      'customsDeclarationGroupId',
+      'stampedCustomsDeclarationGroupId',
+      'transferActDraftGroupId',
+      'transferActSignedGroupId',
+      'returnActGroupId',
+    ] as const;
+    const ids: string[] = [];
+    for (const slot of slots) {
+      const value = (dto as Record<string, unknown>)[slot];
+      if (typeof value === 'string' && value) ids.push(value);
+    }
+    return ids;
+  }
+
+  private async assertGroupHasDocuments(
+    tx: Tx,
+    groupId: string,
+    vehicleId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const group = await tx.query.documentGroups.findFirst({
+      where: and(
+        eq(documentGroups.id, groupId),
+        eq(documentGroups.organizationId, organizationId),
+        eq(documentGroups.vehicleId, vehicleId),
+      ),
+    });
+    if (!group) {
+      throw new BadRequestException(`Document group ${groupId} not found or not in this vehicle`);
+    }
+
+    const counted = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(documents)
+      .where(and(eq(documents.groupId, groupId), isNull(documents.deletedAt)));
+    if ((counted[0]?.count ?? 0) === 0) {
+      throw new BadRequestException(`Document group ${groupId} has no documents`);
+    }
   }
 }

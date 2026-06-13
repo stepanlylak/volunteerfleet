@@ -3,7 +3,7 @@ import { and, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import type { DashboardStats } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
-import { documents, donations, expenses, vehicles } from '../../db/schema/index.js';
+import { documentGroups, documents, donations, expenses, vehicles } from '../../db/schema/index.js';
 import {
   VEHICLE_STATUSES,
   VEHICLE_STATUS_DASHBOARD_GROUP,
@@ -179,23 +179,34 @@ export class DashboardService {
   }
 
   private documentHasActiveVehicle() {
-    return sql`(${documents.vehicleId} IS NULL OR EXISTS (
-      SELECT 1 FROM ${vehicles}
-      WHERE ${vehicles.id} = ${documents.vehicleId}
-        AND ${vehicles.deletedAt} IS NULL
-    ))`;
+    return sql`(
+      (${documents.vehicleId} IS NOT NULL AND EXISTS (
+        SELECT 1 FROM ${vehicles}
+        WHERE ${vehicles.id} = ${documents.vehicleId}
+          AND ${vehicles.deletedAt} IS NULL
+      ))
+      OR
+      (${documents.groupId} IS NOT NULL AND EXISTS (
+        SELECT 1
+        FROM ${documentGroups}
+        INNER JOIN ${vehicles} ON ${vehicles.id} = ${documentGroups.vehicleId}
+        WHERE ${documentGroups.id} = ${documents.groupId}
+          AND ${vehicles.deletedAt} IS NULL
+      ))
+    )`;
   }
 
   private documentHasActiveExpense() {
-    return sql`(${documents.expenseId} IS NULL OR EXISTS (
-      SELECT 1 FROM ${expenses}
-      WHERE ${expenses.id} = ${documents.expenseId}
-        AND ${expenses.deletedAt} IS NULL
-        AND (${expenses.vehicleId} IS NULL OR EXISTS (
-          SELECT 1 FROM ${vehicles}
-          WHERE ${vehicles.id} = ${expenses.vehicleId}
-            AND ${vehicles.deletedAt} IS NULL
-        ))
-    ))`;
+    return sql`(
+      NOT EXISTS (
+        SELECT 1 FROM ${expenses}
+        WHERE ${expenses.documentGroupId} = ${documents.groupId}
+      )
+      OR EXISTS (
+        SELECT 1 FROM ${expenses}
+        WHERE ${expenses.documentGroupId} = ${documents.groupId}
+          AND ${expenses.deletedAt} IS NULL
+      )
+    )`;
   }
 }

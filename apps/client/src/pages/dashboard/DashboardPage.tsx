@@ -3,6 +3,7 @@ import {
   CarOutlined,
   DollarOutlined,
   FileTextOutlined,
+  GiftOutlined,
   PlusOutlined,
   RiseOutlined,
 } from '@ant-design/icons';
@@ -29,6 +30,7 @@ import { useDashboardStats } from '../../hooks/useDashboard';
 import { useExpensesList } from '../../hooks/useExpenses';
 import { VehicleFormModal } from '../../modals/VehicleFormModal';
 import { ExpenseFormModal } from '../../modals/ExpenseFormModal';
+import { DonationFormModal } from '../../modals/DonationFormModal';
 import { DocumentFormModal } from '../../modals/DocumentFormModal';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
 import { formatCurrency } from '../../utils/format';
@@ -82,6 +84,7 @@ export function DashboardPage() {
   const [notifApi, notifContext] = notification.useNotification();
   const [vehicleOpen, setVehicleOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
+  const [donationOpen, setDonationOpen] = useState(false);
   const [docOpen, setDocOpen] = useState(false);
   const orgRole = useOrgRole();
   const user = useAuth((s) => s.user);
@@ -92,6 +95,7 @@ export function DashboardPage() {
     inWorkVehicles,
     transferredVehicles,
     monthlyExpenseUahMinor,
+    monthlyDonationsUahMinor,
     documentsTotal,
     documentsThisMonth,
     statusCounts,
@@ -156,6 +160,9 @@ export function DashboardPage() {
             <Button icon={<DollarOutlined />} onClick={() => setExpenseOpen(true)}>
               Додати витрату
             </Button>
+            <Button icon={<RiseOutlined />} onClick={() => setDonationOpen(true)}>
+              Додати надходження
+            </Button>
             <Button icon={<FileTextOutlined />} onClick={() => setDocOpen(true)}>
               Додати документ
             </Button>
@@ -215,6 +222,25 @@ export function DashboardPage() {
                   monthlyExpenseUahMinor !== undefined ? formatUah(monthlyExpenseUahMinor) : '—'
                 }
                 prefix={<DollarOutlined style={{ color: '#722ed1' }} />}
+              />
+            )}
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {currentMonthLabel()}
+            </Typography.Text>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6}>
+          <Card>
+            {isLoading ? (
+              <Skeleton active paragraph={{ rows: 1 }} />
+            ) : (
+              <Statistic
+                title="Надходження за місяць"
+                value={
+                  monthlyDonationsUahMinor !== undefined ? formatUah(monthlyDonationsUahMinor) : '—'
+                }
+                prefix={<GiftOutlined style={{ color: '#fa8c16' }} />}
               />
             )}
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -354,6 +380,7 @@ export function DashboardPage() {
             }}
           />
           <ExpenseFormModal open={expenseOpen} onClose={() => setExpenseOpen(false)} />
+          <DonationFormModal open={donationOpen} onClose={() => setDonationOpen(false)} />
           <DocumentFormModal open={docOpen} onClose={() => setDocOpen(false)} />
         </>
       )}

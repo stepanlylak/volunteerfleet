@@ -14,6 +14,7 @@ import {
 import { financialCategories } from './dictionaries.js';
 import { donors, organizationDonors } from './donors.js';
 import { currencyCodeEnum, rateSourceEnum } from './enums.js';
+import { documentGroups } from './document-groups.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
 import { vehicles } from './vehicles.js';
@@ -33,6 +34,9 @@ export const donations = pgTable(
     vehicleId: uuid('vehicle_id')
       .notNull()
       .references(() => vehicles.id, { onDelete: 'restrict' }),
+    documentGroupId: uuid('document_group_id').references(() => documentGroups.id, {
+      onDelete: 'restrict',
+    }),
     categoryId: uuid('category_id').references(() => financialCategories.id, {
       onDelete: 'restrict',
     }),
@@ -93,5 +97,6 @@ export const donations = pgTable(
       table.organizationId,
       table.vehicleId,
     ),
+    documentGroupIdx: index('donations_document_group_id_idx').on(table.documentGroupId),
   }),
 );

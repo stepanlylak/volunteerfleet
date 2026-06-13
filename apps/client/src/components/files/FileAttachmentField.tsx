@@ -1,6 +1,8 @@
 import {
   DeleteOutlined,
   DownloadOutlined,
+  FileOutlined,
+  FolderOpenOutlined,
   InboxOutlined,
   LinkOutlined,
   PlusOutlined,
@@ -12,10 +14,11 @@ import {
   List,
   Select,
   Space,
+  Tag,
+  Tabs,
   Typography,
   Upload,
   message,
-  Divider,
 } from 'antd';
 import type { RcFile } from 'antd/es/upload';
 import type { Dispatch, SetStateAction } from 'react';
@@ -25,6 +28,7 @@ export interface FileAttachmentExistingItem {
   id: string;
   name: string;
   kind?: 'upload' | 'link';
+  fileCount?: number;
   mimeType?: string | null;
   sizeBytes?: number | null;
   url?: string | null;
@@ -135,6 +139,14 @@ export function FileAttachmentField({
   const canAddLinks = allowLinks && onNewLinksChange;
   const canSelectExisting = selectableExistingItems.length > 0 && onSelectedExistingIdsChange;
 
+  const tabModes = [
+    allowFiles && ('file' as const),
+    canAddLinks && ('link' as const),
+    canSelectExisting && ('existing' as const),
+  ].filter(Boolean) as Array<'file' | 'link' | 'existing'>;
+  const useTabs = tabModes.length > 1;
+  const [activeTab, setActiveTab] = useState<'file' | 'link' | 'existing'>(tabModes[0] ?? 'file');
+
   const beforeUpload = (file: RcFile): boolean => {
     if (file.size > maxSizeBytes) {
       void message.error(maxSizeErrorMessage);
@@ -189,77 +201,119 @@ export function FileAttachmentField({
     newFiles.length > 0 ||
     newLinks.length > 0;
 
+  const filePane = allowFiles ? (
+    <Upload.Dragger
+      multiple={multiple}
+      accept={acceptedMimeTypes?.join(',')}
+      beforeUpload={beforeUpload}
+      showUploadList={false}
+      fileList={[]}
+      disabled={disabled}
+    >
+      <p className="ant-upload-drag-icon">
+        <InboxOutlined />
+      </p>
+      <p className="ant-upload-text">
+        {uploadText ??
+          (multiple ? 'Натисніть або перетягніть файли' : 'Натисніть або перетягніть файл')}
+      </p>
+      <p className="ant-upload-hint">
+        {uploadHint ?? 'PDF, зображення, Word, Excel, CSV — до 25 МБ'}
+      </p>
+    </Upload.Dragger>
+  ) : null;
+
+  const linkPane = canAddLinks ? (
+    <Space direction="vertical" style={{ width: '100%' }} size="small">
+      <Input
+        placeholder="https://..."
+        value={linkUrl}
+        onChange={(event) => setLinkUrl(event.target.value)}
+        disabled={disabled}
+      />
+      <Space.Compact style={{ width: '100%' }}>
+        <Input
+          placeholder="Назва посилання"
+          value={linkName}
+          onChange={(event) => setLinkName(event.target.value)}
+          disabled={disabled}
+        />
+        <Button icon={<PlusOutlined />} onClick={handleAddLink} disabled={disabled}>
+          Додати
+        </Button>
+      </Space.Compact>
+    </Space>
+  ) : null;
+
+  const existingPane = canSelectExisting ? (
+    <Select
+      mode="multiple"
+      placeholder={selectExistingPlaceholder}
+      value={selectedExistingIds}
+      onChange={onSelectedExistingIdsChange}
+      options={selectableExistingItems.map((item) => ({
+        value: item.id,
+        label: item.name,
+        item,
+      }))}
+      optionFilterProp="label"
+      optionRender={(option) => {
+        const item = option.data.item as FileAttachmentExistingItem;
+        const isGroup = (item.fileCount ?? 0) > 1;
+        return (
+          <Space size={4}>
+            {isGroup ? (
+              <Tag color="purple" style={{ margin: 0 }}>
+                Група · {item.fileCount}
+              </Tag>
+            ) : item.kind === 'link' ? (
+              <Tag color="green" style={{ margin: 0 }}>
+                Посилання
+              </Tag>
+            ) : (
+              <Tag color="blue" style={{ margin: 0 }}>
+                Файл
+              </Tag>
+            )}
+            {item.name}
+          </Space>
+        );
+      }}
+      maxTagCount="responsive"
+      style={{ width: '100%' }}
+      disabled={disabled}
+    />
+  ) : null;
+
+  const addSection = useTabs ? (
+    <Tabs
+      size="small"
+      activeKey={activeTab}
+      onChange={(key) => setActiveTab(key as typeof activeTab)}
+      items={[
+        allowFiles
+          ? { key: 'file', label: 'Файл', icon: <FileOutlined />, children: filePane }
+          : null,
+        canAddLinks
+          ? { key: 'link', label: 'Посилання', icon: <LinkOutlined />, children: linkPane }
+          : null,
+        canSelectExisting
+          ? {
+              key: 'existing',
+              label: 'Документ',
+              icon: <FolderOpenOutlined />,
+              children: existingPane,
+            }
+          : null,
+      ].filter((item): item is NonNullable<typeof item> => item !== null)}
+    />
+  ) : (
+    <>{filePane ?? linkPane ?? existingPane}</>
+  );
+
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
-      {allowFiles ? (
-        <Upload.Dragger
-          multiple={multiple}
-          accept={acceptedMimeTypes?.join(',')}
-          beforeUpload={beforeUpload}
-          showUploadList={false}
-          fileList={[]}
-          disabled={disabled}
-        >
-          <p className="ant-upload-drag-icon">
-            <InboxOutlined />
-          </p>
-          <p className="ant-upload-text">
-            {uploadText ??
-              (multiple ? 'Натисніть або перетягніть файли' : 'Натисніть або перетягніть файл')}
-          </p>
-          <p className="ant-upload-hint">
-            {uploadHint ?? 'PDF, зображення, Word, Excel, CSV — до 25 МБ'}
-          </p>
-        </Upload.Dragger>
-      ) : null}
-
-      {canAddLinks ? (
-        <>
-          <Divider plain dashed style={{ margin: 0 }}>
-            або
-          </Divider>
-          <Space.Compact style={{ width: '100%' }}>
-            <Input
-              placeholder="Назва посилання"
-              value={linkName}
-              onChange={(event) => setLinkName(event.target.value)}
-              disabled={disabled}
-              style={{ width: '32%' }}
-            />
-            <Input
-              placeholder="https://..."
-              value={linkUrl}
-              onChange={(event) => setLinkUrl(event.target.value)}
-              disabled={disabled}
-            />
-            <Button icon={<PlusOutlined />} onClick={handleAddLink} disabled={disabled}>
-              Додати
-            </Button>
-          </Space.Compact>
-        </>
-      ) : null}
-
-      {canSelectExisting ? (
-        <>
-          <Divider plain dashed style={{ margin: 0 }}>
-            або
-          </Divider>
-          <Select
-            mode="multiple"
-            placeholder={selectExistingPlaceholder}
-            value={selectedExistingIds}
-            onChange={onSelectedExistingIdsChange}
-            options={selectableExistingItems.map((item) => ({
-              value: item.id,
-              label: item.name,
-            }))}
-            optionFilterProp="label"
-            maxTagCount="responsive"
-            style={{ width: '100%' }}
-            disabled={disabled}
-          />
-        </>
-      ) : null}
+      {addSection}
 
       <List
         size="small"
@@ -532,6 +586,14 @@ function LocalImagePreview({ file }: { file: RcFile }) {
 
 function describeExistingItem(item: FileAttachmentExistingItem): string {
   if (item.kind === 'link') return item.url ?? 'Посилання';
+  if (item.fileCount !== undefined && item.fileCount > 1) {
+    const mod10 = item.fileCount % 10;
+    const mod100 = item.fileCount % 100;
+    let word = 'файлів';
+    if (mod10 === 1 && mod100 !== 11) word = 'файл';
+    else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) word = 'файли';
+    return `${item.fileCount} ${word}`;
+  }
   const parts = [item.mimeType, item.sizeBytes ? formatBytes(item.sizeBytes) : null].filter(
     Boolean,
   );

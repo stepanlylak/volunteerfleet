@@ -1,6 +1,5 @@
 CREATE TYPE "public"."currency_code" AS ENUM('UAH', 'USD', 'EUR');--> statement-breakpoint
 CREATE TYPE "public"."document_kind" AS ENUM('upload', 'link');--> statement-breakpoint
-CREATE TYPE "public"."document_type" AS ENUM('registration_certificate', 'customs_declaration', 'stamped_customs_declaration', 'transfer_act_draft', 'transfer_act_signed', 'return_act', 'other');--> statement-breakpoint
 CREATE TYPE "public"."org_role" AS ENUM('coordinator', 'volunteer', 'viewer');--> statement-breakpoint
 CREATE TYPE "public"."rate_source" AS ENUM('default', 'manual');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('superuser', 'user');--> statement-breakpoint
@@ -65,6 +64,7 @@ CREATE TABLE "donations" (
 	"organization_id" uuid NOT NULL,
 	"donor_id" uuid NOT NULL,
 	"vehicle_id" uuid NOT NULL,
+	"document_group_id" uuid,
 	"category_id" uuid,
 	"donation_date" date NOT NULL,
 	"amount_minor" bigint NOT NULL,
@@ -169,19 +169,20 @@ CREATE TABLE "vehicle_status_history" (
 	"is_local_purchase" boolean,
 	"is_registered_at_service_center" boolean,
 	"lost_reason" text,
-	"registration_doc_id" uuid,
-	"stamped_registration_doc_id" uuid,
-	"customs_declaration_doc_id" uuid,
-	"stamped_customs_declaration_doc_id" uuid,
-	"transfer_act_draft_doc_id" uuid,
-	"transfer_act_signed_doc_id" uuid,
-	"return_act_doc_id" uuid
+	"registration_group_id" uuid,
+	"stamped_registration_group_id" uuid,
+	"customs_declaration_group_id" uuid,
+	"stamped_customs_declaration_group_id" uuid,
+	"transfer_act_draft_group_id" uuid,
+	"transfer_act_signed_group_id" uuid,
+	"return_act_group_id" uuid
 );
 --> statement-breakpoint
 CREATE TABLE "expenses" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"vehicle_id" uuid NOT NULL,
+	"document_group_id" uuid,
 	"expense_date" date NOT NULL,
 	"amount_minor" bigint NOT NULL,
 	"currency" "currency_code" NOT NULL,
@@ -199,18 +200,28 @@ CREATE TABLE "expenses" (
 	CONSTRAINT "expenses_rate_positive" CHECK ("expenses"."rate" > 0)
 );
 --> statement-breakpoint
+CREATE TABLE "document_groups" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"vehicle_id" uuid NOT NULL,
+	"name" varchar(255),
+	"created_by" uuid NOT NULL,
+	"updated_by" uuid NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "documents" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"kind" "document_kind" NOT NULL,
-	"document_type" "document_type" DEFAULT 'other' NOT NULL,
 	"file_key" varchar(512),
 	"url" varchar(2048),
 	"mime_type" varchar(128),
 	"size_bytes" bigint,
 	"vehicle_id" uuid,
-	"expense_id" uuid,
+	"group_id" uuid,
 	"created_by" uuid NOT NULL,
 	"updated_by" uuid NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -218,7 +229,7 @@ CREATE TABLE "documents" (
 	"deleted_at" timestamp with time zone,
 	"deleted_by" uuid,
 	CONSTRAINT "documents_kind_payload" CHECK (("documents"."kind" = 'upload' AND "documents"."file_key" IS NOT NULL AND "documents"."url" IS NULL) OR ("documents"."kind" = 'link' AND "documents"."url" IS NOT NULL AND "documents"."file_key" IS NULL)),
-	CONSTRAINT "documents_attached_to_something" CHECK ("documents"."vehicle_id" IS NOT NULL OR "documents"."expense_id" IS NOT NULL)
+	CONSTRAINT "documents_attached_to_something" CHECK ("documents"."vehicle_id" IS NOT NULL OR "documents"."group_id" IS NOT NULL)
 );
 --> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_last_active_org_id_organizations_id_fk" FOREIGN KEY ("last_active_org_id") REFERENCES "public"."organizations"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -233,6 +244,7 @@ ALTER TABLE "organization_donors" ADD CONSTRAINT "organization_donors_updated_by
 ALTER TABLE "donations" ADD CONSTRAINT "donations_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "donations" ADD CONSTRAINT "donations_donor_id_donors_id_fk" FOREIGN KEY ("donor_id") REFERENCES "public"."donors"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "donations" ADD CONSTRAINT "donations_vehicle_id_vehicles_id_fk" FOREIGN KEY ("vehicle_id") REFERENCES "public"."vehicles"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "donations" ADD CONSTRAINT "donations_document_group_id_document_groups_id_fk" FOREIGN KEY ("document_group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "donations" ADD CONSTRAINT "donations_category_id_financial_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."financial_categories"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "donations" ADD CONSTRAINT "donations_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "donations" ADD CONSTRAINT "donations_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -257,22 +269,27 @@ ALTER TABLE "vehicle_gallery_items" ADD CONSTRAINT "vehicle_gallery_items_delete
 ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_vehicle_id_vehicles_id_fk" FOREIGN KEY ("vehicle_id") REFERENCES "public"."vehicles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_changed_by_users_id_fk" FOREIGN KEY ("changed_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_registration_doc_id_documents_id_fk" FOREIGN KEY ("registration_doc_id") REFERENCES "public"."documents"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_stamped_registration_doc_id_documents_id_fk" FOREIGN KEY ("stamped_registration_doc_id") REFERENCES "public"."documents"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_customs_declaration_doc_id_documents_id_fk" FOREIGN KEY ("customs_declaration_doc_id") REFERENCES "public"."documents"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_stamped_customs_declaration_doc_id_documents_id_fk" FOREIGN KEY ("stamped_customs_declaration_doc_id") REFERENCES "public"."documents"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_transfer_act_draft_doc_id_documents_id_fk" FOREIGN KEY ("transfer_act_draft_doc_id") REFERENCES "public"."documents"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_transfer_act_signed_doc_id_documents_id_fk" FOREIGN KEY ("transfer_act_signed_doc_id") REFERENCES "public"."documents"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_return_act_doc_id_documents_id_fk" FOREIGN KEY ("return_act_doc_id") REFERENCES "public"."documents"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_registration_group_id_document_groups_id_fk" FOREIGN KEY ("registration_group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_stamped_registration_group_id_document_groups_id_fk" FOREIGN KEY ("stamped_registration_group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_customs_declaration_group_id_document_groups_id_fk" FOREIGN KEY ("customs_declaration_group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_stamped_customs_declaration_group_id_document_groups_id_fk" FOREIGN KEY ("stamped_customs_declaration_group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_transfer_act_draft_group_id_document_groups_id_fk" FOREIGN KEY ("transfer_act_draft_group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_transfer_act_signed_group_id_document_groups_id_fk" FOREIGN KEY ("transfer_act_signed_group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "vehicle_status_history" ADD CONSTRAINT "vehicle_status_history_return_act_group_id_document_groups_id_fk" FOREIGN KEY ("return_act_group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_vehicle_id_vehicles_id_fk" FOREIGN KEY ("vehicle_id") REFERENCES "public"."vehicles"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "expenses" ADD CONSTRAINT "expenses_document_group_id_document_groups_id_fk" FOREIGN KEY ("document_group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_category_id_financial_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."financial_categories"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_deleted_by_users_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "document_groups" ADD CONSTRAINT "document_groups_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "document_groups" ADD CONSTRAINT "document_groups_vehicle_id_vehicles_id_fk" FOREIGN KEY ("vehicle_id") REFERENCES "public"."vehicles"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "document_groups" ADD CONSTRAINT "document_groups_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "document_groups" ADD CONSTRAINT "document_groups_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_vehicle_id_vehicles_id_fk" FOREIGN KEY ("vehicle_id") REFERENCES "public"."vehicles"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "documents" ADD CONSTRAINT "documents_expense_id_expenses_id_fk" FOREIGN KEY ("expense_id") REFERENCES "public"."expenses"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "documents" ADD CONSTRAINT "documents_group_id_document_groups_id_fk" FOREIGN KEY ("group_id") REFERENCES "public"."document_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_deleted_by_users_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -290,6 +307,7 @@ CREATE INDEX "donations_organization_donor_vehicle_idx" ON "donations" USING btr
 CREATE INDEX "donations_donor_organization_vehicle_idx" ON "donations" USING btree ("donor_id","organization_id","vehicle_id");--> statement-breakpoint
 CREATE INDEX "donations_organization_category_idx" ON "donations" USING btree ("organization_id","category_id");--> statement-breakpoint
 CREATE INDEX "donations_organization_vehicle_idx" ON "donations" USING btree ("organization_id","vehicle_id");--> statement-breakpoint
+CREATE INDEX "donations_document_group_id_idx" ON "donations" USING btree ("document_group_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "vehicles_identifier_active_unique" ON "vehicles" USING btree ("identifier") WHERE "vehicles"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "vehicles_organization_id_idx" ON "vehicles" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "vehicles_status_idx" ON "vehicles" USING btree ("status");--> statement-breakpoint
@@ -309,11 +327,13 @@ CREATE INDEX "vehicle_status_history_transition_date_idx" ON "vehicle_status_his
 CREATE UNIQUE INDEX "vehicle_status_history_unique_paid_per_vehicle" ON "vehicle_status_history" USING btree ("vehicle_id") WHERE "vehicle_status_history"."new_status" = 'paid';--> statement-breakpoint
 CREATE INDEX "expenses_organization_id_idx" ON "expenses" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "expenses_vehicle_id_idx" ON "expenses" USING btree ("vehicle_id");--> statement-breakpoint
+CREATE INDEX "expenses_document_group_id_idx" ON "expenses" USING btree ("document_group_id");--> statement-breakpoint
 CREATE INDEX "expenses_expense_date_idx" ON "expenses" USING btree ("expense_date");--> statement-breakpoint
 CREATE INDEX "expenses_category_id_idx" ON "expenses" USING btree ("category_id");--> statement-breakpoint
+CREATE INDEX "document_groups_org_vehicle_idx" ON "document_groups" USING btree ("organization_id","vehicle_id");--> statement-breakpoint
 CREATE INDEX "documents_organization_id_idx" ON "documents" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "documents_vehicle_id_idx" ON "documents" USING btree ("vehicle_id");--> statement-breakpoint
-CREATE INDEX "documents_expense_id_idx" ON "documents" USING btree ("expense_id");--> statement-breakpoint
+CREATE INDEX "documents_group_id_idx" ON "documents" USING btree ("group_id");--> statement-breakpoint
 CREATE VIEW "public"."vehicle_alerts_view" AS (
     SELECT v.id AS vehicle_id, 'missing_registration_doc'::text AS type, h_target.id AS vehicle_status_history_id
     FROM vehicles v
@@ -327,7 +347,7 @@ CREATE VIEW "public"."vehicle_alerts_view" AS (
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.registration_doc_id
+          ON d.group_id = h.registration_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -355,7 +375,7 @@ CREATE VIEW "public"."vehicle_alerts_view" AS (
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.stamped_registration_doc_id
+          ON d.group_id = h.stamped_registration_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -383,7 +403,7 @@ CREATE VIEW "public"."vehicle_alerts_view" AS (
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.customs_declaration_doc_id
+          ON d.group_id = h.customs_declaration_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -411,7 +431,7 @@ CREATE VIEW "public"."vehicle_alerts_view" AS (
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.stamped_customs_declaration_doc_id
+          ON d.group_id = h.stamped_customs_declaration_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -438,7 +458,7 @@ CREATE VIEW "public"."vehicle_alerts_view" AS (
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.transfer_act_draft_doc_id
+          ON d.group_id = h.transfer_act_draft_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -465,7 +485,7 @@ CREATE VIEW "public"."vehicle_alerts_view" AS (
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.transfer_act_signed_doc_id
+          ON d.group_id = h.transfer_act_signed_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -512,7 +532,7 @@ CREATE VIEW "public"."vehicle_alerts_view" AS (
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.return_act_doc_id
+          ON d.group_id = h.return_act_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id

@@ -24,7 +24,15 @@ import type {
 } from '@volunteerfleet/shared';
 import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
-import { documents, expenses, users, vehicles } from '../../db/schema/index.js';
+import {
+  documentGroups,
+  documents,
+  donations,
+  expenses,
+  users,
+  vehicles,
+  vehicleStatusHistory,
+} from '../../db/schema/index.js';
 import { StorageService } from '../../storage/storage.service.js';
 import { decodeUploadFileName } from '../../common/utils/decode-upload-filename.js';
 
@@ -52,10 +60,12 @@ interface SortItem {
 
 type DocumentRow = typeof documents.$inferSelect & {
   vehicle?: Pick<typeof vehicles.$inferSelect, 'id' | 'identifier' | 'brand' | 'model'> | null;
-  expense?: Pick<
-    typeof expenses.$inferSelect,
-    'id' | 'expenseDate' | 'amountMinor' | 'currency'
-  > | null;
+  group?:
+    | (Pick<typeof documentGroups.$inferSelect, 'id' | 'name'> & {
+        expenses?: { id: string }[];
+        donations?: { id: string }[];
+      })
+    | null;
   createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   updatedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   deletedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'> | null;
@@ -77,7 +87,18 @@ export class DocumentsService {
     orgRole: OrgRole | null | undefined,
     organizationId: string,
   ): Promise<DocumentListResponse> {
-    const { page, pageSize, sort, vehicleId, expenseId, kind, includeDeleted } = query;
+    const {
+      page,
+      pageSize,
+      sort,
+      vehicleId,
+      expenseId,
+      donationId,
+      groupId,
+      kind,
+      excludeStatusBound,
+      includeDeleted,
+    } = query;
 
     if (includeDeleted && orgRole !== 'coordinator') {
       throw new ForbiddenException('Only coordinator can view deleted documents');
@@ -92,8 +113,25 @@ export class DocumentsService {
       );
     }
     if (vehicleId) conditions.push(this.belongsToVehicleScope(vehicleId));
-    if (expenseId) conditions.push(eq(documents.expenseId, expenseId));
+    if (expenseId) {
+      conditions.push(sql`EXISTS (
+        SELECT 1 FROM ${expenses}
+        WHERE ${expenses.id} = ${expenseId}
+          AND ${expenses.documentGroupId} = ${documents.groupId}
+          AND ${expenses.organizationId} = ${organizationId}
+      )`);
+    }
+    if (donationId) {
+      conditions.push(sql`EXISTS (
+        SELECT 1 FROM ${donations}
+        WHERE ${donations.id} = ${donationId}
+          AND ${donations.documentGroupId} = ${documents.groupId}
+          AND ${donations.organizationId} = ${organizationId}
+      )`);
+    }
+    if (groupId) conditions.push(eq(documents.groupId, groupId));
     if (kind) conditions.push(eq(documents.kind, kind));
+    if (excludeStatusBound) conditions.push(this.notStatusBound());
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -147,6 +185,19 @@ export class DocumentsService {
     return this.toResponse(row);
   }
 
+  async listByGroup(groupId: string, organizationId: string): Promise<DocumentResponse[]> {
+    const rows = await this.db.query.documents.findMany({
+      where: and(
+        eq(documents.groupId, groupId),
+        eq(documents.organizationId, organizationId),
+        isNull(documents.deletedAt),
+      ),
+      with: this.responseRelations(),
+      orderBy: asc(documents.createdAt),
+    });
+    return rows.map((row) => this.toResponse(row));
+  }
+
   async upload(
     file: Express.Multer.File | undefined,
     input: DocumentUploadMetadata,
@@ -172,13 +223,8 @@ export class DocumentsService {
         throw new NotFoundException(`Vehicle ${input.vehicleId} not found in this organization`);
       }
     }
-    if (input.expenseId) {
-      const expense = await this.db.query.expenses.findFirst({
-        where: and(eq(expenses.id, input.expenseId), eq(expenses.organizationId, organizationId)),
-      });
-      if (!expense) {
-        throw new NotFoundException(`Expense ${input.expenseId} not found in this organization`);
-      }
+    if (input.groupId) {
+      await this.assertGroupInOrg(input.groupId, organizationId);
     }
 
     const id = randomUUID();
@@ -197,13 +243,12 @@ export class DocumentsService {
         organizationId,
         name: input.name,
         kind: 'upload',
-        documentType: input.documentType,
         fileKey: key,
         url: null,
         mimeType: mime,
         sizeBytes: file.size,
         vehicleId: input.vehicleId ?? null,
-        expenseId: input.expenseId ?? null,
+        groupId: input.groupId ?? null,
         createdBy: userId,
         updatedBy: userId,
       })
@@ -280,13 +325,8 @@ export class DocumentsService {
         throw new NotFoundException(`Vehicle ${input.vehicleId} not found in this organization`);
       }
     }
-    if (input.expenseId) {
-      const expense = await this.db.query.expenses.findFirst({
-        where: and(eq(expenses.id, input.expenseId), eq(expenses.organizationId, organizationId)),
-      });
-      if (!expense) {
-        throw new NotFoundException(`Expense ${input.expenseId} not found in this organization`);
-      }
+    if (input.groupId) {
+      await this.assertGroupInOrg(input.groupId, organizationId);
     }
 
     const inserted = await this.db
@@ -295,13 +335,12 @@ export class DocumentsService {
         organizationId,
         name: input.name,
         kind: 'link',
-        documentType: input.documentType,
         fileKey: null,
         url: input.url,
         mimeType: null,
         sizeBytes: null,
         vehicleId: input.vehicleId ?? null,
-        expenseId: input.expenseId ?? null,
+        groupId: input.groupId ?? null,
         createdBy: userId,
         updatedBy: userId,
       })
@@ -369,7 +408,6 @@ export class DocumentsService {
       updatedAt: new Date(),
     };
     if (input.name !== undefined) updateValues.name = input.name;
-    if (input.documentType !== undefined) updateValues.documentType = input.documentType;
 
     if (input.vehicleId !== undefined && input.vehicleId !== null) {
       const vehicle = await this.db.query.vehicles.findFirst({
@@ -381,18 +419,6 @@ export class DocumentsService {
       updateValues.vehicleId = input.vehicleId;
     } else if (input.vehicleId === null) {
       updateValues.vehicleId = null;
-    }
-
-    if (input.expenseId !== undefined && input.expenseId !== null) {
-      const expense = await this.db.query.expenses.findFirst({
-        where: and(eq(expenses.id, input.expenseId), eq(expenses.organizationId, organizationId)),
-      });
-      if (!expense) {
-        throw new NotFoundException(`Expense ${input.expenseId} not found in this organization`);
-      }
-      updateValues.expenseId = input.expenseId;
-    } else if (input.expenseId === null) {
-      updateValues.expenseId = null;
     }
 
     if (input.url !== undefined) {
@@ -423,15 +449,21 @@ export class DocumentsService {
     if (!existing) throw new NotFoundException(`Document ${id} not found`);
     this.assertOwner(existing.createdBy, user);
 
-    await this.db
-      .update(documents)
-      .set({
-        deletedAt: new Date(),
-        deletedBy: user.sub,
-        updatedBy: user.sub,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)));
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(documents)
+        .set({
+          deletedAt: new Date(),
+          deletedBy: user.sub,
+          updatedBy: user.sub,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)));
+
+      if (existing.groupId) {
+        await this.cleanupEmptyGroup(tx, existing.groupId);
+      }
+    });
   }
 
   async restore(id: string, userId: string, organizationId: string): Promise<DocumentResponse> {
@@ -530,24 +562,35 @@ export class DocumentsService {
   }
 
   private hasActiveVehicle(): SQL<unknown> {
-    return sql`(${documents.vehicleId} IS NULL OR EXISTS (
-      SELECT 1 FROM ${vehicles}
-      WHERE ${vehicles.id} = ${documents.vehicleId}
-        AND ${vehicles.deletedAt} IS NULL
-    ))`;
+    return sql`(
+      (${documents.vehicleId} IS NOT NULL AND EXISTS (
+        SELECT 1 FROM ${vehicles}
+        WHERE ${vehicles.id} = ${documents.vehicleId}
+          AND ${vehicles.deletedAt} IS NULL
+      ))
+      OR
+      (${documents.groupId} IS NOT NULL AND EXISTS (
+        SELECT 1
+        FROM ${documentGroups}
+        INNER JOIN ${vehicles} ON ${vehicles.id} = ${documentGroups.vehicleId}
+        WHERE ${documentGroups.id} = ${documents.groupId}
+          AND ${vehicles.deletedAt} IS NULL
+      ))
+    )`;
   }
 
   private hasActiveExpense(): SQL<unknown> {
-    return sql`(${documents.expenseId} IS NULL OR EXISTS (
-      SELECT 1 FROM ${expenses}
-      WHERE ${expenses.id} = ${documents.expenseId}
-        AND ${expenses.deletedAt} IS NULL
-        AND (${expenses.vehicleId} IS NULL OR EXISTS (
-          SELECT 1 FROM ${vehicles}
-          WHERE ${vehicles.id} = ${expenses.vehicleId}
-            AND ${vehicles.deletedAt} IS NULL
-        ))
-    ))`;
+    return sql`(
+      NOT EXISTS (
+        SELECT 1 FROM ${expenses}
+        WHERE ${expenses.documentGroupId} = ${documents.groupId}
+      )
+      OR EXISTS (
+        SELECT 1 FROM ${expenses}
+        WHERE ${expenses.documentGroupId} = ${documents.groupId}
+          AND ${expenses.deletedAt} IS NULL
+      )
+    )`;
   }
 
   private belongsToVehicleScope(vehicleId: string): SQL<unknown> {
@@ -556,18 +599,56 @@ export class DocumentsService {
       and(
         isNull(documents.vehicleId),
         sql`EXISTS (
-          SELECT 1 FROM ${expenses}
-          WHERE ${expenses.id} = ${documents.expenseId}
-            AND ${expenses.vehicleId} = ${vehicleId}
+          SELECT 1 FROM ${documentGroups}
+          WHERE ${documentGroups.id} = ${documents.groupId}
+            AND ${documentGroups.vehicleId} = ${vehicleId}
         )`,
       ),
     )!;
   }
 
+  // Documents whose group is referenced by any status-history slot are status
+  // evidence and must not be offered for re-grouping (move).
+  private notStatusBound(): SQL<unknown> {
+    return sql`(${documents.groupId} IS NULL OR NOT EXISTS (
+      SELECT 1 FROM ${vehicleStatusHistory} h
+      WHERE ${documents.groupId} IN (
+        h.registration_group_id,
+        h.stamped_registration_group_id,
+        h.customs_declaration_group_id,
+        h.stamped_customs_declaration_group_id,
+        h.transfer_act_draft_group_id,
+        h.transfer_act_signed_group_id,
+        h.return_act_group_id
+      )
+    ))`;
+  }
+
+  private async assertGroupInOrg(groupId: string, organizationId: string): Promise<void> {
+    const group = await this.db.query.documentGroups.findFirst({
+      where: and(eq(documentGroups.id, groupId), eq(documentGroups.organizationId, organizationId)),
+    });
+    if (!group) {
+      throw new NotFoundException(`Document group ${groupId} not found in this organization`);
+    }
+  }
+
   private responseRelations() {
     return {
       vehicle: { columns: { id: true, identifier: true, brand: true, model: true } },
-      expense: { columns: { id: true, expenseDate: true, amountMinor: true, currency: true } },
+      group: {
+        columns: { id: true, name: true },
+        with: {
+          expenses: {
+            columns: { id: true },
+            where: isNull(expenses.deletedAt),
+          },
+          donations: {
+            columns: { id: true },
+            where: isNull(donations.deletedAt),
+          },
+        },
+      },
       createdByUser: { columns: { id: true, fullName: true } },
       updatedByUser: { columns: { id: true, fullName: true } },
       deletedByUser: { columns: { id: true, fullName: true } },
@@ -583,7 +664,6 @@ export class DocumentsService {
       id: row.id,
       name: row.name,
       kind: row.kind,
-      documentType: row.documentType,
       fileKey: row.fileKey,
       url: row.url,
       mimeType: row.mimeType,
@@ -597,13 +677,13 @@ export class DocumentsService {
             model: row.vehicle.model,
           }
         : null,
-      expenseId: row.expenseId,
-      expense: row.expense
+      groupId: row.groupId,
+      group: row.group
         ? {
-            id: row.expense.id,
-            expenseDate: row.expense.expenseDate,
-            amountMinor: row.expense.amountMinor,
-            currency: row.expense.currency,
+            id: row.group.id,
+            name: row.group.name,
+            expenseIds: row.group.expenses?.map((expense) => expense.id) ?? [],
+            donationIds: row.group.donations?.map((donation) => donation.id) ?? [],
           }
         : null,
       createdBy: this.toUserInfo(row.createdByUser),
@@ -613,5 +693,48 @@ export class DocumentsService {
       deletedAt: row.deletedAt?.toISOString() ?? null,
       deletedBy: row.deletedByUser ? this.toUserInfo(row.deletedByUser) : null,
     };
+  }
+
+  private async cleanupEmptyGroup(
+    tx: Parameters<Parameters<Database['transaction']>[0]>[0],
+    groupId: string,
+  ): Promise<void> {
+    const remaining = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(documents)
+      .where(and(eq(documents.groupId, groupId), isNull(documents.deletedAt)));
+    if ((remaining[0]?.count ?? 0) > 0) return;
+
+    const statusRef = await tx
+      .select({ id: vehicleStatusHistory.id })
+      .from(vehicleStatusHistory)
+      .where(
+        or(
+          eq(vehicleStatusHistory.registrationGroupId, groupId),
+          eq(vehicleStatusHistory.stampedRegistrationGroupId, groupId),
+          eq(vehicleStatusHistory.customsDeclarationGroupId, groupId),
+          eq(vehicleStatusHistory.stampedCustomsDeclarationGroupId, groupId),
+          eq(vehicleStatusHistory.transferActDraftGroupId, groupId),
+          eq(vehicleStatusHistory.transferActSignedGroupId, groupId),
+          eq(vehicleStatusHistory.returnActGroupId, groupId),
+        ),
+      )
+      .limit(1);
+    if (statusRef.length > 0) return;
+
+    const group = await tx.query.documentGroups.findFirst({
+      where: eq(documentGroups.id, groupId),
+    });
+    if (!group) return;
+
+    await tx
+      .update(documents)
+      .set({ groupId: null, vehicleId: group.vehicleId, updatedAt: new Date() })
+      .where(eq(documents.groupId, groupId));
+    await tx
+      .update(expenses)
+      .set({ documentGroupId: null, updatedAt: new Date() })
+      .where(eq(expenses.documentGroupId, groupId));
+    await tx.delete(documentGroups).where(eq(documentGroups.id, groupId));
   }
 }

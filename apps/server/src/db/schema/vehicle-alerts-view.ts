@@ -25,7 +25,7 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.registration_doc_id
+          ON d.group_id = h.registration_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -53,7 +53,7 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.stamped_registration_doc_id
+          ON d.group_id = h.stamped_registration_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -81,7 +81,7 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.customs_declaration_doc_id
+          ON d.group_id = h.customs_declaration_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -109,7 +109,7 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.stamped_customs_declaration_doc_id
+          ON d.group_id = h.stamped_customs_declaration_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -136,7 +136,7 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.transfer_act_draft_doc_id
+          ON d.group_id = h.transfer_act_draft_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -163,7 +163,7 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.transfer_act_signed_doc_id
+          ON d.group_id = h.transfer_act_signed_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id
@@ -210,7 +210,7 @@ export const vehicleAlertsView = pgView('vehicle_alerts_view', {
         SELECT 1
         FROM vehicle_status_history h
         JOIN documents d
-          ON d.id = h.return_act_doc_id
+          ON d.group_id = h.return_act_group_id
          AND d.deleted_at IS NULL
          AND d.organization_id = v.organization_id
         WHERE h.vehicle_id = v.id

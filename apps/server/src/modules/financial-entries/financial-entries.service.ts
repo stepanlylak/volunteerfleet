@@ -206,7 +206,7 @@ export class FinancialEntriesService {
         (
           SELECT count(${documents.id})::int
           FROM ${documents}
-          WHERE ${documents.expenseId} = e.id
+          WHERE ${documents.groupId} = e.document_group_id
             AND ${documents.deletedAt} IS NULL
         ) AS document_count
       FROM ${expenses} e

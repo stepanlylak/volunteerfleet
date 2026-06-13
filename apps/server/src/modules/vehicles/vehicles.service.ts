@@ -342,13 +342,13 @@ export class VehiclesService {
       isLocalPurchase: r.isLocalPurchase,
       isRegisteredAtServiceCenter: r.isRegisteredAtServiceCenter,
       lostReason: r.lostReason,
-      registrationDocId: r.registrationDocId,
-      stampedRegistrationDocId: r.stampedRegistrationDocId,
-      customsDeclarationDocId: r.customsDeclarationDocId,
-      stampedCustomsDeclarationDocId: r.stampedCustomsDeclarationDocId,
-      transferActDraftDocId: r.transferActDraftDocId,
-      transferActSignedDocId: r.transferActSignedDocId,
-      returnActDocId: r.returnActDocId,
+      registrationGroupId: r.registrationGroupId,
+      stampedRegistrationGroupId: r.stampedRegistrationGroupId,
+      customsDeclarationGroupId: r.customsDeclarationGroupId,
+      stampedCustomsDeclarationGroupId: r.stampedCustomsDeclarationGroupId,
+      transferActDraftGroupId: r.transferActDraftGroupId,
+      transferActSignedGroupId: r.transferActSignedGroupId,
+      returnActGroupId: r.returnActGroupId,
     }));
 
     return { items, total: items.length };

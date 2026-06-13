@@ -1,18 +1,19 @@
-import { Button, DatePicker, Form, Input, Modal, Select, Space, Switch, message } from 'antd';
+import { Button, Card, DatePicker, Form, Input, Modal, Select, Space, Switch, message } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import type { VehicleResponse, VehicleStatus, VehicleStatusHistory } from '@volunteerfleet/shared';
 import { ALLOWED_TRANSITIONS, VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
 import {
-  type FileAttachmentExistingItem,
   type FileAttachmentNewFile,
   type FileAttachmentNewLink,
   FileAttachmentField,
 } from '../components/files/FileAttachmentField';
-import { useLinkDocument, useUploadDocument, useVehicleDocuments } from '../hooks/useDocuments';
+import { GroupingToggle } from '../components/files/GroupingToggle';
+import { useVehicleDocuments } from '../hooks/useDocuments';
 import { useVehicleTransition } from '../hooks/useVehicles';
 import { documentsApi } from '../api/documents.api';
-import type { DocumentType } from '@volunteerfleet/shared';
+import { buildDocumentGroup, MOVE_CANCELLED } from '../utils/buildDocumentGroup';
+import { buildDocumentPickerItems } from '../utils/documentPickerItems';
 
 const MAX_SIZE_BYTES = 26_214_400;
 const ALLOWED_MIME_TYPES = [
@@ -32,57 +33,27 @@ const ALLOWED_MIME_TYPES = [
 interface DocSlot {
   fieldKey: string;
   label: string;
-  documentType: DocumentType;
 }
 
 const TRANSITION_DOC_SLOTS: Partial<Record<VehicleStatus, DocSlot[]>> = {
-  paid: [
-    {
-      fieldKey: 'registrationDocId',
-      label: 'Техпаспорт без печатки митниці',
-      documentType: 'registration_certificate',
-    },
-  ],
-  in_transit: [
-    {
-      fieldKey: 'customsDeclarationDocId',
-      label: 'Митна декларація',
-      documentType: 'customs_declaration',
-    },
-  ],
+  paid: [{ fieldKey: 'registrationGroupId', label: 'Техпаспорт без печатки митниці' }],
+  in_transit: [{ fieldKey: 'customsDeclarationGroupId', label: 'Митна декларація' }],
   arrived: [
-    {
-      fieldKey: 'stampedRegistrationDocId',
-      label: 'Техпаспорт з печаткою митниці',
-      documentType: 'registration_certificate',
-    },
-    {
-      fieldKey: 'stampedCustomsDeclarationDocId',
-      label: 'Скан митної декларації з печатками',
-      documentType: 'stamped_customs_declaration',
-    },
+    { fieldKey: 'stampedRegistrationGroupId', label: 'Техпаспорт з печаткою митниці' },
+    { fieldKey: 'stampedCustomsDeclarationGroupId', label: 'Скан митної декларації з печатками' },
   ],
-  ready: [
-    {
-      fieldKey: 'transferActDraftDocId',
-      label: 'Акт приймання-передачі (чернетка)',
-      documentType: 'transfer_act_draft',
-    },
-  ],
+  ready: [{ fieldKey: 'transferActDraftGroupId', label: 'Акт приймання-передачі (чернетка)' }],
   transferred: [
-    {
-      fieldKey: 'transferActSignedDocId',
-      label: 'Підписаний акт приймання-передачі',
-      documentType: 'transfer_act_signed',
-    },
+    { fieldKey: 'transferActSignedGroupId', label: 'Підписаний акт приймання-передачі' },
   ],
-  returned: [{ fieldKey: 'returnActDocId', label: 'Акт повернення', documentType: 'return_act' }],
+  returned: [{ fieldKey: 'returnActGroupId', label: 'Акт повернення' }],
 };
 
 interface SlotState {
   newFiles: FileAttachmentNewFile[];
   newLinks: FileAttachmentNewLink[];
-  existingDocId: string | null;
+  existingIds: string[];
+  groupName?: string;
 }
 
 interface FormValues {
@@ -118,6 +89,7 @@ export function StatusTransitionModal({
   const [form] = Form.useForm<FormValues>();
   const [targetStatus, setTargetStatus] = useState<VehicleStatus | undefined>();
   const [slotStates, setSlotStates] = useState<Record<string, SlotState>>({});
+  const [submitting, setSubmitting] = useState(false);
   const isDateManuallyChangedRef = useRef(false);
 
   const allowedTargets = ALLOWED_TRANSITIONS[vehicle.status] ?? [];
@@ -127,13 +99,17 @@ export function StatusTransitionModal({
     lastHistoryEntry?.transitionDate ?? vehicle.startDate ?? dayjs().format('YYYY-MM-DD');
 
   const transition = useVehicleTransition(vehicle.id);
-  const uploadDocument = useUploadDocument(vehicle.id);
-  const linkDocument = useLinkDocument(vehicle.id);
+  // Documents that are already status evidence are excluded from the picker so
+  // they cannot be stolen by a move (backend enforces the same guard).
   const { data: vehicleDocsData } = useVehicleDocuments(open ? vehicle.id : undefined, {
     pageSize: 100,
+    excludeStatusBound: true,
   });
 
   const vehicleDocs = vehicleDocsData?.items ?? [];
+  // Picker offers logical documents (groups) of the vehicle; selecting any
+  // merges its files into the slot's new group.
+  const picker = buildDocumentPickerItems(vehicleDocs, documentsApi.getDownloadUrl);
 
   useEffect(() => {
     if (!open) return;
@@ -154,40 +130,29 @@ export function StatusTransitionModal({
   }, [open, form, defaultTransitionDate]);
 
   const getSlotState = (key: string): SlotState =>
-    slotStates[key] ?? { newFiles: [], newLinks: [], existingDocId: null };
+    slotStates[key] ?? { newFiles: [], newLinks: [], existingIds: [] };
 
   const setSlotField = (key: string, patch: Partial<SlotState>) => {
-    setSlotStates((prev) => ({ ...prev, [key]: { ...getSlotState(key), ...patch } }));
+    setSlotStates((prev) => {
+      const current = prev[key] ?? { newFiles: [], newLinks: [], existingIds: [] };
+      return { ...prev, [key]: { ...current, ...patch } };
+    });
   };
 
-  const uploadOrLinkDoc = async (slot: DocSlot, state: SlotState): Promise<string | null> => {
-    const file = state.newFiles[0];
-    const link = state.newLinks[0];
+  const selectedDocIds = (existingIds: string[]): string[] =>
+    existingIds.flatMap((id) => picker.docIdsById[id] ?? []);
 
-    if (file) {
-      const formData = new FormData();
-      formData.append('file', file.file);
-      formData.append('name', file.name.trim() || file.file.name);
-      formData.append('vehicleId', vehicle.id);
-      formData.append('documentType', slot.documentType);
-      const doc = await uploadDocument.mutateAsync(formData);
-      return doc.id;
-    }
-
-    if (link) {
-      const doc = await linkDocument.mutateAsync({
-        name: link.name,
-        url: link.url,
-        documentType: slot.documentType,
-        vehicleId: vehicle.id,
-      });
-      return doc.id;
-    }
-
-    if (state.existingDocId) return state.existingDocId;
-
-    return null;
-  };
+  const buildSlotGroup = (slot: DocSlot, state: SlotState): Promise<string | null> =>
+    buildDocumentGroup({
+      vehicleId: vehicle.id,
+      name: state.groupName?.trim() || slot.label,
+      newFiles: state.newFiles,
+      newLinks: state.newLinks,
+      selectedExisting: selectedDocIds(state.existingIds).map((docId) => {
+        const doc = vehicleDocs.find((d) => d.id === docId);
+        return { id: docId, name: doc?.name ?? '', groupId: doc?.groupId ?? null };
+      }),
+    });
 
   const onFinish = async (values: FormValues) => {
     if (!values.targetStatus) {
@@ -197,11 +162,11 @@ export function StatusTransitionModal({
 
     const transitionDate = values.transitionDate.format('YYYY-MM-DD');
 
+    setSubmitting(true);
     try {
-      const docIds: Record<string, string | null> = {};
+      const groupIds: Record<string, string | null> = {};
       for (const slot of docSlots) {
-        const state = getSlotState(slot.fieldKey);
-        docIds[slot.fieldKey] = await uploadOrLinkDoc(slot, state);
+        groupIds[slot.fieldKey] = await buildSlotGroup(slot, getSlotState(slot.fieldKey));
       }
 
       const base = {
@@ -217,11 +182,14 @@ export function StatusTransitionModal({
           payload = {
             ...base,
             isLocalPurchase: values.isLocalPurchase ?? false,
-            registrationDocId: docIds['registrationDocId'] ?? null,
+            registrationGroupId: groupIds['registrationGroupId'] ?? null,
           };
           break;
         case 'in_transit':
-          payload = { ...base, customsDeclarationDocId: docIds['customsDeclarationDocId'] ?? null };
+          payload = {
+            ...base,
+            customsDeclarationGroupId: groupIds['customsDeclarationGroupId'] ?? null,
+          };
           break;
         case 'arrived':
           payload = {
@@ -229,25 +197,28 @@ export function StatusTransitionModal({
             borderCrossingDate: values.borderCrossingDate
               ? values.borderCrossingDate.format('YYYY-MM-DD')
               : null,
-            stampedRegistrationDocId: docIds['stampedRegistrationDocId'] ?? null,
-            stampedCustomsDeclarationDocId: docIds['stampedCustomsDeclarationDocId'] ?? null,
+            stampedRegistrationGroupId: groupIds['stampedRegistrationGroupId'] ?? null,
+            stampedCustomsDeclarationGroupId: groupIds['stampedCustomsDeclarationGroupId'] ?? null,
           };
           break;
         case 'in_repair':
           payload = { ...base };
           break;
         case 'ready':
-          payload = { ...base, transferActDraftDocId: docIds['transferActDraftDocId'] ?? null };
+          payload = {
+            ...base,
+            transferActDraftGroupId: groupIds['transferActDraftGroupId'] ?? null,
+          };
           break;
         case 'transferred':
           payload = {
             ...base,
-            transferActSignedDocId: docIds['transferActSignedDocId'] ?? null,
+            transferActSignedGroupId: groupIds['transferActSignedGroupId'] ?? null,
             isRegisteredAtServiceCenter: values.isRegisteredAtServiceCenter ?? false,
           };
           break;
         case 'returned':
-          payload = { ...base, returnActDocId: docIds['returnActDocId'] ?? null };
+          payload = { ...base, returnActGroupId: groupIds['returnActGroupId'] ?? null };
           break;
         case 'lost':
           payload = { ...base, lostReason: values.lostReason ?? '' };
@@ -263,26 +234,15 @@ export function StatusTransitionModal({
         onPaidTransition?.(transitionDate);
       }
       onClose();
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.message === MOVE_CANCELLED) return;
       message.error('Помилка при зміні статусу');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const isPending = transition.isPending || uploadDocument.isPending || linkDocument.isPending;
-
-  const selectableDocsForSlot = (slot: DocSlot): FileAttachmentExistingItem[] =>
-    vehicleDocs
-      .filter((doc) => doc.documentType === slot.documentType)
-      .map((doc) => ({
-        id: doc.id,
-        name: doc.name,
-        kind: doc.kind,
-        mimeType: doc.mimeType,
-        sizeBytes: doc.sizeBytes,
-        url: doc.url,
-        downloadUrl:
-          doc.kind === 'upload' ? documentsApi.getDownloadUrl(doc.id, doc.updatedAt) : undefined,
-      }));
+  const isPending = transition.isPending || submitting;
 
   return (
     <Modal
@@ -362,31 +322,59 @@ export function StatusTransitionModal({
 
         {docSlots.map((slot) => {
           const state = getSlotState(slot.fieldKey);
-          const selectable = selectableDocsForSlot(slot);
+          const itemCount =
+            state.newFiles.length +
+            state.newLinks.length +
+            selectedDocIds(state.existingIds).length;
           return (
-            <Form.Item key={slot.fieldKey} label={slot.label}>
+            <Card key={slot.fieldKey} size="small" title={slot.label} style={{ marginBottom: 16 }}>
               <FileAttachmentField
-                multiple={false}
+                multiple
                 allowLinks
                 acceptedMimeTypes={ALLOWED_MIME_TYPES}
                 maxSizeBytes={MAX_SIZE_BYTES}
                 newFiles={state.newFiles}
-                onNewFilesChange={(files) =>
-                  setSlotField(slot.fieldKey, {
-                    newFiles: typeof files === 'function' ? files(state.newFiles) : files,
-                  })
-                }
+                onNewFilesChange={(files) => {
+                  setSlotStates((prev) => {
+                    const current = prev[slot.fieldKey] ?? {
+                      newFiles: [],
+                      newLinks: [],
+                      existingIds: [],
+                    };
+                    return {
+                      ...prev,
+                      [slot.fieldKey]: {
+                        ...current,
+                        newFiles: typeof files === 'function' ? files(current.newFiles) : files,
+                      },
+                    };
+                  });
+                }}
                 newLinks={state.newLinks}
                 onNewLinksChange={(links) => setSlotField(slot.fieldKey, { newLinks: links })}
-                selectableExistingItems={selectable}
-                selectedExistingIds={state.existingDocId ? [state.existingDocId] : []}
-                onSelectedExistingIdsChange={(ids) =>
-                  setSlotField(slot.fieldKey, { existingDocId: ids[0] ?? null })
-                }
-                selectExistingPlaceholder="Вибрати наявний документ"
-                hideExistingItemsWhenNewFilesAdded
+                selectableExistingItems={picker.items}
+                selectedExistingIds={state.existingIds}
+                onSelectedExistingIdsChange={(ids) => {
+                  const patch: Partial<SlotState> = { existingIds: ids };
+                  if (!state.groupName && ids[0]) {
+                    patch.groupName = picker.nameById[ids[0]] ?? '';
+                  }
+                  setSlotField(slot.fieldKey, patch);
+                }}
+                selectExistingPlaceholder="Вибрати наявні документи / групи"
               />
-            </Form.Item>
+              {itemCount > 1 && (
+                <div style={{ marginTop: 8 }}>
+                  <GroupingToggle
+                    mode="locked"
+                    checked
+                    name={state.groupName ?? ''}
+                    onNameChange={(name) => setSlotField(slot.fieldKey, { groupName: name })}
+                    namePlaceholder={slot.label}
+                  />
+                </div>
+              )}
+            </Card>
           );
         })}
 

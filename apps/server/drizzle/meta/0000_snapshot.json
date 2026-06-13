@@ -1,5 +1,5 @@
 {
-  "id": "74a15c27-7285-4aa3-bb51-eb213cfbe938",
+  "id": "d996f45f-41ba-4374-9608-b41193c0a98b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -608,6 +608,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "document_group_id": {
+          "name": "document_group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "category_id": {
           "name": "category_id",
           "type": "uuid",
@@ -823,6 +829,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "donations_document_group_id_idx": {
+          "name": "donations_document_group_id_idx",
+          "columns": [
+            {
+              "expression": "document_group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -858,6 +879,19 @@
           "tableTo": "vehicles",
           "columnsFrom": [
             "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "donations_document_group_id_document_groups_id_fk": {
+          "name": "donations_document_group_id_document_groups_id_fk",
+          "tableFrom": "donations",
+          "tableTo": "document_groups",
+          "columnsFrom": [
+            "document_group_id"
           ],
           "columnsTo": [
             "id"
@@ -1932,44 +1966,44 @@
           "primaryKey": false,
           "notNull": false
         },
-        "registration_doc_id": {
-          "name": "registration_doc_id",
+        "registration_group_id": {
+          "name": "registration_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "stamped_registration_doc_id": {
-          "name": "stamped_registration_doc_id",
+        "stamped_registration_group_id": {
+          "name": "stamped_registration_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "customs_declaration_doc_id": {
-          "name": "customs_declaration_doc_id",
+        "customs_declaration_group_id": {
+          "name": "customs_declaration_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "stamped_customs_declaration_doc_id": {
-          "name": "stamped_customs_declaration_doc_id",
+        "stamped_customs_declaration_group_id": {
+          "name": "stamped_customs_declaration_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "transfer_act_draft_doc_id": {
-          "name": "transfer_act_draft_doc_id",
+        "transfer_act_draft_group_id": {
+          "name": "transfer_act_draft_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "transfer_act_signed_doc_id": {
-          "name": "transfer_act_signed_doc_id",
+        "transfer_act_signed_group_id": {
+          "name": "transfer_act_signed_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "return_act_doc_id": {
-          "name": "return_act_doc_id",
+        "return_act_group_id": {
+          "name": "return_act_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -2084,12 +2118,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "vehicle_status_history_registration_doc_id_documents_id_fk": {
-          "name": "vehicle_status_history_registration_doc_id_documents_id_fk",
+        "vehicle_status_history_registration_group_id_document_groups_id_fk": {
+          "name": "vehicle_status_history_registration_group_id_document_groups_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
+          "tableTo": "document_groups",
           "columnsFrom": [
-            "registration_doc_id"
+            "registration_group_id"
           ],
           "columnsTo": [
             "id"
@@ -2097,12 +2131,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "vehicle_status_history_stamped_registration_doc_id_documents_id_fk": {
-          "name": "vehicle_status_history_stamped_registration_doc_id_documents_id_fk",
+        "vehicle_status_history_stamped_registration_group_id_document_groups_id_fk": {
+          "name": "vehicle_status_history_stamped_registration_group_id_document_groups_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
+          "tableTo": "document_groups",
           "columnsFrom": [
-            "stamped_registration_doc_id"
+            "stamped_registration_group_id"
           ],
           "columnsTo": [
             "id"
@@ -2110,12 +2144,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "vehicle_status_history_customs_declaration_doc_id_documents_id_fk": {
-          "name": "vehicle_status_history_customs_declaration_doc_id_documents_id_fk",
+        "vehicle_status_history_customs_declaration_group_id_document_groups_id_fk": {
+          "name": "vehicle_status_history_customs_declaration_group_id_document_groups_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
+          "tableTo": "document_groups",
           "columnsFrom": [
-            "customs_declaration_doc_id"
+            "customs_declaration_group_id"
           ],
           "columnsTo": [
             "id"
@@ -2123,12 +2157,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "vehicle_status_history_stamped_customs_declaration_doc_id_documents_id_fk": {
-          "name": "vehicle_status_history_stamped_customs_declaration_doc_id_documents_id_fk",
+        "vehicle_status_history_stamped_customs_declaration_group_id_document_groups_id_fk": {
+          "name": "vehicle_status_history_stamped_customs_declaration_group_id_document_groups_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
+          "tableTo": "document_groups",
           "columnsFrom": [
-            "stamped_customs_declaration_doc_id"
+            "stamped_customs_declaration_group_id"
           ],
           "columnsTo": [
             "id"
@@ -2136,12 +2170,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "vehicle_status_history_transfer_act_draft_doc_id_documents_id_fk": {
-          "name": "vehicle_status_history_transfer_act_draft_doc_id_documents_id_fk",
+        "vehicle_status_history_transfer_act_draft_group_id_document_groups_id_fk": {
+          "name": "vehicle_status_history_transfer_act_draft_group_id_document_groups_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
+          "tableTo": "document_groups",
           "columnsFrom": [
-            "transfer_act_draft_doc_id"
+            "transfer_act_draft_group_id"
           ],
           "columnsTo": [
             "id"
@@ -2149,12 +2183,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "vehicle_status_history_transfer_act_signed_doc_id_documents_id_fk": {
-          "name": "vehicle_status_history_transfer_act_signed_doc_id_documents_id_fk",
+        "vehicle_status_history_transfer_act_signed_group_id_document_groups_id_fk": {
+          "name": "vehicle_status_history_transfer_act_signed_group_id_document_groups_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
+          "tableTo": "document_groups",
           "columnsFrom": [
-            "transfer_act_signed_doc_id"
+            "transfer_act_signed_group_id"
           ],
           "columnsTo": [
             "id"
@@ -2162,12 +2196,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "vehicle_status_history_return_act_doc_id_documents_id_fk": {
-          "name": "vehicle_status_history_return_act_doc_id_documents_id_fk",
+        "vehicle_status_history_return_act_group_id_document_groups_id_fk": {
+          "name": "vehicle_status_history_return_act_group_id_document_groups_id_fk",
           "tableFrom": "vehicle_status_history",
-          "tableTo": "documents",
+          "tableTo": "document_groups",
           "columnsFrom": [
-            "return_act_doc_id"
+            "return_act_group_id"
           ],
           "columnsTo": [
             "id"
@@ -2204,6 +2238,12 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "document_group_id": {
+          "name": "document_group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "expense_date": {
           "name": "expense_date",
@@ -2319,6 +2359,21 @@
           "method": "btree",
           "with": {}
         },
+        "expenses_document_group_id_idx": {
+          "name": "expenses_document_group_id_idx",
+          "columns": [
+            {
+              "expression": "document_group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "expenses_expense_date_idx": {
           "name": "expenses_expense_date_idx",
           "columns": [
@@ -2370,6 +2425,19 @@
           "tableTo": "vehicles",
           "columnsFrom": [
             "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "expenses_document_group_id_document_groups_id_fk": {
+          "name": "expenses_document_group_id_document_groups_id_fk",
+          "tableFrom": "expenses",
+          "tableTo": "document_groups",
+          "columnsFrom": [
+            "document_group_id"
           ],
           "columnsTo": [
             "id"
@@ -2445,6 +2513,145 @@
       },
       "isRLSEnabled": false
     },
+    "public.document_groups": {
+      "name": "document_groups",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "document_groups_org_vehicle_idx": {
+          "name": "document_groups_org_vehicle_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "vehicle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "document_groups_organization_id_organizations_id_fk": {
+          "name": "document_groups_organization_id_organizations_id_fk",
+          "tableFrom": "document_groups",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "document_groups_vehicle_id_vehicles_id_fk": {
+          "name": "document_groups_vehicle_id_vehicles_id_fk",
+          "tableFrom": "document_groups",
+          "tableTo": "vehicles",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "document_groups_created_by_users_id_fk": {
+          "name": "document_groups_created_by_users_id_fk",
+          "tableFrom": "document_groups",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "document_groups_updated_by_users_id_fk": {
+          "name": "document_groups_updated_by_users_id_fk",
+          "tableFrom": "document_groups",
+          "tableTo": "users",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.documents": {
       "name": "documents",
       "schema": "",
@@ -2474,14 +2681,6 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
-        },
-        "document_type": {
-          "name": "document_type",
-          "type": "document_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'other'"
         },
         "file_key": {
           "name": "file_key",
@@ -2513,8 +2712,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "expense_id": {
-          "name": "expense_id",
+        "group_id": {
+          "name": "group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -2589,11 +2788,11 @@
           "method": "btree",
           "with": {}
         },
-        "documents_expense_id_idx": {
-          "name": "documents_expense_id_idx",
+        "documents_group_id_idx": {
+          "name": "documents_group_id_idx",
           "columns": [
             {
-              "expression": "expense_id",
+              "expression": "group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2632,12 +2831,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "documents_expense_id_expenses_id_fk": {
-          "name": "documents_expense_id_expenses_id_fk",
+        "documents_group_id_document_groups_id_fk": {
+          "name": "documents_group_id_document_groups_id_fk",
           "tableFrom": "documents",
-          "tableTo": "expenses",
+          "tableTo": "document_groups",
           "columnsFrom": [
-            "expense_id"
+            "group_id"
           ],
           "columnsTo": [
             "id"
@@ -2695,7 +2894,7 @@
         },
         "documents_attached_to_something": {
           "name": "documents_attached_to_something",
-          "value": "\"documents\".\"vehicle_id\" IS NOT NULL OR \"documents\".\"expense_id\" IS NOT NULL"
+          "value": "\"documents\".\"vehicle_id\" IS NOT NULL OR \"documents\".\"group_id\" IS NOT NULL"
         }
       },
       "isRLSEnabled": false
@@ -2717,19 +2916,6 @@
       "values": [
         "upload",
         "link"
-      ]
-    },
-    "public.document_type": {
-      "name": "document_type",
-      "schema": "public",
-      "values": [
-        "registration_certificate",
-        "customs_declaration",
-        "stamped_customs_declaration",
-        "transfer_act_draft",
-        "transfer_act_signed",
-        "return_act",
-        "other"
       ]
     },
     "public.org_role": {
@@ -2814,7 +3000,7 @@
           "notNull": false
         }
       },
-      "definition": "\n    SELECT v.id AS vehicle_id, 'missing_registration_doc'::text AS type, h_target.id AS vehicle_status_history_id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'paid'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('paid', 'in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.registration_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id AS vehicle_id, 'missing_stamped_registration_doc'::text AS type, h_target.id AS vehicle_status_history_id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'arrived'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND EXISTS (\n        SELECT 1\n        FROM vehicle_status_history p\n        WHERE p.vehicle_id = v.id\n          AND p.organization_id = v.organization_id\n          AND p.new_status = 'paid'\n          AND p.is_local_purchase = false\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.stamped_registration_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_customs_declaration', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'in_transit'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND EXISTS (\n        SELECT 1\n        FROM vehicle_status_history p\n        WHERE p.vehicle_id = v.id\n          AND p.organization_id = v.organization_id\n          AND p.new_status = 'paid'\n          AND p.is_local_purchase = false\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.customs_declaration_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_stamped_customs_declaration', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'arrived'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND EXISTS (\n        SELECT 1\n        FROM vehicle_status_history p\n        WHERE p.vehicle_id = v.id\n          AND p.organization_id = v.organization_id\n          AND p.new_status = 'paid'\n          AND p.is_local_purchase = false\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.stamped_customs_declaration_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_transfer_act_draft', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'ready'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('ready', 'transferred')\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'ready'\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.transfer_act_draft_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_transfer_act_signed', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'transferred'\n    WHERE v.deleted_at IS NULL\n      AND v.status = 'transferred'\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'transferred'\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.transfer_act_signed_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n          AND h.new_status = 'transferred'\n          AND h.changed_at = h_target.changed_at\n      )\n\n    UNION ALL\n    SELECT v.id, 'not_registered_at_service_center', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'transferred'\n    WHERE v.deleted_at IS NULL\n      AND v.status = 'transferred'\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'transferred'\n      )\n      AND h_target.is_registered_at_service_center IS NOT TRUE\n\n    UNION ALL\n    SELECT v.id, 'missing_return_act', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'returned'\n    WHERE v.deleted_at IS NULL\n      AND v.status = 'returned'\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'returned'\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.id = h.return_act_doc_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n          AND h.new_status = 'returned'\n          AND h.changed_at = h_target.changed_at\n      )\n  ",
+      "definition": "\n    SELECT v.id AS vehicle_id, 'missing_registration_doc'::text AS type, h_target.id AS vehicle_status_history_id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'paid'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('paid', 'in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.group_id = h.registration_group_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id AS vehicle_id, 'missing_stamped_registration_doc'::text AS type, h_target.id AS vehicle_status_history_id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'arrived'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND EXISTS (\n        SELECT 1\n        FROM vehicle_status_history p\n        WHERE p.vehicle_id = v.id\n          AND p.organization_id = v.organization_id\n          AND p.new_status = 'paid'\n          AND p.is_local_purchase = false\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.group_id = h.stamped_registration_group_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_customs_declaration', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'in_transit'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('in_transit', 'arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND EXISTS (\n        SELECT 1\n        FROM vehicle_status_history p\n        WHERE p.vehicle_id = v.id\n          AND p.organization_id = v.organization_id\n          AND p.new_status = 'paid'\n          AND p.is_local_purchase = false\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.group_id = h.customs_declaration_group_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_stamped_customs_declaration', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'arrived'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('arrived', 'in_repair', 'ready', 'transferred', 'returned')\n      AND EXISTS (\n        SELECT 1\n        FROM vehicle_status_history p\n        WHERE p.vehicle_id = v.id\n          AND p.organization_id = v.organization_id\n          AND p.new_status = 'paid'\n          AND p.is_local_purchase = false\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.group_id = h.stamped_customs_declaration_group_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_transfer_act_draft', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'ready'\n    WHERE v.deleted_at IS NULL\n      AND v.status IN ('ready', 'transferred')\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'ready'\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.group_id = h.transfer_act_draft_group_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n      )\n\n    UNION ALL\n    SELECT v.id, 'missing_transfer_act_signed', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'transferred'\n    WHERE v.deleted_at IS NULL\n      AND v.status = 'transferred'\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'transferred'\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.group_id = h.transfer_act_signed_group_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n          AND h.new_status = 'transferred'\n          AND h.changed_at = h_target.changed_at\n      )\n\n    UNION ALL\n    SELECT v.id, 'not_registered_at_service_center', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'transferred'\n    WHERE v.deleted_at IS NULL\n      AND v.status = 'transferred'\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'transferred'\n      )\n      AND h_target.is_registered_at_service_center IS NOT TRUE\n\n    UNION ALL\n    SELECT v.id, 'missing_return_act', h_target.id\n    FROM vehicles v\n    JOIN vehicle_status_history h_target\n      ON h_target.vehicle_id = v.id\n     AND h_target.organization_id = v.organization_id\n     AND h_target.new_status = 'returned'\n    WHERE v.deleted_at IS NULL\n      AND v.status = 'returned'\n      AND h_target.changed_at = (\n        SELECT max(h2.changed_at)\n        FROM vehicle_status_history h2\n        WHERE h2.vehicle_id = v.id\n          AND h2.organization_id = v.organization_id\n          AND h2.new_status = 'returned'\n      )\n      AND NOT EXISTS (\n        SELECT 1\n        FROM vehicle_status_history h\n        JOIN documents d\n          ON d.group_id = h.return_act_group_id\n         AND d.deleted_at IS NULL\n         AND d.organization_id = v.organization_id\n        WHERE h.vehicle_id = v.id\n          AND h.organization_id = v.organization_id\n          AND h.new_status = 'returned'\n          AND h.changed_at = h_target.changed_at\n      )\n  ",
       "name": "vehicle_alerts_view",
       "schema": "public",
       "isExisting": false,

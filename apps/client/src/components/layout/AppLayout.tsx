@@ -43,7 +43,8 @@ const PAGE_TITLES: Record<string, string> = {
 function getInitials(name?: string): string {
   if (!name) return '·';
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  const letters = (parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '');
+  const letters =
+    (parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '');
   return letters.toUpperCase() || name[0]!.toUpperCase();
 }
 

@@ -1,34 +1,32 @@
 import { Button, DatePicker, Form, Input, Modal, Select, Space, message } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Currency, ExpenseCreate, ExpenseResponse } from '@volunteerfleet/shared';
 import { expenseCreateSchema } from '@volunteerfleet/shared';
 import { documentsApi } from '../api/documents.api';
+import { documentGroupsApi } from '../api/documentGroups.api';
 import {
   FileAttachmentField,
   type FileAttachmentExistingItem,
   type FileAttachmentNewFile,
   type FileAttachmentNewLink,
 } from '../components/files/FileAttachmentField';
+import { GroupingToggle } from '../components/files/GroupingToggle';
 import { useCreateExpense, useUpdateExpense, useVehicleExpenses } from '../hooks/useExpenses';
-import {
-  useDeleteDocument,
-  useLinkDocument,
-  useUpdateDocument,
-  useUploadDocument,
-  useVehicleDocuments,
-} from '../hooks/useDocuments';
+import { useDeleteDocument, useVehicleDocuments } from '../hooks/useDocuments';
 import { useDictionary } from '../hooks/useDictionaries';
-import { useVehicles } from '../hooks/useVehicles';
+import { useVehicles, useVehicleStatusHistory } from '../hooks/useVehicles';
 import type { FinancialCategory } from '@volunteerfleet/shared';
 import type { DocumentDetachAction } from '../utils/documentDetachConfirm';
 import { confirmDocumentDetachAction } from '../utils/documentDetachConfirm';
 import { MoneyFields } from '../components/MoneyFields';
+import { buildDocumentGroup, MOVE_CANCELLED } from '../utils/buildDocumentGroup';
+import { buildDocumentPickerItems } from '../utils/documentPickerItems';
 
 interface ExpenseFormModalProps {
   open: boolean;
   vehicleId?: string;
-  vehicleBorderCrossingDate?: string | null;
   vehicleStartDate?: string;
   expense?: ExpenseResponse;
   onClose: () => void;
@@ -62,13 +60,13 @@ const ALLOWED_MIME_TYPES = [
 export function ExpenseFormModal({
   open,
   vehicleId,
-  vehicleBorderCrossingDate,
   vehicleStartDate,
   expense,
   onClose,
   onCreated,
 }: ExpenseFormModalProps) {
   const [form] = Form.useForm<FormValues>();
+  const queryClient = useQueryClient();
   const isEdit = !!expense;
   const needsVehiclePick = !vehicleId && !isEdit;
 
@@ -85,6 +83,7 @@ export function ExpenseFormModal({
   const [newLinks, setNewLinks] = useState<FileAttachmentNewLink[]>([]);
   const [selectedExistingDocumentIds, setSelectedExistingDocumentIds] = useState<string[]>([]);
   const [removedDocumentIds, setRemovedDocumentIds] = useState<string[]>([]);
+  const [groupName, setGroupName] = useState('');
   const isExpenseDateManuallyChangedRef = useRef(false);
 
   const { data: categoriesData } = useDictionary('financial-categories');
@@ -97,19 +96,22 @@ export function ExpenseFormModal({
     !isEdit && effectiveVehicleId ? effectiveVehicleId : undefined,
     { page: 1, pageSize: 1, sort: 'expenseDate:desc' },
   );
+  const { data: statusHistoryData } = useVehicleStatusHistory(
+    !isEdit && effectiveVehicleId ? effectiveVehicleId : undefined,
+  );
+
+  const latestExpenseDate = latestExpenseData?.items[0]?.expenseDate;
+  const latestStatusTransitionDate = statusHistoryData?.items[0]?.transitionDate;
+
   const suggestedExpenseDate =
-    latestExpenseData?.items[0]?.expenseDate ??
-    selectedVehicle?.borderCrossingDate ??
-    vehicleBorderCrossingDate ??
+    latestExpenseDate ??
+    (selectedVehicle?.status !== 'new' ? latestStatusTransitionDate : undefined) ??
     selectedVehicle?.startDate ??
     vehicleStartDate ??
     dayjs().format('YYYY-MM-DD');
 
   const createExpense = useCreateExpense(effectiveVehicleId);
   const updateExpense = useUpdateExpense(effectiveVehicleId);
-  const uploadDocument = useUploadDocument(effectiveVehicleId);
-  const linkDocument = useLinkDocument(effectiveVehicleId);
-  const updateDocument = useUpdateDocument(effectiveVehicleId);
   const deleteDocument = useDeleteDocument(effectiveVehicleId);
   const { data: attachedDocsData, isLoading: attachedDocsLoading } = useVehicleDocuments(
     expense?.id ? effectiveVehicleId : undefined,
@@ -117,7 +119,7 @@ export function ExpenseFormModal({
   );
   const { data: vehicleDocsData, isLoading: vehicleDocsLoading } = useVehicleDocuments(
     effectiveVehicleId,
-    { pageSize: 100 },
+    { pageSize: 100, excludeStatusBound: true },
   );
   const attachedDocs = expense?.id ? (attachedDocsData?.items ?? []) : [];
 
@@ -133,6 +135,7 @@ export function ExpenseFormModal({
       setNewLinks([]);
       setSelectedExistingDocumentIds([]);
       setRemovedDocumentIds([]);
+      setGroupName('');
       isExpenseDateManuallyChangedRef.current = false;
       form.setFieldsValue({
         expenseDate: dayjs(expense.expenseDate),
@@ -154,6 +157,7 @@ export function ExpenseFormModal({
       setNewLinks([]);
       setSelectedExistingDocumentIds([]);
       setRemovedDocumentIds([]);
+      setGroupName('');
       isExpenseDateManuallyChangedRef.current = false;
       form.setFieldsValue({
         expenseDate: dayjs(),
@@ -206,12 +210,22 @@ export function ExpenseFormModal({
 
       if (isEdit) {
         await updateExpense.mutateAsync({ id: expense.id, payload: parsed.data });
-        await syncAttachments(expense.id, effectiveVehicleId, detachAction);
+        await syncAttachments(
+          expense.id,
+          effectiveVehicleId,
+          expense.documentGroupId,
+          detachAction,
+        );
         message.success('Витрату оновлено');
         onClose();
       } else {
         const created = await createExpense.mutateAsync(parsed.data);
-        await syncAttachments(created.id, effectiveVehicleId, detachAction);
+        await syncAttachments(
+          created.id,
+          effectiveVehicleId,
+          created.documentGroupId,
+          detachAction,
+        );
         message.success('Витрату додано');
         onCreated?.(created);
         onClose();
@@ -220,7 +234,8 @@ export function ExpenseFormModal({
       setNewLinks([]);
       setSelectedExistingDocumentIds([]);
       setRemovedDocumentIds([]);
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === MOVE_CANCELLED) return;
       message.error('Помилка при збереженні витрати');
     }
   };
@@ -228,32 +243,25 @@ export function ExpenseFormModal({
   const syncAttachments = async (
     expenseId: string,
     targetVehicleId: string,
+    existingGroupId: string | null,
     detachAction: DocumentDetachAction | null,
   ) => {
-    for (const file of newFiles) {
-      const formData = new FormData();
-      formData.append('file', file.file);
-      formData.append('name', file.name.trim() || file.file.name);
-      formData.append('vehicleId', targetVehicleId);
-      formData.append('expenseId', expenseId);
-      await uploadDocument.mutateAsync(formData);
-    }
+    const resolvedDocIds = selectedExistingDocumentIds.flatMap((id) => picker.docIdsById[id] ?? []);
+    const selectedExisting = vehicleDocs
+      .filter((doc) => resolvedDocIds.includes(doc.id))
+      .map((doc) => ({ id: doc.id, name: doc.name, groupId: doc.groupId }));
 
-    for (const link of newLinks) {
-      await linkDocument.mutateAsync({
-        name: link.name,
-        url: link.url,
-        documentType: 'other',
-        vehicleId: targetVehicleId,
-        expenseId,
-      });
-    }
-
-    for (const documentId of selectedExistingDocumentIds) {
-      await updateDocument.mutateAsync({
-        id: documentId,
-        payload: { expenseId, vehicleId: targetVehicleId },
-      });
+    await buildDocumentGroup({
+      vehicleId: targetVehicleId,
+      expenseId,
+      name: groupName.trim() || 'Документи витрати',
+      newFiles,
+      newLinks,
+      selectedExisting,
+      existingGroupId,
+    });
+    if (existingGroupId && groupName.trim()) {
+      await documentGroupsApi.update(existingGroupId, { name: groupName.trim() });
     }
 
     if (detachAction === 'delete') {
@@ -262,22 +270,28 @@ export function ExpenseFormModal({
       }
     } else if (detachAction === 'unlink') {
       for (const documentId of removedDocumentIds) {
-        await updateDocument.mutateAsync({
-          id: documentId,
-          payload: { expenseId: null, vehicleId: targetVehicleId },
+        const group = await documentGroupsApi.create({
+          vehicleId: targetVehicleId,
         });
+        try {
+          await documentGroupsApi.moveDocument(group.id, documentId);
+        } catch (error) {
+          await documentGroupsApi.remove(group.id);
+          throw error;
+        }
       }
     }
+
+    void queryClient.invalidateQueries({ queryKey: ['expenses'] });
   };
 
-  const isPending =
-    createExpense.isPending ||
-    updateExpense.isPending ||
-    uploadDocument.isPending ||
-    linkDocument.isPending ||
-    updateDocument.isPending ||
-    deleteDocument.isPending;
+  const isPending = createExpense.isPending || updateExpense.isPending || deleteDocument.isPending;
   const attachedDocIds = new Set(attachedDocs.map((doc) => doc.id));
+  const attachmentCount =
+    attachedDocs.filter((doc) => !removedDocumentIds.includes(doc.id)).length +
+    newFiles.length +
+    newLinks.length +
+    selectedExistingDocumentIds.length;
   const attachedItems: FileAttachmentExistingItem[] = attachedDocs.map((doc) => ({
     id: doc.id,
     name: doc.name,
@@ -292,22 +306,11 @@ export function ExpenseFormModal({
     downloadUrl:
       doc.kind === 'upload' ? documentsApi.getDownloadUrl(doc.id, doc.updatedAt) : undefined,
   }));
-  const selectableExistingItems: FileAttachmentExistingItem[] = (vehicleDocsData?.items ?? [])
-    .filter((doc) => !doc.expenseId && !attachedDocIds.has(doc.id))
-    .map((doc) => ({
-      id: doc.id,
-      name: doc.name,
-      kind: doc.kind,
-      mimeType: doc.mimeType,
-      sizeBytes: doc.sizeBytes,
-      url: doc.url,
-      previewUrl:
-        doc.kind === 'upload' && doc.mimeType?.startsWith('image/')
-          ? documentsApi.getDownloadUrl(doc.id, doc.updatedAt)
-          : undefined,
-      downloadUrl:
-        doc.kind === 'upload' ? documentsApi.getDownloadUrl(doc.id, doc.updatedAt) : undefined,
-    }));
+  const vehicleDocs = vehicleDocsData?.items ?? [];
+  const picker = buildDocumentPickerItems(
+    vehicleDocs.filter((doc) => !attachedDocIds.has(doc.id)),
+    documentsApi.getDownloadUrl,
+  );
 
   return (
     <Modal
@@ -400,11 +403,20 @@ export function ExpenseFormModal({
             onNewLinksChange={setNewLinks}
             removedExistingIds={removedDocumentIds}
             onRemovedExistingIdsChange={setRemovedDocumentIds}
-            selectableExistingItems={selectableExistingItems}
+            selectableExistingItems={picker.items}
             selectedExistingIds={selectedExistingDocumentIds}
             onSelectedExistingIdsChange={setSelectedExistingDocumentIds}
             selectExistingPlaceholder="Вибрати існуючі документи авто"
           />
+          {attachmentCount > 1 && (
+            <GroupingToggle
+              mode="locked"
+              checked
+              name={groupName}
+              onNameChange={setGroupName}
+              namePlaceholder="Назва групи документів (необовʼязково)"
+            />
+          )}
         </Form.Item>
 
         <Form.Item style={{ marginBottom: 0 }}>

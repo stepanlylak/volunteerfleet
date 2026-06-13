@@ -342,6 +342,7 @@ export class ExpensesService {
     return {
       id: row.id,
       vehicleId: row.vehicleId,
+      documentGroupId: row.documentGroupId,
       vehicle: {
         id: row.vehicle.id,
         identifier: row.vehicle.identifier,

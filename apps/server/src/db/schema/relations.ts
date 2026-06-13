@@ -7,6 +7,7 @@ import { vehicles } from './vehicles.js';
 import { vehicleStatusHistory } from './vehicle-status-history.js';
 import { expenses } from './expenses.js';
 import { documents } from './documents.js';
+import { documentGroups } from './document-groups.js';
 import { vehicleGalleries } from './vehicle-galleries.js';
 import { vehicleGalleryItems } from './vehicle-gallery-items.js';
 import { donors, organizationDonors } from './donors.js';
@@ -27,6 +28,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   createdDocuments: many(documents, { relationName: 'createdBy' }),
   updatedDocuments: many(documents, { relationName: 'updatedBy' }),
   deletedDocuments: many(documents, { relationName: 'deletedBy' }),
+  createdDocumentGroups: many(documentGroups, { relationName: 'createdBy' }),
+  updatedDocumentGroups: many(documentGroups, { relationName: 'updatedBy' }),
   createdVehicleGalleries: many(vehicleGalleries, { relationName: 'createdBy' }),
   updatedVehicleGalleries: many(vehicleGalleries, { relationName: 'updatedBy' }),
   deletedVehicleGalleries: many(vehicleGalleries, { relationName: 'deletedBy' }),
@@ -58,6 +61,7 @@ export const organizationsRelations = relations(organizations, ({ one, many }) =
   vehicleGalleries: many(vehicleGalleries),
   vehicleGalleryItems: many(vehicleGalleryItems),
   statusHistory: many(vehicleStatusHistory),
+  documentGroups: many(documentGroups),
   donors: many(organizationDonors),
   donations: many(donations),
 }));
@@ -129,6 +133,7 @@ export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
   expenses: many(expenses),
   donations: many(donations),
   documents: many(documents),
+  documentGroups: many(documentGroups),
   galleries: many(vehicleGalleries),
   galleryItems: many(vehicleGalleryItems),
 }));
@@ -210,35 +215,64 @@ export const vehicleStatusHistoryRelations = relations(vehicleStatusHistory, ({ 
     fields: [vehicleStatusHistory.changedBy],
     references: [users.id],
   }),
-  registrationDoc: one(documents, {
-    fields: [vehicleStatusHistory.registrationDocId],
-    references: [documents.id],
-    relationName: 'registrationDoc',
+  registrationGroup: one(documentGroups, {
+    fields: [vehicleStatusHistory.registrationGroupId],
+    references: [documentGroups.id],
+    relationName: 'registrationGroup',
   }),
-  customsDeclarationDoc: one(documents, {
-    fields: [vehicleStatusHistory.customsDeclarationDocId],
-    references: [documents.id],
-    relationName: 'customsDeclarationDoc',
+  stampedRegistrationGroup: one(documentGroups, {
+    fields: [vehicleStatusHistory.stampedRegistrationGroupId],
+    references: [documentGroups.id],
+    relationName: 'stampedRegistrationGroup',
   }),
-  stampedCustomsDeclarationDoc: one(documents, {
-    fields: [vehicleStatusHistory.stampedCustomsDeclarationDocId],
-    references: [documents.id],
-    relationName: 'stampedCustomsDeclarationDoc',
+  customsDeclarationGroup: one(documentGroups, {
+    fields: [vehicleStatusHistory.customsDeclarationGroupId],
+    references: [documentGroups.id],
+    relationName: 'customsDeclarationGroup',
   }),
-  transferActDraftDoc: one(documents, {
-    fields: [vehicleStatusHistory.transferActDraftDocId],
-    references: [documents.id],
-    relationName: 'transferActDraftDoc',
+  stampedCustomsDeclarationGroup: one(documentGroups, {
+    fields: [vehicleStatusHistory.stampedCustomsDeclarationGroupId],
+    references: [documentGroups.id],
+    relationName: 'stampedCustomsDeclarationGroup',
   }),
-  transferActSignedDoc: one(documents, {
-    fields: [vehicleStatusHistory.transferActSignedDocId],
-    references: [documents.id],
-    relationName: 'transferActSignedDoc',
+  transferActDraftGroup: one(documentGroups, {
+    fields: [vehicleStatusHistory.transferActDraftGroupId],
+    references: [documentGroups.id],
+    relationName: 'transferActDraftGroup',
   }),
-  returnActDoc: one(documents, {
-    fields: [vehicleStatusHistory.returnActDocId],
-    references: [documents.id],
-    relationName: 'returnActDoc',
+  transferActSignedGroup: one(documentGroups, {
+    fields: [vehicleStatusHistory.transferActSignedGroupId],
+    references: [documentGroups.id],
+    relationName: 'transferActSignedGroup',
+  }),
+  returnActGroup: one(documentGroups, {
+    fields: [vehicleStatusHistory.returnActGroupId],
+    references: [documentGroups.id],
+    relationName: 'returnActGroup',
+  }),
+}));
+
+export const documentGroupsRelations = relations(documentGroups, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [documentGroups.organizationId],
+    references: [organizations.id],
+  }),
+  vehicle: one(vehicles, {
+    fields: [documentGroups.vehicleId],
+    references: [vehicles.id],
+  }),
+  expenses: many(expenses),
+  donations: many(donations),
+  documents: many(documents),
+  createdByUser: one(users, {
+    fields: [documentGroups.createdBy],
+    references: [users.id],
+    relationName: 'createdBy',
+  }),
+  updatedByUser: one(users, {
+    fields: [documentGroups.updatedBy],
+    references: [users.id],
+    relationName: 'updatedBy',
   }),
 }));
 
@@ -251,6 +285,10 @@ export const donationsRelations = relations(donations, ({ one }) => ({
   organization: one(organizations, {
     fields: [donations.organizationId],
     references: [organizations.id],
+  }),
+  documentGroup: one(documentGroups, {
+    fields: [donations.documentGroupId],
+    references: [documentGroups.id],
   }),
   organizationDonor: one(organizationDonors, {
     fields: [donations.organizationId, donations.donorId],
@@ -285,7 +323,7 @@ export const donationsRelations = relations(donations, ({ one }) => ({
   }),
 }));
 
-export const expensesRelations = relations(expenses, ({ one, many }) => ({
+export const expensesRelations = relations(expenses, ({ one }) => ({
   organization: one(organizations, {
     fields: [expenses.organizationId],
     references: [organizations.id],
@@ -293,6 +331,10 @@ export const expensesRelations = relations(expenses, ({ one, many }) => ({
   vehicle: one(vehicles, {
     fields: [expenses.vehicleId],
     references: [vehicles.id],
+  }),
+  documentGroup: one(documentGroups, {
+    fields: [expenses.documentGroupId],
+    references: [documentGroups.id],
   }),
   category: one(financialCategories, {
     fields: [expenses.categoryId],
@@ -313,7 +355,6 @@ export const expensesRelations = relations(expenses, ({ one, many }) => ({
     references: [users.id],
     relationName: 'deletedBy',
   }),
-  documents: many(documents),
 }));
 
 export const documentsRelations = relations(documents, ({ one }) => ({
@@ -325,9 +366,9 @@ export const documentsRelations = relations(documents, ({ one }) => ({
     fields: [documents.vehicleId],
     references: [vehicles.id],
   }),
-  expense: one(expenses, {
-    fields: [documents.expenseId],
-    references: [expenses.id],
+  group: one(documentGroups, {
+    fields: [documents.groupId],
+    references: [documentGroups.id],
   }),
   createdByUser: one(users, {
     fields: [documents.createdBy],

@@ -14,7 +14,9 @@ import type {
 import type { Database } from '../../db/client.js';
 import { DB } from '../../db/db.module.js';
 import {
+  documentGroups,
   documents,
+  donations,
   expenses,
   financialCategories,
   users,
@@ -40,10 +42,12 @@ type ExpenseRow = typeof expenses.$inferSelect & {
 
 type DocumentRow = typeof documents.$inferSelect & {
   vehicle?: Pick<typeof vehicles.$inferSelect, 'id' | 'identifier' | 'brand' | 'model'> | null;
-  expense?: Pick<
-    typeof expenses.$inferSelect,
-    'id' | 'expenseDate' | 'amountMinor' | 'currency'
-  > | null;
+  group?:
+    | (Pick<typeof documentGroups.$inferSelect, 'id' | 'name'> & {
+        expenses?: { id: string }[];
+        donations?: { id: string }[];
+      })
+    | null;
   createdByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   updatedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'>;
   deletedByUser?: Pick<typeof users.$inferSelect, 'id' | 'fullName'> | null;
@@ -248,7 +252,19 @@ export class ReportsService {
   private documentRelations() {
     return {
       vehicle: { columns: { id: true, identifier: true, brand: true, model: true } },
-      expense: { columns: { id: true, expenseDate: true, amountMinor: true, currency: true } },
+      group: {
+        columns: { id: true, name: true },
+        with: {
+          expenses: {
+            columns: { id: true },
+            where: isNull(expenses.deletedAt),
+          },
+          donations: {
+            columns: { id: true },
+            where: isNull(donations.deletedAt),
+          },
+        },
+      },
       createdByUser: { columns: { id: true, fullName: true } },
       updatedByUser: { columns: { id: true, fullName: true } },
       deletedByUser: { columns: { id: true, fullName: true } },
@@ -261,20 +277,26 @@ export class ReportsService {
       and(
         isNull(documents.vehicleId),
         sql`EXISTS (
-          SELECT 1 FROM ${expenses}
-          WHERE ${expenses.id} = ${documents.expenseId}
-            AND ${expenses.vehicleId} = ${vehicleId}
+          SELECT 1 FROM ${documentGroups}
+          WHERE ${documentGroups.id} = ${documents.groupId}
+            AND ${documentGroups.vehicleId} = ${vehicleId}
         )`,
       ),
     )!;
   }
 
   private documentHasActiveExpense(): SQL<unknown> {
-    return sql`(${documents.expenseId} IS NULL OR EXISTS (
-      SELECT 1 FROM ${expenses}
-      WHERE ${expenses.id} = ${documents.expenseId}
-        AND ${expenses.deletedAt} IS NULL
-    ))`;
+    return sql`(
+      NOT EXISTS (
+        SELECT 1 FROM ${expenses}
+        WHERE ${expenses.documentGroupId} = ${documents.groupId}
+      )
+      OR EXISTS (
+        SELECT 1 FROM ${expenses}
+        WHERE ${expenses.documentGroupId} = ${documents.groupId}
+          AND ${expenses.deletedAt} IS NULL
+      )
+    )`;
   }
 
   private resolveReportRate(row: AggregationExpense): number {
@@ -327,13 +349,13 @@ export class ReportsService {
 
       isRegisteredAtServiceCenter: row.isRegisteredAtServiceCenter,
       lostReason: row.lostReason,
-      registrationDocId: row.registrationDocId,
-      stampedRegistrationDocId: row.stampedRegistrationDocId,
-      customsDeclarationDocId: row.customsDeclarationDocId,
-      stampedCustomsDeclarationDocId: row.stampedCustomsDeclarationDocId,
-      transferActDraftDocId: row.transferActDraftDocId,
-      transferActSignedDocId: row.transferActSignedDocId,
-      returnActDocId: row.returnActDocId,
+      registrationGroupId: row.registrationGroupId,
+      stampedRegistrationGroupId: row.stampedRegistrationGroupId,
+      customsDeclarationGroupId: row.customsDeclarationGroupId,
+      stampedCustomsDeclarationGroupId: row.stampedCustomsDeclarationGroupId,
+      transferActDraftGroupId: row.transferActDraftGroupId,
+      transferActSignedGroupId: row.transferActSignedGroupId,
+      returnActGroupId: row.returnActGroupId,
     };
   }
 
@@ -346,6 +368,7 @@ export class ReportsService {
     return {
       id: row.id,
       vehicleId: row.vehicleId,
+      documentGroupId: row.documentGroupId,
       vehicle: {
         id: row.vehicle.id,
         identifier: row.vehicle.identifier,
@@ -380,7 +403,6 @@ export class ReportsService {
       id: row.id,
       name: row.name,
       kind: row.kind,
-      documentType: row.documentType,
       fileKey: row.fileKey,
       url: row.url,
       mimeType: row.mimeType,
@@ -394,13 +416,13 @@ export class ReportsService {
             model: row.vehicle.model,
           }
         : null,
-      expenseId: row.expenseId,
-      expense: row.expense
+      groupId: row.groupId,
+      group: row.group
         ? {
-            id: row.expense.id,
-            expenseDate: row.expense.expenseDate,
-            amountMinor: row.expense.amountMinor,
-            currency: row.expense.currency,
+            id: row.group.id,
+            name: row.group.name,
+            expenseIds: row.group.expenses?.map((expense) => expense.id) ?? [],
+            donationIds: row.group.donations?.map((donation) => donation.id) ?? [],
           }
         : null,
       createdBy: this.toDocumentUserInfo(row.createdByUser),
