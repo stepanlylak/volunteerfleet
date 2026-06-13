@@ -1,18 +1,19 @@
-import { Button, DatePicker, Form, Input, Modal, Space, Switch, message } from 'antd';
+import { Button, Card, DatePicker, Form, Input, Modal, Space, Switch, message } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import type { VehicleStatus, VehicleStatusHistory } from '@volunteerfleet/shared';
 import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
 import {
-  type FileAttachmentExistingItem,
   type FileAttachmentNewFile,
   type FileAttachmentNewLink,
   FileAttachmentField,
 } from '../components/files/FileAttachmentField';
-import { useLinkDocument, useUploadDocument, useVehicleDocuments } from '../hooks/useDocuments';
+import { GroupingToggle } from '../components/files/GroupingToggle';
+import { useVehicleDocuments } from '../hooks/useDocuments';
 import { useUpdateStatusHistory } from '../hooks/useVehicles';
 import { documentsApi } from '../api/documents.api';
-import type { DocumentType } from '@volunteerfleet/shared';
+import { buildDocumentGroup, MOVE_CANCELLED } from '../utils/buildDocumentGroup';
+import { buildDocumentPickerItems } from '../utils/documentPickerItems';
 
 const MAX_SIZE_BYTES = 26_214_400;
 const ALLOWED_MIME_TYPES = [
@@ -32,8 +33,7 @@ const ALLOWED_MIME_TYPES = [
 interface DocSlot {
   fieldKey: string;
   label: string;
-  documentType: DocumentType;
-  currentDocId: string | null;
+  currentGroupId: string | null;
 }
 
 function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): DocSlot[] {
@@ -41,61 +41,54 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
     case 'paid':
       return [
         {
-          fieldKey: 'registrationDocId',
+          fieldKey: 'registrationGroupId',
           label: 'Техпаспорт без печатки митниці',
-          documentType: 'registration_certificate',
-          currentDocId: entry.registrationDocId ?? null,
+          currentGroupId: entry.registrationGroupId ?? null,
         },
       ];
     case 'in_transit':
       return [
         {
-          fieldKey: 'customsDeclarationDocId',
+          fieldKey: 'customsDeclarationGroupId',
           label: 'Митна декларація',
-          documentType: 'customs_declaration',
-          currentDocId: entry.customsDeclarationDocId ?? null,
+          currentGroupId: entry.customsDeclarationGroupId ?? null,
         },
       ];
     case 'arrived':
       return [
         {
-          fieldKey: 'stampedRegistrationDocId',
+          fieldKey: 'stampedRegistrationGroupId',
           label: 'Техпаспорт з печаткою митниці',
-          documentType: 'registration_certificate',
-          currentDocId: entry.stampedRegistrationDocId ?? null,
+          currentGroupId: entry.stampedRegistrationGroupId ?? null,
         },
         {
-          fieldKey: 'stampedCustomsDeclarationDocId',
+          fieldKey: 'stampedCustomsDeclarationGroupId',
           label: 'Скан митної декларації з печатками',
-          documentType: 'stamped_customs_declaration',
-          currentDocId: entry.stampedCustomsDeclarationDocId ?? null,
+          currentGroupId: entry.stampedCustomsDeclarationGroupId ?? null,
         },
       ];
     case 'ready':
       return [
         {
-          fieldKey: 'transferActDraftDocId',
+          fieldKey: 'transferActDraftGroupId',
           label: 'Акт приймання-передачі (чернетка)',
-          documentType: 'transfer_act_draft',
-          currentDocId: entry.transferActDraftDocId ?? null,
+          currentGroupId: entry.transferActDraftGroupId ?? null,
         },
       ];
     case 'transferred':
       return [
         {
-          fieldKey: 'transferActSignedDocId',
+          fieldKey: 'transferActSignedGroupId',
           label: 'Підписаний акт приймання-передачі',
-          documentType: 'transfer_act_signed',
-          currentDocId: entry.transferActSignedDocId ?? null,
+          currentGroupId: entry.transferActSignedGroupId ?? null,
         },
       ];
     case 'returned':
       return [
         {
-          fieldKey: 'returnActDocId',
+          fieldKey: 'returnActGroupId',
           label: 'Акт повернення',
-          documentType: 'return_act',
-          currentDocId: entry.returnActDocId ?? null,
+          currentGroupId: entry.returnActGroupId ?? null,
         },
       ];
     default:
@@ -106,7 +99,9 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
 interface SlotState {
   newFiles: FileAttachmentNewFile[];
   newLinks: FileAttachmentNewLink[];
-  existingDocId: string | null;
+  existingIds: string[];
+  currentGroupId: string | null;
+  groupName?: string;
 }
 
 interface FormValues {
@@ -136,14 +131,15 @@ export function StatusHistoryEditModal({
   const docSlots = getSlotsForStatus(status, entry);
 
   const [slotStates, setSlotStates] = useState<Record<string, SlotState>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const updateHistory = useUpdateStatusHistory(vehicleId);
-  const uploadDocument = useUploadDocument(vehicleId);
-  const linkDocument = useLinkDocument(vehicleId);
   const { data: vehicleDocsData } = useVehicleDocuments(open ? vehicleId : undefined, {
     pageSize: 100,
+    excludeStatusBound: true,
   });
   const vehicleDocs = vehicleDocsData?.items ?? [];
+  const picker = buildDocumentPickerItems(vehicleDocs, documentsApi.getDownloadUrl);
 
   useEffect(() => {
     if (!open) return;
@@ -152,7 +148,8 @@ export function StatusHistoryEditModal({
       initial[slot.fieldKey] = {
         newFiles: [],
         newLinks: [],
-        existingDocId: slot.currentDocId,
+        existingIds: [],
+        currentGroupId: slot.currentGroupId,
       };
     }
     setSlotStates(initial);
@@ -167,43 +164,43 @@ export function StatusHistoryEditModal({
   }, [open, entry, form, status]);
 
   const getSlotState = (key: string): SlotState =>
-    slotStates[key] ?? { newFiles: [], newLinks: [], existingDocId: null };
+    slotStates[key] ?? { newFiles: [], newLinks: [], existingIds: [], currentGroupId: null };
 
   const setSlotField = (key: string, patch: Partial<SlotState>) => {
-    setSlotStates((prev) => ({ ...prev, [key]: { ...getSlotState(key), ...patch } }));
+    setSlotStates((prev) => {
+      const current = prev[key] ?? {
+        newFiles: [],
+        newLinks: [],
+        existingIds: [],
+        currentGroupId: null,
+      };
+      return { ...prev, [key]: { ...current, ...patch } };
+    });
   };
 
-  const uploadOrLinkDoc = async (slot: DocSlot, state: SlotState): Promise<string | null> => {
-    const file = state.newFiles[0];
-    const link = state.newLinks[0];
-    if (file) {
-      const formData = new FormData();
-      formData.append('file', file.file);
-      formData.append('name', file.name.trim() || file.file.name);
-      formData.append('vehicleId', vehicleId);
-      formData.append('documentType', slot.documentType);
-      const doc = await uploadDocument.mutateAsync(formData);
-      return doc.id;
-    }
-    if (link) {
-      const doc = await linkDocument.mutateAsync({
-        name: link.name,
-        url: link.url,
-        documentType: slot.documentType,
-        vehicleId,
-      });
-      return doc.id;
-    }
-    if (state.existingDocId) return state.existingDocId;
-    return null;
-  };
+  const selectedDocIds = (existingIds: string[]): string[] =>
+    existingIds.flatMap((id) => picker.docIdsById[id] ?? []);
+
+  const buildSlotGroup = (slot: DocSlot, state: SlotState): Promise<string | null> =>
+    buildDocumentGroup({
+      vehicleId,
+      name: state.groupName?.trim() || slot.label,
+      existingGroupId: state.currentGroupId,
+      newFiles: state.newFiles,
+      newLinks: state.newLinks,
+      selectedExisting: selectedDocIds(state.existingIds).map((docId) => {
+        const doc = vehicleDocs.find((d) => d.id === docId);
+        return { id: docId, name: doc?.name ?? '', groupId: doc?.groupId ?? null };
+      }),
+    });
 
   const onFinish = async (values: FormValues) => {
     const transitionDate = values.transitionDate.format('YYYY-MM-DD');
+    setSubmitting(true);
     try {
-      const docIds: Record<string, string | null> = {};
+      const groupIds: Record<string, string | null> = {};
       for (const slot of docSlots) {
-        docIds[slot.fieldKey] = await uploadOrLinkDoc(slot, getSlotState(slot.fieldKey));
+        groupIds[slot.fieldKey] = await buildSlotGroup(slot, getSlotState(slot.fieldKey));
       }
 
       const base = {
@@ -218,11 +215,14 @@ export function StatusHistoryEditModal({
           payload = {
             ...base,
             isLocalPurchase: values.isLocalPurchase ?? false,
-            registrationDocId: docIds['registrationDocId'] ?? null,
+            registrationGroupId: groupIds['registrationGroupId'] ?? null,
           };
           break;
         case 'in_transit':
-          payload = { ...base, customsDeclarationDocId: docIds['customsDeclarationDocId'] ?? null };
+          payload = {
+            ...base,
+            customsDeclarationGroupId: groupIds['customsDeclarationGroupId'] ?? null,
+          };
           break;
         case 'arrived':
           payload = {
@@ -230,25 +230,28 @@ export function StatusHistoryEditModal({
             borderCrossingDate: values.borderCrossingDate
               ? values.borderCrossingDate.format('YYYY-MM-DD')
               : null,
-            stampedRegistrationDocId: docIds['stampedRegistrationDocId'] ?? null,
-            stampedCustomsDeclarationDocId: docIds['stampedCustomsDeclarationDocId'] ?? null,
+            stampedRegistrationGroupId: groupIds['stampedRegistrationGroupId'] ?? null,
+            stampedCustomsDeclarationGroupId: groupIds['stampedCustomsDeclarationGroupId'] ?? null,
           };
           break;
         case 'in_repair':
           payload = { ...base };
           break;
         case 'ready':
-          payload = { ...base, transferActDraftDocId: docIds['transferActDraftDocId'] ?? null };
+          payload = {
+            ...base,
+            transferActDraftGroupId: groupIds['transferActDraftGroupId'] ?? null,
+          };
           break;
         case 'transferred':
           payload = {
             ...base,
-            transferActSignedDocId: docIds['transferActSignedDocId'] ?? null,
+            transferActSignedGroupId: groupIds['transferActSignedGroupId'] ?? null,
             isRegisteredAtServiceCenter: values.isRegisteredAtServiceCenter ?? false,
           };
           break;
         case 'returned':
-          payload = { ...base, returnActDocId: docIds['returnActDocId'] ?? null };
+          payload = { ...base, returnActGroupId: groupIds['returnActGroupId'] ?? null };
           break;
         case 'lost':
           payload = { ...base, lostReason: values.lostReason ?? '' };
@@ -264,26 +267,15 @@ export function StatusHistoryEditModal({
       });
       message.success('Дані переходу оновлено');
       onClose();
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.message === MOVE_CANCELLED) return;
       message.error('Помилка при збереженні');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const isPending = updateHistory.isPending || uploadDocument.isPending || linkDocument.isPending;
-
-  const selectableDocsForSlot = (slot: DocSlot): FileAttachmentExistingItem[] =>
-    vehicleDocs
-      .filter((doc) => doc.documentType === slot.documentType)
-      .map((doc) => ({
-        id: doc.id,
-        name: doc.name,
-        kind: doc.kind,
-        mimeType: doc.mimeType,
-        sizeBytes: doc.sizeBytes,
-        url: doc.url,
-        downloadUrl:
-          doc.kind === 'upload' ? documentsApi.getDownloadUrl(doc.id, doc.updatedAt) : undefined,
-      }));
+  const isPending = updateHistory.isPending || submitting;
 
   const statusConfig = VEHICLE_STATUS_CONFIG[status];
 
@@ -339,31 +331,60 @@ export function StatusHistoryEditModal({
 
         {docSlots.map((slot) => {
           const state = getSlotState(slot.fieldKey);
-          const selectable = selectableDocsForSlot(slot);
+          const itemCount =
+            state.newFiles.length +
+            state.newLinks.length +
+            selectedDocIds(state.existingIds).length;
           return (
-            <Form.Item key={slot.fieldKey} label={slot.label}>
+            <Card key={slot.fieldKey} size="small" title={slot.label} style={{ marginBottom: 16 }}>
               <FileAttachmentField
-                multiple={false}
+                multiple
                 allowLinks
                 acceptedMimeTypes={ALLOWED_MIME_TYPES}
                 maxSizeBytes={MAX_SIZE_BYTES}
                 newFiles={state.newFiles}
-                onNewFilesChange={(files) =>
-                  setSlotField(slot.fieldKey, {
-                    newFiles: typeof files === 'function' ? files(state.newFiles) : files,
-                  })
-                }
+                onNewFilesChange={(files) => {
+                  setSlotStates((prev) => {
+                    const current = prev[slot.fieldKey] ?? {
+                      newFiles: [],
+                      newLinks: [],
+                      existingIds: [],
+                      currentGroupId: null,
+                    };
+                    return {
+                      ...prev,
+                      [slot.fieldKey]: {
+                        ...current,
+                        newFiles: typeof files === 'function' ? files(current.newFiles) : files,
+                      },
+                    };
+                  });
+                }}
                 newLinks={state.newLinks}
                 onNewLinksChange={(links) => setSlotField(slot.fieldKey, { newLinks: links })}
-                selectableExistingItems={selectable}
-                selectedExistingIds={state.existingDocId ? [state.existingDocId] : []}
-                onSelectedExistingIdsChange={(ids) =>
-                  setSlotField(slot.fieldKey, { existingDocId: ids[0] ?? null })
-                }
-                selectExistingPlaceholder="Вибрати наявний документ"
-                hideExistingItemsWhenNewFilesAdded
+                selectableExistingItems={picker.items}
+                selectedExistingIds={state.existingIds}
+                onSelectedExistingIdsChange={(ids) => {
+                  const patch: Partial<SlotState> = { existingIds: ids };
+                  if (!state.groupName && ids[0]) {
+                    patch.groupName = picker.nameById[ids[0]] ?? '';
+                  }
+                  setSlotField(slot.fieldKey, patch);
+                }}
+                selectExistingPlaceholder="Вибрати наявні документи / групи"
               />
-            </Form.Item>
+              {!state.currentGroupId && itemCount > 1 && (
+                <div style={{ marginTop: 8 }}>
+                  <GroupingToggle
+                    mode="locked"
+                    checked
+                    name={state.groupName ?? ''}
+                    onNameChange={(name) => setSlotField(slot.fieldKey, { groupName: name })}
+                    namePlaceholder={slot.label}
+                  />
+                </div>
+              )}
+            </Card>
           );
         })}
 

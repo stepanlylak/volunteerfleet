@@ -128,7 +128,7 @@ export function VehicleGalleryModal({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -324,7 +324,12 @@ export function VehicleGalleryModal({
             >
               <Input maxLength={255} placeholder="Назва галереї" />
             </Form.Item>
-            <Form.Item name="isPublic" label="Публічна" valuePropName="checked" style={{ marginBottom: 0 }}>
+            <Form.Item
+              name="isPublic"
+              label="Публічна"
+              valuePropName="checked"
+              style={{ marginBottom: 0 }}
+            >
               <Switch />
             </Form.Item>
           </Space>
@@ -336,230 +341,258 @@ export function VehicleGalleryModal({
               Фото: {currentItemCount} / {VEHICLE_GALLERY_MAX_ITEMS}
             </Typography.Text>
 
-          {localItems.length > 0 ? (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={localItems.map((i) => i.id)} strategy={rectSortingStrategy}>
-                <Image.PreviewGroup>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                      gap: 12,
-                      marginBottom: 16,
-                    }}
-                  >
-                    {localItems.map((item) => {
-                      const isExplicitCover = gallery.explicitCoverItemId === item.id;
-                      const isEffectiveCover = gallery.effectiveCoverItemId === item.id;
-                      const isEditingCaption = editingCaptionId === item.id;
-                      const isMoving = movingItemId === item.id;
+            {localItems.length > 0 ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={localItems.map((i) => i.id)} strategy={rectSortingStrategy}>
+                  <Image.PreviewGroup>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                        gap: 12,
+                        marginBottom: 16,
+                      }}
+                    >
+                      {localItems.map((item) => {
+                        const isExplicitCover = gallery.explicitCoverItemId === item.id;
+                        const isEffectiveCover = gallery.effectiveCoverItemId === item.id;
+                        const isEditingCaption = editingCaptionId === item.id;
+                        const isMoving = movingItemId === item.id;
 
-                      return (
-                        <SortableItemWrapper
-                          key={item.id}
-                          id={item.id}
-                          disabled={!canMutate || isEditingCaption || isMoving}
-                        >
-                          {({ setNodeRef, attributes, listeners, transform, transition, isDragging }) => (
-                            <div
-                              ref={setNodeRef}
-                              {...attributes}
-                              {...listeners}
-                              style={{
-                                transform: CSS.Transform.toString(transform),
-                                transition,
-                                border: isExplicitCover
-                                  ? '2px solid #52c41a'
-                                  : isEffectiveCover
-                                    ? '2px dashed #52c41a'
-                                    : '1px solid #d9d9d9',
-                                borderRadius: 8,
-                                overflow: 'hidden',
-                                background: '#fff',
-                                opacity: isDragging ? 0.5 : 1,
-                                cursor: canMutate && !isEditingCaption ? 'grab' : 'default',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                aspectRatio: '4 / 3',
-                                zIndex: isDragging ? 10 : 'auto',
-                              }}
-                            >
-                      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-                        <Image
-                          src={vehicleGalleriesApi.getItemDownloadUrl(
-                            vehicleId,
-                            gallery.id,
-                            item.id,
-                          )}
-                          alt={item.caption ?? item.originalName}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                          wrapperStyle={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
-                        />
-                        {isEffectiveCover && (
-                          <Tag
-                            color="blue"
-                            style={{ position: 'absolute', top: 4, left: 4, margin: 0 }}
+                        return (
+                          <SortableItemWrapper
+                            key={item.id}
+                            id={item.id}
+                            disabled={!canMutate || isEditingCaption || isMoving}
                           >
-                            {isExplicitCover ? 'Обкладинка' : 'Обкладинка (авто)'}
-                          </Tag>
-                        )}
-                      </div>
-
-                      <div style={{ padding: '6px 8px' }}>
-                        {isEditingCaption ? (
-                          <Space.Compact style={{ width: '100%', marginBottom: 4 }}>
-                            <Input
-                              size="small"
-                              value={captionDraft}
-                              onChange={(e) => setCaptionDraft(e.target.value)}
-                              maxLength={2000}
-                              placeholder="Підпис"
-                              onPressEnter={() => void handleCaptionSave(item)}
-                              autoFocus
-                            />
-                            <Button
-                              size="small"
-                              type="primary"
-                              loading={updateCaption.isPending}
-                              onClick={() => void handleCaptionSave(item)}
-                            >
-                              OK
-                            </Button>
-                            <Button size="small" onClick={() => setEditingCaptionId(null)}>
-                              X
-                            </Button>
-                          </Space.Compact>
-                        ) : (
-                          <Typography.Text
-                            type="secondary"
-                            ellipsis
-                            style={{ fontSize: 12, display: 'block', marginBottom: 4 }}
-                            title={item.caption ?? undefined}
-                          >
-                            {item.caption || '—'}
-                          </Typography.Text>
-                        )}
-
-                        {isMoving && (
-                          <Space.Compact style={{ width: '100%', marginBottom: 4 }}>
-                            <Select
-                              size="small"
-                              style={{ flex: 1 }}
-                              placeholder="Оберіть галерею"
-                              options={moveTargetOptions}
-                              value={moveTargetGalleryId}
-                              onChange={setMoveTargetGalleryId}
-                            />
-                            <Button
-                              size="small"
-                              type="primary"
-                              disabled={!moveTargetGalleryId}
-                              loading={moveItem.isPending}
-                              onClick={() => void handleMove(item.id)}
-                            >
-                              OK
-                            </Button>
-                            <Button
-                              size="small"
-                              onClick={() => {
-                                setMovingItemId(null);
-                                setMoveTargetGalleryId(null);
-                              }}
-                            >
-                              X
-                            </Button>
-                          </Space.Compact>
-                        )}
-
-                        {canMutate && !isEditingCaption && !isMoving && (
-                          <Space wrap size={4}>
-                            <Tooltip title="Редагувати підпис">
-                              <Button
-                                size="small"
-                                icon={<EditOutlined />}
-                                onClick={() => {
-                                  setCaptionDraft(item.caption ?? '');
-                                  setEditingCaptionId(item.id);
+                            {({
+                              setNodeRef,
+                              attributes,
+                              listeners,
+                              transform,
+                              transition,
+                              isDragging,
+                            }) => (
+                              <div
+                                ref={setNodeRef}
+                                {...attributes}
+                                {...listeners}
+                                style={{
+                                  transform: CSS.Transform.toString(transform),
+                                  transition,
+                                  border: isExplicitCover
+                                    ? '2px solid #52c41a'
+                                    : isEffectiveCover
+                                      ? '2px dashed #52c41a'
+                                      : '1px solid #d9d9d9',
+                                  borderRadius: 8,
+                                  overflow: 'hidden',
+                                  background: '#fff',
+                                  opacity: isDragging ? 0.5 : 1,
+                                  cursor: canMutate && !isEditingCaption ? 'grab' : 'default',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  aspectRatio: '4 / 3',
+                                  zIndex: isDragging ? 10 : 'auto',
                                 }}
-                                aria-label="Редагувати підпис"
-                              />
-                            </Tooltip>
-                            <Tooltip
-                              title={
-                                isExplicitCover ? 'Скинути обкладинку' : 'Встановити обкладинкою'
-                              }
-                            >
-                              <Button
-                                size="small"
-                                icon={
-                                  isExplicitCover ? (
-                                    <CheckCircleTwoTone twoToneColor="#1677ff" />
+                              >
+                                <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                                  <Image
+                                    src={vehicleGalleriesApi.getItemDownloadUrl(
+                                      vehicleId,
+                                      gallery.id,
+                                      item.id,
+                                    )}
+                                    alt={item.caption ?? item.originalName}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover',
+                                      display: 'block',
+                                    }}
+                                    wrapperStyle={{
+                                      width: '100%',
+                                      height: '100%',
+                                      position: 'absolute',
+                                      inset: 0,
+                                    }}
+                                  />
+                                  {isEffectiveCover && (
+                                    <Tag
+                                      color="blue"
+                                      style={{ position: 'absolute', top: 4, left: 4, margin: 0 }}
+                                    >
+                                      {isExplicitCover ? 'Обкладинка' : 'Обкладинка (авто)'}
+                                    </Tag>
+                                  )}
+                                </div>
+
+                                <div style={{ padding: '6px 8px' }}>
+                                  {isEditingCaption ? (
+                                    <Space.Compact style={{ width: '100%', marginBottom: 4 }}>
+                                      <Input
+                                        size="small"
+                                        value={captionDraft}
+                                        onChange={(e) => setCaptionDraft(e.target.value)}
+                                        maxLength={2000}
+                                        placeholder="Підпис"
+                                        onPressEnter={() => void handleCaptionSave(item)}
+                                        autoFocus
+                                      />
+                                      <Button
+                                        size="small"
+                                        type="primary"
+                                        loading={updateCaption.isPending}
+                                        onClick={() => void handleCaptionSave(item)}
+                                      >
+                                        OK
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        onClick={() => setEditingCaptionId(null)}
+                                      >
+                                        X
+                                      </Button>
+                                    </Space.Compact>
                                   ) : (
-                                    <CheckCircleOutlined />
-                                  )
-                                }
-                                loading={setCover.isPending}
-                                onClick={() =>
-                                  void handleSetCover(isExplicitCover ? null : item.id)
-                                }
-                                aria-label={
-                                  isExplicitCover ? 'Скинути обкладинку' : 'Встановити обкладинкою'
-                                }
-                              />
-                            </Tooltip>
-                            {moveTargetOptions.length > 0 && (
-                              <Tooltip title="Перемістити в іншу галерею">
-                                <Button
-                                  size="small"
-                                  icon={<SwapOutlined />}
-                                  onClick={() => {
-                                    setMovingItemId(item.id);
-                                    setMoveTargetGalleryId(null);
-                                  }}
-                                  disabled={
-                                    remainingSlots <= 0 &&
-                                    moveTargetOptions.every((o) => o.disabled)
-                                  }
-                                  aria-label="Перемістити в іншу галерею"
-                                />
-                              </Tooltip>
+                                    <Typography.Text
+                                      type="secondary"
+                                      ellipsis
+                                      style={{ fontSize: 12, display: 'block', marginBottom: 4 }}
+                                      title={item.caption ?? undefined}
+                                    >
+                                      {item.caption || '—'}
+                                    </Typography.Text>
+                                  )}
+
+                                  {isMoving && (
+                                    <Space.Compact style={{ width: '100%', marginBottom: 4 }}>
+                                      <Select
+                                        size="small"
+                                        style={{ flex: 1 }}
+                                        placeholder="Оберіть галерею"
+                                        options={moveTargetOptions}
+                                        value={moveTargetGalleryId}
+                                        onChange={setMoveTargetGalleryId}
+                                      />
+                                      <Button
+                                        size="small"
+                                        type="primary"
+                                        disabled={!moveTargetGalleryId}
+                                        loading={moveItem.isPending}
+                                        onClick={() => void handleMove(item.id)}
+                                      >
+                                        OK
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        onClick={() => {
+                                          setMovingItemId(null);
+                                          setMoveTargetGalleryId(null);
+                                        }}
+                                      >
+                                        X
+                                      </Button>
+                                    </Space.Compact>
+                                  )}
+
+                                  {canMutate && !isEditingCaption && !isMoving && (
+                                    <Space wrap size={4}>
+                                      <Tooltip title="Редагувати підпис">
+                                        <Button
+                                          size="small"
+                                          icon={<EditOutlined />}
+                                          onClick={() => {
+                                            setCaptionDraft(item.caption ?? '');
+                                            setEditingCaptionId(item.id);
+                                          }}
+                                          aria-label="Редагувати підпис"
+                                        />
+                                      </Tooltip>
+                                      <Tooltip
+                                        title={
+                                          isExplicitCover
+                                            ? 'Скинути обкладинку'
+                                            : 'Встановити обкладинкою'
+                                        }
+                                      >
+                                        <Button
+                                          size="small"
+                                          icon={
+                                            isExplicitCover ? (
+                                              <CheckCircleTwoTone twoToneColor="#1677ff" />
+                                            ) : (
+                                              <CheckCircleOutlined />
+                                            )
+                                          }
+                                          loading={setCover.isPending}
+                                          onClick={() =>
+                                            void handleSetCover(isExplicitCover ? null : item.id)
+                                          }
+                                          aria-label={
+                                            isExplicitCover
+                                              ? 'Скинути обкладинку'
+                                              : 'Встановити обкладинкою'
+                                          }
+                                        />
+                                      </Tooltip>
+                                      {moveTargetOptions.length > 0 && (
+                                        <Tooltip title="Перемістити в іншу галерею">
+                                          <Button
+                                            size="small"
+                                            icon={<SwapOutlined />}
+                                            onClick={() => {
+                                              setMovingItemId(item.id);
+                                              setMoveTargetGalleryId(null);
+                                            }}
+                                            disabled={
+                                              remainingSlots <= 0 &&
+                                              moveTargetOptions.every((o) => o.disabled)
+                                            }
+                                            aria-label="Перемістити в іншу галерею"
+                                          />
+                                        </Tooltip>
+                                      )}
+                                      <Popconfirm
+                                        title="Видалити фото?"
+                                        okText="Видалити"
+                                        cancelText="Скасувати"
+                                        onConfirm={() => void handleDeleteItem(item)}
+                                      >
+                                        <Tooltip title="Видалити">
+                                          <Button
+                                            size="small"
+                                            danger
+                                            icon={<DeleteOutlined />}
+                                            aria-label="Видалити фото"
+                                          />
+                                        </Tooltip>
+                                      </Popconfirm>
+                                    </Space>
+                                  )}
+                                </div>
+                              </div>
                             )}
-                            <Popconfirm
-                              title="Видалити фото?"
-                              okText="Видалити"
-                              cancelText="Скасувати"
-                              onConfirm={() => void handleDeleteItem(item)}
-                            >
-                              <Tooltip title="Видалити">
-                                <Button
-                                  size="small"
-                                  danger
-                                  icon={<DeleteOutlined />}
-                                  aria-label="Видалити фото"
-                                />
-                              </Tooltip>
-                            </Popconfirm>
-                          </Space>
-                        )}
-                      </div>
-                            </div>
-                          )}
-                        </SortableItemWrapper>
-                      );
-                    })}
-                  </div>
-                </Image.PreviewGroup>
-              </SortableContext>
-            </DndContext>
-          ) : (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Фото ще не додано"
-              style={{ marginBottom: 16 }}
-            />
-          )}
-        </>
-      )}
+                          </SortableItemWrapper>
+                        );
+                      })}
+                    </div>
+                  </Image.PreviewGroup>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Фото ще не додано"
+                style={{ marginBottom: 16 }}
+              />
+            )}
+          </>
+        )}
 
         {canMutate && (isEdit ? remainingSlots > 0 : true) && (
           <Upload.Dragger
@@ -574,7 +607,8 @@ export function VehicleGalleryModal({
                 message.error('Файл перевищує 25 МБ');
                 return Upload.LIST_IGNORE;
               }
-              const totalAfter = currentItemCount + pendingFiles.length + fileList.indexOf(file) + 1;
+              const totalAfter =
+                currentItemCount + pendingFiles.length + fileList.indexOf(file) + 1;
               if (isEdit && totalAfter > VEHICLE_GALLERY_MAX_ITEMS) {
                 message.error(`Максимум ${VEHICLE_GALLERY_MAX_ITEMS} фото у галереї`);
                 return Upload.LIST_IGNORE;

@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { DictionariesModule } from './modules/dictionaries/dictionaries.module.js';
 import { DocumentsModule } from './modules/documents/documents.module.js';
+import { DocumentGroupsModule } from './modules/document-groups/document-groups.module.js';
 import { DonationsModule } from './modules/donations/donations.module.js';
 import { DonorsModule } from './modules/donors/donors.module.js';
 import { ExchangeRatesModule } from './modules/exchange-rates/exchange-rates.module.js';
@@ -37,6 +38,7 @@ import { AppController } from './app.controller.js';
     VehiclesModule,
     ExpensesModule,
     DocumentsModule,
+    DocumentGroupsModule,
     DonorsModule,
     DonationsModule,
     FinancialEntriesModule,

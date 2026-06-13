@@ -11,5 +11,6 @@ export * from './vehicle-gallery-items.js';
 export * from './vehicle-status-history.js';
 export * from './vehicle-alerts-view.js';
 export * from './expenses.js';
+export * from './document-groups.js';
 export * from './documents.js';
 export * from './relations.js';

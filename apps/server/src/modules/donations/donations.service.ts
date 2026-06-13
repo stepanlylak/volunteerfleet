@@ -552,6 +552,7 @@ export class DonationsService {
         brand: row.vehicle.brand,
         model: row.vehicle.model,
       },
+      documentGroupId: row.documentGroupId ?? null,
       categoryId: row.categoryId,
       category: row.category
         ? {

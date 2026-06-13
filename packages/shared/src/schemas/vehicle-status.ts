@@ -73,21 +73,21 @@ const baseTransitionSchema = z
   })
   .strict();
 
-const documentRefField = (description: string) =>
+const documentGroupRefField = (description: string) =>
   uuidSchema.optional().nullable().describe(description);
 
 export const transitionToPaidSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('paid'),
     isLocalPurchase: z.boolean().default(false),
-    registrationDocId: documentRefField('Техпаспорт без печатки митниці'),
+    registrationGroupId: documentGroupRefField('Техпаспорт без печатки митниці'),
   })
   .strict();
 
 export const transitionToInTransitSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('in_transit'),
-    customsDeclarationDocId: documentRefField('Митна декларація'),
+    customsDeclarationGroupId: documentGroupRefField('Митна декларація'),
   })
   .strict();
 
@@ -99,8 +99,8 @@ export const transitionToArrivedSchema = baseTransitionSchema
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional()
       .nullable(),
-    stampedRegistrationDocId: documentRefField('Техпаспорт з печаткою митниці'),
-    stampedCustomsDeclarationDocId: documentRefField('Скан митної декларації з печатками'),
+    stampedRegistrationGroupId: documentGroupRefField('Техпаспорт з печаткою митниці'),
+    stampedCustomsDeclarationGroupId: documentGroupRefField('Скан митної декларації з печатками'),
   })
   .strict();
 
@@ -113,14 +113,14 @@ export const transitionToInRepairSchema = baseTransitionSchema
 export const transitionToReadySchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('ready'),
-    transferActDraftDocId: documentRefField('Акт приймання-передачі (чернетка)'),
+    transferActDraftGroupId: documentGroupRefField('Акт приймання-передачі (чернетка)'),
   })
   .strict();
 
 export const transitionToTransferredSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('transferred'),
-    transferActSignedDocId: documentRefField('Підписаний акт приймання-передачі'),
+    transferActSignedGroupId: documentGroupRefField('Підписаний акт приймання-передачі'),
     isRegisteredAtServiceCenter: z.boolean().default(false),
   })
   .strict();
@@ -128,7 +128,7 @@ export const transitionToTransferredSchema = baseTransitionSchema
 export const transitionToReturnedSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('returned'),
-    returnActDocId: documentRefField('Акт повернення'),
+    returnActGroupId: documentGroupRefField('Акт повернення'),
   })
   .strict();
 

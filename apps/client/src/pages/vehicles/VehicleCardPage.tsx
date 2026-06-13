@@ -26,7 +26,6 @@ import {
   Modal,
   Popconfirm,
   Row,
-  Select,
   Skeleton,
   Space,
   Statistic,
@@ -38,6 +37,7 @@ import {
   Tooltip,
   Typography,
   message,
+  Flex,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useQueryClient } from '@tanstack/react-query';
@@ -85,7 +85,10 @@ import { ALLOWED_TRANSITIONS, VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shar
 import { useAuth, useOrgRole } from '../../stores/auth.store';
 import { donationsApi } from '../../api/donations.api';
 import { documentsApi } from '../../api/documents.api';
+import { documentGroupsApi } from '../../api/documentGroups.api';
 import { expensesApi } from '../../api/expenses.api';
+import { StatusHistoryGroupLinks } from '../../components/files/StatusHistoryGroupLinks';
+import { GroupEditModal } from '../../modals/GroupEditModal';
 
 import { formatCurrency, formatDate } from '../../utils/format';
 
@@ -96,12 +99,62 @@ interface PublicFormValues {
   publicGoalAmountUah?: number | null;
 }
 
-type DocumentPurpose = 'general' | 'expense';
+type DocLeafRow = DocumentResponse & { key: string; isGroup?: false; isGroupChild?: boolean };
+type DocGroupRow = {
+  key: string;
+  isGroup: true;
+  groupId: string;
+  name: string;
+  count: number;
+  expenseIds: string[];
+  createdBy: DocumentResponse['createdBy'];
+  createdAt: string;
+  children: DocLeafRow[];
+};
+type DocTableRow = DocLeafRow | DocGroupRow;
 
-const DOCUMENT_PURPOSE_OPTIONS: { label: string; value: DocumentPurpose }[] = [
-  { label: 'Загальні', value: 'general' },
-  { label: 'Витрати', value: 'expense' },
-];
+// Collapses documents that share a group (2+ files) into one expandable parent
+// row. A group with a single file — and any ungrouped document — renders as a
+// plain top-level row, so single-file groups look like ordinary files.
+function buildDocumentTableRows(docs: DocumentResponse[]): DocTableRow[] {
+  const groupOrder: string[] = [];
+  const groupMap = new Map<string, DocumentResponse[]>();
+  const rows: DocTableRow[] = [];
+  for (const doc of docs) {
+    if (doc.groupId) {
+      if (!groupMap.has(doc.groupId)) {
+        groupMap.set(doc.groupId, []);
+        groupOrder.push(doc.groupId);
+      }
+      groupMap.get(doc.groupId)!.push(doc);
+    } else {
+      rows.push({ ...doc, key: doc.id });
+    }
+  }
+  for (const groupId of groupOrder) {
+    const groupDocs = groupMap.get(groupId)!;
+    if (groupDocs.length === 1) {
+      rows.push({ ...groupDocs[0]!, key: groupDocs[0]!.id });
+      continue;
+    }
+    const first = groupDocs[0]!;
+    rows.push({
+      key: `group-${groupId}`,
+      isGroup: true,
+      groupId,
+      name: first.group?.name?.trim() || `Документ (${groupDocs.length})`,
+      count: groupDocs.length,
+      expenseIds: first.group?.expenseIds ?? [],
+      createdBy: first.createdBy,
+      createdAt: groupDocs.reduce(
+        (min, d) => (d.createdAt < min ? d.createdAt : min),
+        first.createdAt,
+      ),
+      children: groupDocs.map((d) => ({ ...d, key: d.id, isGroupChild: true })),
+    });
+  }
+  return rows;
+}
 
 function renderDescription(value: string | null) {
   const text = value?.trim() || '—';
@@ -141,7 +194,8 @@ export function VehicleCardPage() {
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseResponse | undefined>();
   const [docOpen, setDocOpen] = useState(false);
-  const [editingDocument, setEditingDocument] = useState<DocumentResponse | undefined>();
+  const [groupEditOpen, setGroupEditOpen] = useState(false);
+  const [editingGroupId, setEditingGroupId] = useState<string | undefined>();
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [activeTab, setActiveTab] = useState('finances');
   const [donationOpen, setDonationOpen] = useState(false);
@@ -150,10 +204,6 @@ export function VehicleCardPage() {
     vehicleId: string;
     expenseId: string;
   } | null>(null);
-  const [documentPurposeFilter, setDocumentPurposeFilter] = useState<DocumentPurpose[]>([
-    'general',
-    'expense',
-  ]);
   const [documentExpenseIdFilter, setDocumentExpenseIdFilter] = useState<string | null>(null);
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
   const [editingGallery, setEditingGallery] = useState<VehicleGalleryResponse | undefined>();
@@ -177,16 +227,16 @@ export function VehicleCardPage() {
   const financialSummary = financialData?.summary;
   const galleries = galleriesData?.items ?? [];
   const currentEditingGallery = editingGallery
-    ? galleries.find((g) => g.id === editingGallery.id) ?? editingGallery
+    ? (galleries.find((g) => g.id === editingGallery.id) ?? editingGallery)
     : undefined;
   const mainGallery = galleries.find((g) => g.kind === 'main');
   const customGalleries = galleries.filter((g) => g.kind === 'custom');
   const filteredDocuments = documents.filter((doc) => {
-    const purpose: DocumentPurpose = doc.expenseId ? 'expense' : 'general';
-    if (!documentPurposeFilter.includes(purpose)) return false;
-    if (documentExpenseIdFilter && doc.expenseId !== documentExpenseIdFilter) return false;
+    const expenseIds = doc.group?.expenseIds ?? [];
+    if (documentExpenseIdFilter && !expenseIds.includes(documentExpenseIdFilter)) return false;
     return true;
   });
+  const documentTableRows = buildDocumentTableRows(filteredDocuments);
   const hasCompletePublicPage =
     vehicle?.isPublic &&
     Boolean(vehicle.publicSummary?.trim()) &&
@@ -333,7 +383,12 @@ export function VehicleCardPage() {
             <>
               <Space
                 align="center"
-                style={{ justifyContent: 'space-between', width: '100%', marginBottom: 8, marginTop: 16 }}
+                style={{
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  marginBottom: 8,
+                  marginTop: 16,
+                }}
               >
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   ДОДАТКОВІ ГАЛЕРЕЇ
@@ -718,16 +773,6 @@ export function VehicleCardPage() {
                 <Space style={{ justifyContent: 'space-between', width: '100%' }}>
                   <Space wrap>
                     <Typography.Text strong>Документи ({filteredDocuments.length})</Typography.Text>
-                    <Select<DocumentPurpose[]>
-                      mode="multiple"
-                      value={documentPurposeFilter}
-                      options={DOCUMENT_PURPOSE_OPTIONS}
-                      style={{ minWidth: 220 }}
-                      onChange={(values) => {
-                        setDocumentPurposeFilter(values);
-                        if (!values.includes('expense')) setDocumentExpenseIdFilter(null);
-                      }}
-                    />
                     {documentExpenseIdFilter ? (
                       <Tag closable onClose={() => setDocumentExpenseIdFilter(null)}>
                         Документи вибраної витрати
@@ -735,22 +780,15 @@ export function VehicleCardPage() {
                     ) : null}
                   </Space>
                   {canMutate && (
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => {
-                        setEditingDocument(undefined);
-                        setDocOpen(true);
-                      }}
-                    >
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setDocOpen(true)}>
                       Додати документ
                     </Button>
                   )}
                 </Space>
-                <Table<DocumentResponse>
-                  dataSource={filteredDocuments}
+                <Table<DocTableRow>
+                  dataSource={documentTableRows}
                   loading={docsLoading}
-                  rowKey="id"
+                  rowKey="key"
                   size="small"
                   pagination={false}
                   locale={{ emptyText: 'Документів ще немає' }}
@@ -759,8 +797,17 @@ export function VehicleCardPage() {
                       {
                         title: 'Назва',
                         dataIndex: 'name',
-                        render: (name: string, r) =>
-                          r.kind === 'upload' && r.mimeType?.startsWith('image/') ? (
+                        render: (name: string, r) => {
+                          if (r.isGroup) {
+                            return (
+                              <Space>
+                                <FileTextOutlined />
+                                <span style={{ fontWeight: 500 }}>{r.name}</span>
+                                <Tag>{r.count} файл.</Tag>
+                              </Space>
+                            );
+                          }
+                          return r.kind === 'upload' && r.mimeType?.startsWith('image/') ? (
                             <Space>
                               <Image
                                 width={32}
@@ -773,34 +820,28 @@ export function VehicleCardPage() {
                             </Space>
                           ) : (
                             name
-                          ),
+                          );
+                        },
                       },
                       {
                         title: 'Тип',
-                        dataIndex: 'kind',
+                        key: 'kind',
                         width: 90,
-                        render: (k: string) => (
-                          <Tag color={k === 'upload' ? 'blue' : 'green'}>
-                            {k === 'upload' ? 'Файл' : 'Посилання'}
-                          </Tag>
-                        ),
-                      },
-                      {
-                        title: 'Призначення',
-                        key: 'purpose',
-                        width: 120,
                         render: (_, r) =>
-                          r.expenseId ? (
-                            <Tag color="orange">Витрати</Tag>
+                          r.isGroup ? (
+                            <Tag color="purple">Група</Tag>
                           ) : (
-                            <Tag color="default">Загальні</Tag>
+                            <Tag color={r.kind === 'upload' ? 'blue' : 'green'}>
+                              {r.kind === 'upload' ? 'Файл' : 'Посилання'}
+                            </Tag>
                           ),
                       },
                       {
                         title: 'Розмір',
-                        dataIndex: 'sizeBytes',
+                        key: 'size',
                         width: 100,
-                        render: (v: number | null) => (v ? `${(v / 1024).toFixed(0)} KB` : '—'),
+                        render: (_, r) =>
+                          !r.isGroup && r.sizeBytes ? `${(r.sizeBytes / 1024).toFixed(0)} KB` : '—',
                       },
                       {
                         title: 'Ким',
@@ -816,50 +857,87 @@ export function VehicleCardPage() {
                         title: '',
                         key: 'actions',
                         width: canMutate ? 140 : 60,
-                        render: (_, r) => (
-                          <Space>
-                            {r.kind === 'upload' ? (
-                              <Button
-                                size="small"
-                                icon={<DownloadOutlined />}
-                                href={documentsApi.getDownloadUrl(r.id, r.updatedAt)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              />
-                            ) : (
-                              <Button
-                                size="small"
-                                icon={<LinkOutlined />}
-                                onClick={() => window.open(r.url ?? '#', '_blank')}
-                              />
-                            )}
-                            {canMutate && (
-                              <>
+                        render: (_, r) => {
+                          if (r.isGroup) {
+                            if (!canMutate) return null;
+                            return (
+                              <Flex justify="flex-end" gap="small">
                                 <Button
                                   size="small"
                                   icon={<EditOutlined />}
                                   onClick={() => {
-                                    setEditingDocument(r);
-                                    setDocOpen(true);
+                                    setEditingGroupId(r.groupId);
+                                    setGroupEditOpen(true);
                                   }}
                                 />
                                 <Popconfirm
-                                  title="Видалити документ?"
+                                  title="Видалити цей документ (групу файлів)?"
                                   okText="Так"
                                   cancelText="Ні"
                                   onConfirm={async () => {
-                                    await deleteDocument.mutateAsync(r.id);
-                                    void message.success('Документ видалено');
+                                    try {
+                                      await documentGroupsApi.remove(r.groupId);
+                                      void queryClient.invalidateQueries({
+                                        queryKey: ['documents', 'vehicle', vehicle.id],
+                                      });
+                                      void message.success('Документ видалено');
+                                    } catch {
+                                      void message.error('Не вдалося видалити групу');
+                                    }
                                   }}
                                 >
                                   <Button size="small" danger icon={<DeleteOutlined />} />
                                 </Popconfirm>
-                              </>
-                            )}
-                          </Space>
-                        ),
+                              </Flex>
+                            );
+                          }
+                          return (
+                            <Flex justify="flex-end" gap="small">
+                              {r.kind === 'upload' ? (
+                                <Button
+                                  size="small"
+                                  icon={<DownloadOutlined />}
+                                  href={documentsApi.getDownloadUrl(r.id, r.updatedAt)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                />
+                              ) : (
+                                <Button
+                                  size="small"
+                                  icon={<LinkOutlined />}
+                                  onClick={() => window.open(r.url ?? '#', '_blank')}
+                                />
+                              )}
+                              {canMutate && (
+                                <>
+                                  {!r.isGroupChild && r.groupId && (
+                                    <Button
+                                      size="small"
+                                      icon={<EditOutlined />}
+                                      onClick={() => {
+                                        setEditingGroupId(r.groupId ?? undefined);
+                                        setGroupEditOpen(true);
+                                      }}
+                                    />
+                                  )}
+                                  <Popconfirm
+                                    title="Видалити документ?"
+                                    okText="Так"
+                                    cancelText="Ні"
+                                    onConfirm={async () => {
+                                      await deleteDocument.mutateAsync(r.id);
+                                      void message.success('Документ видалено');
+                                    }}
+                                  >
+                                    <Button size="small" danger icon={<DeleteOutlined />} />
+                                  </Popconfirm>
+                                </>
+                              )}
+                            </Flex>
+                          );
+                        },
                       },
-                    ] as ColumnsType<DocumentResponse>
+                    ] as ColumnsType<DocTableRow>
                   }
                 />
               </Space>
@@ -878,21 +956,27 @@ export function VehicleCardPage() {
                     const itemAlerts = vehicle.alerts.filter(
                       (a) => a.vehicleStatusHistoryId === item.id,
                     );
-                    const docs: { label: string; docId: string | null }[] = [
-                      { label: 'Техпаспорт без печатки', docId: item.registrationDocId ?? null },
+                    const docGroups = [
+                      {
+                        label: 'Техпаспорт без печатки',
+                        groupId: item.registrationGroupId ?? null,
+                      },
                       {
                         label: 'Техпаспорт з печаткою',
-                        docId: item.stampedRegistrationDocId ?? null,
+                        groupId: item.stampedRegistrationGroupId ?? null,
                       },
-                      { label: 'Митна декларація', docId: item.customsDeclarationDocId ?? null },
+                      {
+                        label: 'Митна декларація',
+                        groupId: item.customsDeclarationGroupId ?? null,
+                      },
                       {
                         label: 'Митна декларація з печатками',
-                        docId: item.stampedCustomsDeclarationDocId ?? null,
+                        groupId: item.stampedCustomsDeclarationGroupId ?? null,
                       },
-                      { label: 'Акт (чернетка)', docId: item.transferActDraftDocId ?? null },
-                      { label: 'Підписаний акт', docId: item.transferActSignedDocId ?? null },
-                      { label: 'Акт повернення', docId: item.returnActDocId ?? null },
-                    ].filter((d) => d.docId !== null);
+                      { label: 'Акт (чернетка)', groupId: item.transferActDraftGroupId ?? null },
+                      { label: 'Підписаний акт', groupId: item.transferActSignedGroupId ?? null },
+                      { label: 'Акт повернення', groupId: item.returnActGroupId ?? null },
+                    ].filter((d): d is { label: string; groupId: string } => d.groupId !== null);
                     return {
                       color: cfg?.color ?? 'blue',
                       children: (
@@ -921,19 +1005,14 @@ export function VehicleCardPage() {
                               Примітка: {item.note}
                             </Typography.Text>
                           )}
-                          {docs.length > 0 && (
+                          {docGroups.length > 0 && (
                             <Space wrap size="small">
-                              {docs.map((d) => (
-                                <Button
-                                  key={d.docId}
-                                  size="small"
-                                  icon={<PaperClipOutlined />}
-                                  href={documentsApi.getDownloadUrl(d.docId!, '')}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  {d.label}
-                                </Button>
+                              {docGroups.map((d) => (
+                                <StatusHistoryGroupLinks
+                                  key={d.groupId}
+                                  label={d.label}
+                                  groupId={d.groupId}
+                                />
                               ))}
                             </Space>
                           )}
@@ -1077,7 +1156,6 @@ export function VehicleCardPage() {
       <ExpenseFormModal
         open={expenseOpen}
         vehicleId={vehicle.id}
-        vehicleBorderCrossingDate={vehicle.borderCrossingDate}
         vehicleStartDate={vehicle.startDate}
         expense={editingExpense}
         onClose={() => {
@@ -1101,18 +1179,18 @@ export function VehicleCardPage() {
           onClose={() => setDocModalExpense(null)}
         />
       )}
-      <DocumentFormModal
-        open={docOpen}
-        vehicleId={vehicle.id}
-        document={editingDocument}
-        onClose={() => {
-          setDocOpen(false);
-          setEditingDocument(undefined);
-        }}
-        onSaved={() => {
-          setEditingDocument(undefined);
-        }}
-      />
+      <DocumentFormModal open={docOpen} vehicleId={vehicle.id} onClose={() => setDocOpen(false)} />
+      {editingGroupId && (
+        <GroupEditModal
+          open={groupEditOpen}
+          vehicleId={vehicle.id}
+          groupId={editingGroupId}
+          onClose={() => {
+            setGroupEditOpen(false);
+            setEditingGroupId(undefined);
+          }}
+        />
+      )}
       <VehicleGalleryModal
         open={galleryModalOpen}
         vehicleId={vehicle.id}
@@ -1196,7 +1274,16 @@ interface GalleryCardProps {
   small?: boolean;
 }
 
-function GalleryCard({ gallery, vehicleId, label, coverUrl, canMutate, onEdit, onDelete, small }: GalleryCardProps) {
+function GalleryCard({
+  gallery,
+  vehicleId,
+  label,
+  coverUrl,
+  canMutate,
+  onEdit,
+  onDelete,
+  small,
+}: GalleryCardProps) {
   const [previewVisible, setPreviewVisible] = useState(false);
   const isMain = gallery?.kind === 'main';
   const itemCount = gallery?.items.length ?? 0;

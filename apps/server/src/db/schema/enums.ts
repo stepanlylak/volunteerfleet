@@ -12,16 +12,6 @@ export const vehicleStatusEnum = pgEnum('vehicle_status', [
   'lost',
 ]);
 
-export const documentTypeEnum = pgEnum('document_type', [
-  'registration_certificate',
-  'customs_declaration',
-  'stamped_customs_declaration',
-  'transfer_act_draft',
-  'transfer_act_signed',
-  'return_act',
-  'other',
-]);
-
 export const userRoleEnum = pgEnum('user_role', ['superuser', 'user']);
 
 export const orgRoleEnum = pgEnum('org_role', ['coordinator', 'volunteer', 'viewer']);

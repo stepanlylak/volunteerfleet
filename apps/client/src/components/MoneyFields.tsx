@@ -107,7 +107,9 @@ export function MoneyFields({
           label="Сума"
           style={{ flex: 1 }}
           rules={[{ required: true, message: 'Введіть суму' }]}
-          normalize={(val) => (val === null || val === undefined || val === '' ? null : Number(val))}
+          normalize={(val) =>
+            val === null || val === undefined || val === '' ? null : Number(val)
+          }
         >
           <InputNumber
             min={0.01}
@@ -157,7 +159,9 @@ export function MoneyFields({
             </Space>
           }
           rules={[{ required: true, message: 'Введіть курс' }]}
-          normalize={(val) => (val === null || val === undefined || val === '' ? null : Number(val))}
+          normalize={(val) =>
+            val === null || val === undefined || val === '' ? null : Number(val)
+          }
         >
           <Space.Compact style={{ width: '100%' }}>
             <InputNumber

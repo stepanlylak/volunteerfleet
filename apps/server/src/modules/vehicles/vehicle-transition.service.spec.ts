@@ -84,6 +84,32 @@ describe('VehicleTransitionService', () => {
     expect(db.insert).toHaveBeenCalled();
   });
 
+  it('throws BadRequestException if a referenced document group has no documents', async () => {
+    db.query.documentGroups = {
+      findFirst: vi.fn().mockResolvedValue({
+        id: '44444444-4444-4444-4444-444444444444',
+        organizationId: orgId,
+        vehicleId,
+      }),
+    };
+    // assertGroupHasDocuments counts active documents in the group -> 0.
+    db.select = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ count: 0 }]),
+      }),
+    });
+
+    await expect(
+      svc.transition(vehicleId, userId, orgId, {
+        expectedCurrentStatus: 'new',
+        targetStatus: 'paid',
+        transitionDate: '2026-05-21',
+        isLocalPurchase: true,
+        registrationGroupId: '44444444-4444-4444-4444-444444444444',
+      } as unknown as import('@volunteerfleet/shared').VehicleTransitionRequest),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('throws BadRequestException if paid -> arrived is attempted but not a local purchase', async () => {
     db.query.vehicles.findFirst.mockResolvedValue({ id: vehicleId, status: 'paid' });
     db.query.vehicleStatusHistory.findFirst.mockResolvedValue({

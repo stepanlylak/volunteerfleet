@@ -4,6 +4,7 @@ import { eq, inArray } from 'drizzle-orm';
 import type { VehicleStatus } from '@volunteerfleet/shared';
 import { createDb, createPool, type Database } from '../../db/client.js';
 import {
+  documentGroups,
   documents,
   organizations,
   users,
@@ -94,28 +95,35 @@ describeIfDb('vehicle_alerts_view', () => {
     return v!.id;
   }
 
+  // Creates a document group holding one document and returns the GROUP id
+  // (status-history slots reference groups, not documents). The document carries
+  // the org/deletedAt that the alert view checks.
   async function insertDoc(
     tx: Tx,
     ctx: SeedContext,
     vehicleId: string,
-    documentType: typeof documents.$inferInsert.documentType,
     overrides: Partial<typeof documents.$inferInsert> = {},
   ): Promise<string> {
-    const [d] = await tx
-      .insert(documents)
+    const [group] = await tx
+      .insert(documentGroups)
       .values({
         organizationId: ctx.orgId,
-        name: 'doc',
-        kind: 'link',
-        url: 'https://example.com/doc.pdf',
-        documentType,
         vehicleId,
         createdBy: ctx.userId,
         updatedBy: ctx.userId,
-        ...overrides,
       })
       .returning();
-    return d!.id;
+    await tx.insert(documents).values({
+      organizationId: ctx.orgId,
+      name: 'doc',
+      kind: 'link',
+      url: 'https://example.com/doc.pdf',
+      groupId: group!.id,
+      createdBy: ctx.userId,
+      updatedBy: ctx.userId,
+      ...overrides,
+    });
+    return group!.id;
   }
 
   async function insertHistory(
@@ -175,23 +183,23 @@ describeIfDb('vehicle_alerts_view', () => {
   it('attached active documents clear the corresponding alerts', async () => {
     await withRollback(async (tx, ctx) => {
       const vehicleId = await insertVehicle(tx, ctx, 'arrived');
-      const regDoc = await insertDoc(tx, ctx, vehicleId, 'registration_certificate');
-      const stampedRegDoc = await insertDoc(tx, ctx, vehicleId, 'registration_certificate');
-      const customsDoc = await insertDoc(tx, ctx, vehicleId, 'customs_declaration');
-      const stampedDoc = await insertDoc(tx, ctx, vehicleId, 'stamped_customs_declaration');
+      const regDoc = await insertDoc(tx, ctx, vehicleId);
+      const stampedRegDoc = await insertDoc(tx, ctx, vehicleId);
+      const customsDoc = await insertDoc(tx, ctx, vehicleId);
+      const stampedDoc = await insertDoc(tx, ctx, vehicleId);
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'paid',
         isLocalPurchase: false,
-        registrationDocId: regDoc,
+        registrationGroupId: regDoc,
       });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'in_transit',
-        customsDeclarationDocId: customsDoc,
-        stampedRegistrationDocId: stampedRegDoc,
+        customsDeclarationGroupId: customsDoc,
+        stampedRegistrationGroupId: stampedRegDoc,
       });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'arrived',
-        stampedCustomsDeclarationDocId: stampedDoc,
+        stampedCustomsDeclarationGroupId: stampedDoc,
       });
       expect(await alertTypes(tx, vehicleId)).toEqual([]);
     });
@@ -200,14 +208,14 @@ describeIfDb('vehicle_alerts_view', () => {
   it('soft-deleted document does not clear its alert', async () => {
     await withRollback(async (tx, ctx) => {
       const vehicleId = await insertVehicle(tx, ctx, 'paid');
-      const regDoc = await insertDoc(tx, ctx, vehicleId, 'registration_certificate', {
+      const regDoc = await insertDoc(tx, ctx, vehicleId, {
         deletedAt: new Date(),
         deletedBy: ctx.userId,
       });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'paid',
         isLocalPurchase: true,
-        registrationDocId: regDoc,
+        registrationGroupId: regDoc,
       });
       expect(await alertTypes(tx, vehicleId)).toEqual(['missing_registration_doc']);
     });
@@ -228,10 +236,10 @@ describeIfDb('vehicle_alerts_view', () => {
     await withRollback(async (tx, ctx) => {
       const vehicleId = await insertVehicle(tx, ctx, 'returned');
       await insertHistory(tx, ctx, vehicleId, { newStatus: 'paid', isLocalPurchase: true });
-      const regDoc = await insertDoc(tx, ctx, vehicleId, 'registration_certificate');
+      const regDoc = await insertDoc(tx, ctx, vehicleId);
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'arrived',
-        registrationDocId: regDoc,
+        registrationGroupId: regDoc,
       });
       await insertHistory(tx, ctx, vehicleId, { newStatus: 'ready' });
       await insertHistory(tx, ctx, vehicleId, { newStatus: 'transferred' });
@@ -246,23 +254,23 @@ describeIfDb('vehicle_alerts_view', () => {
   it('old signed act does not clear the alert for a new transfer after return', async () => {
     await withRollback(async (tx, ctx) => {
       const vehicleId = await insertVehicle(tx, ctx, 'transferred');
-      const regDoc = await insertDoc(tx, ctx, vehicleId, 'registration_certificate');
-      const draftDoc = await insertDoc(tx, ctx, vehicleId, 'transfer_act_draft');
-      const oldSignedDoc = await insertDoc(tx, ctx, vehicleId, 'transfer_act_signed');
+      const regDoc = await insertDoc(tx, ctx, vehicleId);
+      const draftDoc = await insertDoc(tx, ctx, vehicleId);
+      const oldSignedDoc = await insertDoc(tx, ctx, vehicleId);
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'paid',
         isLocalPurchase: true,
-        registrationDocId: regDoc,
+        registrationGroupId: regDoc,
       });
       await insertHistory(tx, ctx, vehicleId, { newStatus: 'arrived' });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'ready',
-        transferActDraftDocId: draftDoc,
+        transferActDraftGroupId: draftDoc,
       });
       // First transfer with a signed act (older changed_at).
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'transferred',
-        transferActSignedDocId: oldSignedDoc,
+        transferActSignedGroupId: oldSignedDoc,
         isRegisteredAtServiceCenter: true,
         changedAt: new Date('2026-02-01T00:00:00Z'),
       });
@@ -284,23 +292,23 @@ describeIfDb('vehicle_alerts_view', () => {
   it('repair cycle: latest transfer with a fresh signed act has no signed-act alert', async () => {
     await withRollback(async (tx, ctx) => {
       const vehicleId = await insertVehicle(tx, ctx, 'transferred');
-      const regDoc = await insertDoc(tx, ctx, vehicleId, 'registration_certificate');
-      const draftDoc = await insertDoc(tx, ctx, vehicleId, 'transfer_act_draft');
-      const signedDoc = await insertDoc(tx, ctx, vehicleId, 'transfer_act_signed');
+      const regDoc = await insertDoc(tx, ctx, vehicleId);
+      const draftDoc = await insertDoc(tx, ctx, vehicleId);
+      const signedDoc = await insertDoc(tx, ctx, vehicleId);
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'paid',
         isLocalPurchase: true,
-        registrationDocId: regDoc,
+        registrationGroupId: regDoc,
       });
       await insertHistory(tx, ctx, vehicleId, { newStatus: 'arrived' });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'ready',
-        transferActDraftDocId: draftDoc,
+        transferActDraftGroupId: draftDoc,
         changedAt: new Date('2026-02-01T00:00:00Z'),
       });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'transferred',
-        transferActSignedDocId: signedDoc,
+        transferActSignedGroupId: signedDoc,
         isRegisteredAtServiceCenter: true,
         changedAt: new Date('2026-02-15T00:00:00Z'),
       });
@@ -315,7 +323,7 @@ describeIfDb('vehicle_alerts_view', () => {
       });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'transferred',
-        transferActSignedDocId: signedDoc,
+        transferActSignedGroupId: signedDoc,
         isRegisteredAtServiceCenter: true,
         changedAt: new Date('2026-03-20T00:00:00Z'),
       });
@@ -328,22 +336,22 @@ describeIfDb('vehicle_alerts_view', () => {
   it('not_registered_at_service_center raised when latest transfer is not registered', async () => {
     await withRollback(async (tx, ctx) => {
       const vehicleId = await insertVehicle(tx, ctx, 'transferred');
-      const regDoc = await insertDoc(tx, ctx, vehicleId, 'registration_certificate');
-      const draftDoc = await insertDoc(tx, ctx, vehicleId, 'transfer_act_draft');
-      const signedDoc = await insertDoc(tx, ctx, vehicleId, 'transfer_act_signed');
+      const regDoc = await insertDoc(tx, ctx, vehicleId);
+      const draftDoc = await insertDoc(tx, ctx, vehicleId);
+      const signedDoc = await insertDoc(tx, ctx, vehicleId);
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'paid',
         isLocalPurchase: true,
-        registrationDocId: regDoc,
+        registrationGroupId: regDoc,
       });
       await insertHistory(tx, ctx, vehicleId, { newStatus: 'arrived' });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'ready',
-        transferActDraftDocId: draftDoc,
+        transferActDraftGroupId: draftDoc,
       });
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'transferred',
-        transferActSignedDocId: signedDoc,
+        transferActSignedGroupId: signedDoc,
         isRegisteredAtServiceCenter: false,
       });
       expect(await alertTypes(tx, vehicleId)).toEqual(['not_registered_at_service_center']);
@@ -355,11 +363,11 @@ describeIfDb('vehicle_alerts_view', () => {
       const other = await seedOrg(tx);
       const vehicleId = await insertVehicle(tx, ctx, 'paid');
       // Document belongs to a different organization than the vehicle/history.
-      const foreignDoc = await insertDoc(tx, other, vehicleId, 'registration_certificate');
+      const foreignDoc = await insertDoc(tx, other, vehicleId);
       await insertHistory(tx, ctx, vehicleId, {
         newStatus: 'paid',
         isLocalPurchase: true,
-        registrationDocId: foreignDoc,
+        registrationGroupId: foreignDoc,
       });
       expect(await alertTypes(tx, vehicleId)).toEqual(['missing_registration_doc']);
     });

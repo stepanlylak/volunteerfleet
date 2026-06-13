@@ -10,6 +10,7 @@ function makeResponse(overrides: Partial<ExpenseResponse> = {}): ExpenseResponse
   return {
     id: '22222222-2222-2222-2222-222222222222',
     vehicleId: '33333333-3333-3333-3333-333333333333',
+    documentGroupId: null,
     vehicle: {
       id: '33333333-3333-3333-3333-333333333333',
       identifier: 'VHC-001',

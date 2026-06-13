@@ -53,11 +53,7 @@ export function LoginPage() {
         styles={{ body: { padding: '40px 40px 32px' } }}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <img
-            src="/volunteer-fleet-login-logo.png"
-            alt="VolunteerFleet"
-            style={{ height: 111 }}
-          />
+          <img src="/volunteer-fleet-login-logo.png" alt="VolunteerFleet" style={{ height: 111 }} />
           <br />
           <Typography.Text type="secondary">Платформа обліку транспорту ЗСУ</Typography.Text>
         </div>

@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { bigint, check, index, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
-import { documentKindEnum, documentTypeEnum } from './enums.js';
-import { expenses } from './expenses.js';
+import { documentKindEnum } from './enums.js';
+import { documentGroups } from './document-groups.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
 import { vehicles } from './vehicles.js';
@@ -17,7 +17,6 @@ export const documents = pgTable(
       .references(() => organizations.id, { onDelete: 'restrict' }),
     name: varchar('name', { length: 255 }).notNull(),
     kind: documentKindEnum('kind').notNull(),
-    documentType: documentTypeEnum('document_type').notNull().default('other'),
     fileKey: varchar('file_key', { length: 512 }),
     url: varchar('url', { length: 2048 }),
     mimeType: varchar('mime_type', { length: 128 }),
@@ -25,7 +24,7 @@ export const documents = pgTable(
     vehicleId: uuid('vehicle_id').references(() => vehicles.id, {
       onDelete: 'restrict',
     }),
-    expenseId: uuid('expense_id').references(() => expenses.id, {
+    groupId: uuid('group_id').references(() => documentGroups.id, {
       onDelete: 'restrict',
     }),
     createdBy: uuid('created_by')
@@ -51,10 +50,10 @@ export const documents = pgTable(
     ),
     attachedToSomething: check(
       'documents_attached_to_something',
-      sql`${table.vehicleId} IS NOT NULL OR ${table.expenseId} IS NOT NULL`,
+      sql`${table.vehicleId} IS NOT NULL OR ${table.groupId} IS NOT NULL`,
     ),
     organizationIdx: index('documents_organization_id_idx').on(table.organizationId),
     vehicleIdx: index('documents_vehicle_id_idx').on(table.vehicleId),
-    expenseIdx: index('documents_expense_id_idx').on(table.expenseId),
+    groupIdx: index('documents_group_id_idx').on(table.groupId),
   }),
 );

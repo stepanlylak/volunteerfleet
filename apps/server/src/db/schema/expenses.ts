@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { financialCategories } from './dictionaries.js';
 import { currencyCodeEnum, rateSourceEnum } from './enums.js';
+import { documentGroups } from './document-groups.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
 import { vehicles } from './vehicles.js';
@@ -30,6 +31,9 @@ export const expenses = pgTable(
       .references(() => vehicles.id, {
         onDelete: 'restrict',
       }),
+    documentGroupId: uuid('document_group_id').references(() => documentGroups.id, {
+      onDelete: 'restrict',
+    }),
     expenseDate: date('expense_date').notNull(),
     amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
     currency: currencyCodeEnum('currency').notNull(),
@@ -60,6 +64,7 @@ export const expenses = pgTable(
     ratePositive: check('expenses_rate_positive', sql`${table.rate} > 0`),
     organizationIdx: index('expenses_organization_id_idx').on(table.organizationId),
     vehicleIdx: index('expenses_vehicle_id_idx').on(table.vehicleId),
+    documentGroupIdx: index('expenses_document_group_id_idx').on(table.documentGroupId),
     expenseDateIdx: index('expenses_expense_date_idx').on(table.expenseDate),
     categoryIdx: index('expenses_category_id_idx').on(table.categoryId),
   }),

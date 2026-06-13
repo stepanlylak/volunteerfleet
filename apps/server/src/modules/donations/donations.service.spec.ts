@@ -23,6 +23,7 @@ function makeResponse(overrides: Partial<DonationResponse> = {}): DonationRespon
       brand: 'Toyota',
       model: 'Hilux',
     },
+    documentGroupId: null,
     categoryId: '44444444-4444-4444-4444-444444444444',
     category: {
       id: '44444444-4444-4444-4444-444444444444',

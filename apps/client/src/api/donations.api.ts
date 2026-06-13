@@ -15,6 +15,7 @@ export interface DonationsListParams {
   dateFrom?: string;
   dateTo?: string;
   currency?: string;
+  sort?: string;
 }
 
 export const donationsApi = {

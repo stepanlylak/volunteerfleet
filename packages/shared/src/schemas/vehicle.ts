@@ -112,13 +112,13 @@ export const vehicleStatusHistorySchema = z.object({
   isRegisteredAtServiceCenter: z.boolean().nullable(),
   lostReason: z.string().nullable(),
 
-  registrationDocId: uuidSchema.nullable(),
-  stampedRegistrationDocId: uuidSchema.nullable(),
-  customsDeclarationDocId: uuidSchema.nullable(),
-  stampedCustomsDeclarationDocId: uuidSchema.nullable(),
-  transferActDraftDocId: uuidSchema.nullable(),
-  transferActSignedDocId: uuidSchema.nullable(),
-  returnActDocId: uuidSchema.nullable(),
+  registrationGroupId: uuidSchema.nullable(),
+  stampedRegistrationGroupId: uuidSchema.nullable(),
+  customsDeclarationGroupId: uuidSchema.nullable(),
+  stampedCustomsDeclarationGroupId: uuidSchema.nullable(),
+  transferActDraftGroupId: uuidSchema.nullable(),
+  transferActSignedGroupId: uuidSchema.nullable(),
+  returnActGroupId: uuidSchema.nullable(),
 });
 export type VehicleStatusHistory = z.infer<typeof vehicleStatusHistorySchema>;
 

@@ -10,7 +10,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { vehicleStatusEnum } from './enums.js';
-import { documents } from './documents.js';
+import { documentGroups } from './document-groups.js';
 import { organizations } from './organizations.js';
 import { users } from './users.js';
 import { vehicles } from './vehicles.js';
@@ -41,26 +41,30 @@ export const vehicleStatusHistory = pgTable(
     isRegisteredAtServiceCenter: boolean('is_registered_at_service_center'),
     lostReason: text('lost_reason'),
 
-    registrationDocId: uuid('registration_doc_id').references(() => documents.id, {
+    registrationGroupId: uuid('registration_group_id').references(() => documentGroups.id, {
       onDelete: 'restrict',
     }),
-    stampedRegistrationDocId: uuid('stamped_registration_doc_id').references(() => documents.id, {
-      onDelete: 'restrict',
-    }),
-    customsDeclarationDocId: uuid('customs_declaration_doc_id').references(() => documents.id, {
-      onDelete: 'restrict',
-    }),
-    stampedCustomsDeclarationDocId: uuid('stamped_customs_declaration_doc_id').references(
-      () => documents.id,
+    stampedRegistrationGroupId: uuid('stamped_registration_group_id').references(
+      () => documentGroups.id,
       { onDelete: 'restrict' },
     ),
-    transferActDraftDocId: uuid('transfer_act_draft_doc_id').references(() => documents.id, {
-      onDelete: 'restrict',
-    }),
-    transferActSignedDocId: uuid('transfer_act_signed_doc_id').references(() => documents.id, {
-      onDelete: 'restrict',
-    }),
-    returnActDocId: uuid('return_act_doc_id').references(() => documents.id, {
+    customsDeclarationGroupId: uuid('customs_declaration_group_id').references(
+      () => documentGroups.id,
+      { onDelete: 'restrict' },
+    ),
+    stampedCustomsDeclarationGroupId: uuid('stamped_customs_declaration_group_id').references(
+      () => documentGroups.id,
+      { onDelete: 'restrict' },
+    ),
+    transferActDraftGroupId: uuid('transfer_act_draft_group_id').references(
+      () => documentGroups.id,
+      { onDelete: 'restrict' },
+    ),
+    transferActSignedGroupId: uuid('transfer_act_signed_group_id').references(
+      () => documentGroups.id,
+      { onDelete: 'restrict' },
+    ),
+    returnActGroupId: uuid('return_act_group_id').references(() => documentGroups.id, {
       onDelete: 'restrict',
     }),
   },
