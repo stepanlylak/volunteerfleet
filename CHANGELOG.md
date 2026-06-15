@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-06-16
+
+### Highlights
+
+- Added document groups: bundle multiple files and links into a single logical document, available across
+  expenses, donations, standalone documents, and vehicle status history.
+- Unified the database migrations into a single consolidated baseline, folding the vehicle alerts view into
+  the initial migration.
+- Reworked deployment into parameterized, environment-aware `prod` and `stg` stacks with `STACK`-namespaced
+  container naming and env-aware `deploy/backup.sh` and `deploy/update.sh`.
+- Refreshed the exchange rates dataset with revised historical data and projections through 2026.
+
+### Breaking Changes
+
+- Rewrote the PostgreSQL migration baseline: the previous `0000_init` and `0001_vehicle_alerts_view`
+  migrations are replaced by a single unified migration. Existing databases must be reset and re-migrated
+  against the new baseline.
+- Restructured deployment files: removed the root `backup.sh`, `update.sh`, `docker-compose.prod.yml`, and
+  `.env.prod.example` in favor of `deploy/{prod,stg}/compose.yml`, `deploy/{prod,stg}/.env.example`, and
+  `deploy/{backup,update}.sh`. Container and network naming now derives from the `STACK` parameter.
+
 ## [2.0.0] - 2026-06-10
 
 ### Highlights
