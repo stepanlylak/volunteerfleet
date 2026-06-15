@@ -115,7 +115,12 @@ VITE_PROXY_TARGET=http://localhost:3000
 ## Production (Docker + Zoraxy на одному VPS)
 
 Прод-схема: застосунок збирається в один Docker-образ і піднімається разом із PostgreSQL та MinIO
-через `docker-compose.prod.yml`. Reverse proxy і TLS — зовнішній (Zoraxy), налаштовується вручну.
+через `deploy/<env>/compose.yml`. Reverse proxy і TLS — зовнішній (Zoraxy), налаштовується вручну.
+
+Кожне середовище живе у власній папці (`deploy/prod`, `deploy/stg`) з ідентичним **параметризованим**
+`compose.yml`; різниця лише в `.env`. Змінна `STACK` задає неймспейс (ім'я проєкту, контейнерів і alias
+у мережі Zoraxy), тож кілька стеків працюють на одному хості без колізій (`volunteerfleet`,
+`volunteerfleet-stg`). Запуск — із папки середовища, без `-f`: `docker compose up -d`.
 
 ### Архітектура
 
@@ -125,12 +130,13 @@ VITE_PROXY_TARGET=http://localhost:3000
 - **`volunteerfleet-postgres`** — лише у приватній мережі `internal`, назовні не публікується (ізольований
   від інших стеків на сервері).
 - **`volunteerfleet-minio`** — об'єктне сховище. **Приватне:** файли (документи/фото) віддаються **потоком
-  через застосунок**, тож `S3_ENDPOINT` — внутрішній `http://volunteerfleet-minio:9000`, а S3-API назовні не
-  виставляється (ні окремого домену, ні presigned-URL, ні Host-preserve).
+  через застосунок**, тож `S3_ENDPOINT` — внутрішній `http://minio:9000` (ім'я сервісу в `internal`-мережі
+  стека), а S3-API назовні не виставляється (ні окремого домену, ні presigned-URL, ні Host-preserve).
 - **Мережі:** `volunteerfleet` під'єднаний до зовнішньої `n8n_default` (де працює Zoraxy) — Zoraxy
   маршрутизує за іменем контейнера, **host-порти не публікуються** (нуль колізій). `minio` лишається в
   приватній `internal`; до `n8n_default` його додають **лише якщо** виставляють веб-консоль.
-- **Стан:** лише `./data/postgres` і `./data/minio` (bind-mounts на сервері) — переживають оновлення образу.
+- **Стан:** лише `deploy/<env>/data/postgres` і `deploy/<env>/data/minio` (bind-mounts) — переживають
+  оновлення образу. Дані ізольовані по середовищах (кожне у своїй папці).
 
 ### Реліз: від `main` до образу в GHCR
 
@@ -195,7 +201,7 @@ git push origin release/1.2.0 v1.2.1
 git checkout main && git merge --no-ff release/1.2.0 && git push origin main
 ```
 
-Далі — деплой на VPS: підняти `VF_IMAGE` у `.env` і запустити `./update.sh`
+Далі — деплой на VPS: підняти `VF_IMAGE` у `.env` і запустити `deploy/update.sh`
 (див. [«Оновлення на новий реліз»](#оновлення-на-новий-реліз)).
 
 > CI пушить у GHCR через вбудований `GITHUB_TOKEN` (`packages: write` уже задано в workflow) —
@@ -206,37 +212,42 @@ git checkout main && git merge --no-ff release/1.2.0 && git push origin main
 Передумови: Docker + Docker Compose v2; Zoraxy вже у мережі `n8n_default`; DNS обох доменів вказує на сервер.
 
 ```bash
-mkdir -p /opt/volunteerfleet && cd /opt/volunteerfleet
-# покласти поряд: docker-compose.prod.yml, docker/postgres/init.sql, update.sh, backup.sh
-cp .env.prod.example .env        # заповнити секрети, домени, VF_IMAGE
+# чекаут репозиторію на сервер (окремий — для prod, ще один — для stg за потреби)
+git clone <repo> /opt/volunteerfleet && cd /opt/volunteerfleet/deploy/prod
+cp .env.example .env             # заповнити STACK, домен, секрети, VF_IMAGE
 mkdir -p data/postgres data/minio
 docker login ghcr.io             # якщо образ приватний
-docker compose -f docker-compose.prod.yml up -d
+docker compose up -d             # compose.yml у цій папці — без -f
 ```
+
+Staging — те саме з папки `deploy/stg` (там `STACK=volunteerfleet-stg` і власний домен). На тому самому
+хості обидва стеки не конфліктують: різні неймспейси, мережі та `./data`.
 
 Entrypoint образу на старті сам **накатує міграції** і **робить seed** (ідемпотентно) — ручних кроків немає.
 
 ### Налаштування Zoraxy
 
-- Основний домен (= `CORS_ORIGIN`) → `volunteerfleet:3000`, TLS у Zoraxy. **Це все, що потрібно** — фото й
-  документи віддаються через цей самий домен (стрім через застосунок). Окремого домену для MinIO не треба.
-- (Опційно) Веб-консоль MinIO на окремому сабдомені → upstream `volunteerfleet-minio:9001` по **HTTP** (без
-  TLS до upstream, без схеми в полі адреси). Тоді: додай `minio` у мережу `n8n_default`, у
-  `docker-compose.prod.yml` розкоментуй `MINIO_BROWSER_REDIRECT_URL`, а в `.env` постав `MINIO_CONSOLE_URL` =
+- Основний домен (= `CORS_ORIGIN`) → upstream `${STACK}:3000` (prod: `volunteerfleet:3000`, stg:
+  `volunteerfleet-stg:3000`), TLS у Zoraxy. **Це все, що потрібно** — фото й документи віддаються через цей
+  самий домен (стрім через застосунок). Окремого домену для MinIO не треба.
+- (Опційно) Веб-консоль MinIO на окремому сабдомені → upstream `${STACK}-minio:9001` по **HTTP** (без
+  TLS до upstream, без схеми в полі адреси). Тоді: додай `- shared` у мережі сервісу `minio`, у
+  `compose.yml` розкоментуй `MINIO_BROWSER_REDIRECT_URL`, а в `.env` постав `MINIO_CONSOLE_URL` =
   цей публічний URL. Консоль — адмінка: тримай за сильним паролем / Access-rule.
 
 ### Оновлення на новий реліз
 
 ```bash
 cd /opt/volunteerfleet
-# (за потреби) підняти тег у .env: VF_IMAGE=ghcr.io/<owner>/volunteerfleet:1.3.0
-./update.sh
+# (за потреби) підняти тег у deploy/<env>/.env: VF_IMAGE=ghcr.io/<owner>/volunteerfleet:1.3.0
+deploy/update.sh prod            # або: deploy/update.sh stg
 ```
 
-`update.sh`: робить дамп БД у `backups/` → `docker compose pull` → `up -d` (міграції накочуються
-автоматично на старті) → чистить старі образи. Дані в `./data/*` не чіпаються.
+`deploy/update.sh [env]` (env = `prod` за замовчуванням | `stg`): заходить у `deploy/<env>`, робить дамп БД у
+`backups/` → `docker compose pull app` → `up -d` (міграції накочуються автоматично на старті) → чистить
+старі образи. Дані в `deploy/<env>/data/*` не чіпаються.
 
-**Відкат:** повернути попередній тег у `.env` і знову `./update.sh`. Застереження: міграції forward-only —
+**Відкат:** повернути попередній тег у `.env` і знову `deploy/update.sh`. Застереження: міграції forward-only —
 відкат образу **не відкочує схему БД**, тож нова версія коду має лишатися сумісною з попередньою схемою; у
 крайньому разі відновлюй з дампа (нижче).
 
@@ -256,17 +267,18 @@ cd /opt/volunteerfleet
 
 ### Бекапи / відновлення
 
-- `./backup.sh` — разовий дамп БД у `backups/db-<ts>.dump` (`pg_dump -Fc`). `update.sh` робить такий дамп
-  автоматично перед кожним оновленням.
-- **Відновлення БД** (у запущений контейнер):
+- `deploy/backup.sh [env]` (env = `prod` | `stg`) — разовий дамп БД у `deploy/<env>/backups/db-<ts>.dump`
+  (`pg_dump -Fc`). `deploy/update.sh` робить такий дамп автоматично перед кожним оновленням.
+- **Відновлення БД** (у запущений контейнер), із папки `deploy/<env>`:
 
   ```bash
-  docker compose -f docker-compose.prod.yml exec -T volunteerfleet-postgres \
+  docker compose exec -T postgres \
     sh -c 'pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < backups/db-<ts>.dump
   ```
 
-- **MinIO** — це звичайні файли в `./data/minio`; бекап роби файловим інструментом (restic/rsync/`tar`).
-- Рекомендується крон: щоденний `backup.sh` + офсайт-копія `data/minio`.
+- **MinIO** — це звичайні файли в `deploy/<env>/data/minio`; бекап роби файловим інструментом
+  (restic/rsync/`tar`).
+- Рекомендується крон: щоденний `deploy/backup.sh` + офсайт-копія `data/minio`.
 
 ## Очистка / реінсталяція
 
@@ -278,4 +290,4 @@ pnpm infra:reset && pnpm db:migrate && pnpm db:seed   # повний reset (вт
 ## Поза межами першої версії
 
 Kubernetes/Helm, auto-scaling, zero-downtime/rolling-деплой, зовнішній моніторинг (Datadog/Sentry),
-вбудований у застосунок backup-модуль, автоматичний CD на VPS (зараз — ручний `update.sh`).
+вбудований у застосунок backup-модуль, автоматичний CD на VPS (зараз — ручний `deploy/update.sh`).
