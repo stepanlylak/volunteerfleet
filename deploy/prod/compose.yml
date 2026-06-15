@@ -1,25 +1,39 @@
-# Production stack for a single VPS.
-# - `volunteerfleet` and `minio` join the external network where Zoraxy lives
-#   (configure routing/TLS in Zoraxy manually). Host ports are NOT published.
-# - `postgres` stays on a private internal network — isolated from other stacks.
-# - Persistent state lives in ./data/* bind mounts and survives image updates.
+# VolunteerFleet deployment stack (one file per environment folder).
 #
-# Configure everything via .env (see .env.prod.example).
+# This file is PARAMETRIZED — it is identical in deploy/prod/ and deploy/stg/.
+# The only thing that differs between environments is the local `.env`:
+#   STACK        namespace: project name + container names + Zoraxy alias
+#   VF_IMAGE     release tag to run
+#   CORS_ORIGIN  public domain Zoraxy proxies to this stack
+# Keep both copies in sync; behaviour differences belong in `.env`, not here.
+#
+# Run from THIS folder (no -f needed — file is named compose.yml):
+#   cp .env.example .env        # fill STACK, domain, secrets, VF_IMAGE
+#   mkdir -p data/postgres data/minio
+#   docker compose up -d
+#
+# Networking: only `app` joins the external Zoraxy network (reachable there as
+# ${STACK}); postgres/minio stay on a private per-stack `internal` network. No
+# host ports are published. Persistent state lives in ./data/* (this folder).
+
+name: ${STACK:-volunteerfleet}
 
 services:
-  volunteerfleet:
+  app:
     image: ${VF_IMAGE:-ghcr.io/your-org/volunteerfleet:latest}
-    container_name: volunteerfleet
+    container_name: ${STACK:-volunteerfleet}
     restart: unless-stopped
     env_file: .env
     depends_on:
-      volunteerfleet-postgres:
+      postgres:
         condition: service_healthy
-      volunteerfleet-minio:
+      minio:
         condition: service_healthy
     networks:
-      - internal
-      - shared
+      internal: {}
+      shared:
+        aliases:
+          - ${STACK:-volunteerfleet}
     healthcheck:
       test:
         [
@@ -33,9 +47,9 @@ services:
       retries: 5
       start_period: 40s
 
-  volunteerfleet-postgres:
+  postgres:
     image: postgres:16-alpine
-    container_name: volunteerfleet-postgres
+    container_name: ${STACK:-volunteerfleet}-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -43,7 +57,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../../docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - internal
     healthcheck:
@@ -52,16 +66,16 @@ services:
       timeout: 3s
       retries: 10
 
-  volunteerfleet-minio:
+  minio:
     image: minio/minio:latest
-    container_name: volunteerfleet-minio
+    container_name: ${STACK:-volunteerfleet}-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       # Console (optional): to expose the MinIO web console, route a subdomain in
-      # Zoraxy → volunteerfleet-minio:9001 and uncomment the line below with that URL.
+      # Zoraxy → ${STACK}-minio:9001 and uncomment the line below with that URL.
       # MINIO_BROWSER_REDIRECT_URL: ${MINIO_CONSOLE_URL}
     volumes:
       - ./data/minio:/data
@@ -74,12 +88,12 @@ services:
       timeout: 3s
       retries: 5
 
-  volunteerfleet-minio-init:
+  minio-init:
     image: minio/mc:latest
-    container_name: volunteerfleet-minio-init
+    container_name: ${STACK:-volunteerfleet}-minio-init
     restart: 'no'
     depends_on:
-      volunteerfleet-minio:
+      minio:
         condition: service_healthy
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -89,7 +103,7 @@ services:
       - internal
     entrypoint: >
       sh -c "
-        mc alias set local http://volunteerfleet-minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
+        mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
         mc mb --ignore-existing local/$${S3_BUCKET} &&
         mc anonymous set none local/$${S3_BUCKET}
       "
@@ -99,6 +113,6 @@ networks:
   shared:
     external: true
     name: ${SHARED_NETWORK:-n8n_default}
-  # Private network for app ↔ db ↔ object storage.
+  # Private per-stack network for app ↔ db ↔ object storage.
   internal:
     driver: bridge

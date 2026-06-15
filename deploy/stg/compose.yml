@@ -1,0 +1,118 @@
+# VolunteerFleet deployment stack (one file per environment folder).
+#
+# This file is PARAMETRIZED — it is identical in deploy/prod/ and deploy/stg/.
+# The only thing that differs between environments is the local `.env`:
+#   STACK        namespace: project name + container names + Zoraxy alias
+#   VF_IMAGE     release tag to run
+#   CORS_ORIGIN  public domain Zoraxy proxies to this stack
+# Keep both copies in sync; behaviour differences belong in `.env`, not here.
+#
+# Run from THIS folder (no -f needed — file is named compose.yml):
+#   cp .env.example .env        # fill STACK, domain, secrets, VF_IMAGE
+#   mkdir -p data/postgres data/minio
+#   docker compose up -d
+#
+# Networking: only `app` joins the external Zoraxy network (reachable there as
+# ${STACK}); postgres/minio stay on a private per-stack `internal` network. No
+# host ports are published. Persistent state lives in ./data/* (this folder).
+
+name: ${STACK:-volunteerfleet}
+
+services:
+  app:
+    image: ${VF_IMAGE:-ghcr.io/your-org/volunteerfleet:latest}
+    container_name: ${STACK:-volunteerfleet}
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      internal: {}
+      shared:
+        aliases:
+          - ${STACK:-volunteerfleet}
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ${STACK:-volunteerfleet}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ../../docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - internal
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: ${STACK:-volunteerfleet}-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      # Console (optional): to expose the MinIO web console, route a subdomain in
+      # Zoraxy → ${STACK}-minio:9001 and uncomment the line below with that URL.
+      # MINIO_BROWSER_REDIRECT_URL: ${MINIO_CONSOLE_URL}
+    volumes:
+      - ./data/minio:/data
+    networks:
+      - internal
+      # Add `- shared` only if you expose the MinIO web console via Zoraxy.
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: ${STACK:-volunteerfleet}-minio-init
+    restart: 'no'
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+    networks:
+      - internal
+    entrypoint: >
+      sh -c "
+        mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
+        mc mb --ignore-existing local/$${S3_BUCKET} &&
+        mc anonymous set none local/$${S3_BUCKET}
+      "
+
+networks:
+  # Shared network where Zoraxy runs (created outside this stack).
+  shared:
+    external: true
+    name: ${SHARED_NETWORK:-n8n_default}
+  # Private per-stack network for app ↔ db ↔ object storage.
+  internal:
+    driver: bridge
