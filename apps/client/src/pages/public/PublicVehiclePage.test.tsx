@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -71,7 +72,7 @@ describe('PublicVehiclePage', () => {
     renderWithProviders(<PublicVehiclePage />);
 
     expect(await screen.findByText('Toyota Hilux')).toBeInTheDocument();
-    expect(screen.getByText('TEST-001')).toBeInTheDocument();
+    expect(screen.getAllByText('TEST-001')).toHaveLength(2);
     expect(screen.getByText('Фото ще не додано')).toBeInTheDocument();
   });
 
@@ -104,7 +105,7 @@ describe('PublicVehiclePage', () => {
     renderWithProviders(<PublicVehiclePage />);
 
     expect(await screen.findByText('Основна')).toBeInTheDocument();
-    expect(screen.getAllByRole('img')).toHaveLength(2);
+    expect(screen.getAllByAltText(/Основна|Photo 2/)).toHaveLength(2);
   });
 
   it('renders custom public gallery with custom name and description', async () => {

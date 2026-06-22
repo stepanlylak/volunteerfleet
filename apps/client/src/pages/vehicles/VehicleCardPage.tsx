@@ -205,6 +205,8 @@ export function VehicleCardPage() {
     expenseId: string;
   } | null>(null);
   const [documentExpenseIdFilter, setDocumentExpenseIdFilter] = useState<string | null>(null);
+  const [previewDocuments, setPreviewDocuments] = useState<DocumentResponse[] | undefined>();
+  const [previewInitialIndex, setPreviewInitialIndex] = useState(0);
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
   const [editingGallery, setEditingGallery] = useState<VehicleGalleryResponse | undefined>();
 
@@ -792,6 +794,29 @@ export function VehicleCardPage() {
                   size="small"
                   pagination={false}
                   locale={{ emptyText: 'Документів ще немає' }}
+                  onRow={(record) => ({
+                    onClick: () => {
+                      if (record.isGroup) {
+                        setPreviewInitialIndex(0);
+                        setPreviewDocuments(record.children);
+                        return;
+                      }
+                      if (record.groupId) {
+                        const group = documentTableRows.find(
+                          (r): r is DocGroupRow =>
+                            r.isGroup === true && r.groupId === record.groupId,
+                        );
+                        if (group) {
+                          const index = group.children.findIndex((c) => c.id === record.id);
+                          setPreviewInitialIndex(Math.max(0, index));
+                          setPreviewDocuments(group.children);
+                          return;
+                        }
+                      }
+                      setPreviewInitialIndex(0);
+                      setPreviewDocuments([record]);
+                    },
+                  })}
                   columns={
                     [
                       {
@@ -865,7 +890,8 @@ export function VehicleCardPage() {
                                 <Button
                                   size="small"
                                   icon={<EditOutlined />}
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setEditingGroupId(r.groupId);
                                     setGroupEditOpen(true);
                                   }}
@@ -886,7 +912,12 @@ export function VehicleCardPage() {
                                     }
                                   }}
                                 >
-                                  <Button size="small" danger icon={<DeleteOutlined />} />
+                                  <Button
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
                                 </Popconfirm>
                               </Flex>
                             );
@@ -900,12 +931,16 @@ export function VehicleCardPage() {
                                   href={documentsApi.getDownloadUrl(r.id, r.updatedAt)}
                                   target="_blank"
                                   rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
                                 />
                               ) : (
                                 <Button
                                   size="small"
                                   icon={<LinkOutlined />}
-                                  onClick={() => window.open(r.url ?? '#', '_blank')}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(r.url ?? '#', '_blank');
+                                  }}
                                 />
                               )}
                               {canMutate && (
@@ -914,7 +949,8 @@ export function VehicleCardPage() {
                                     <Button
                                       size="small"
                                       icon={<EditOutlined />}
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setEditingGroupId(r.groupId ?? undefined);
                                         setGroupEditOpen(true);
                                       }}
@@ -929,7 +965,12 @@ export function VehicleCardPage() {
                                       void message.success('Документ видалено');
                                     }}
                                   >
-                                    <Button size="small" danger icon={<DeleteOutlined />} />
+                                    <Button
+                                      size="small"
+                                      danger
+                                      icon={<DeleteOutlined />}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
                                   </Popconfirm>
                                 </>
                               )}
@@ -939,6 +980,12 @@ export function VehicleCardPage() {
                       },
                     ] as ColumnsType<DocTableRow>
                   }
+                />
+                <DocumentDetailsModal
+                  open={previewDocuments != null}
+                  documents={previewDocuments}
+                  initialIndex={previewInitialIndex}
+                  onClose={() => setPreviewDocuments(undefined)}
                 />
               </Space>
             ),
@@ -1214,13 +1261,9 @@ interface ExpenseDocsModalProps {
 
 function ExpenseDocsModal({ vehicleId, expenseId, onClose }: ExpenseDocsModalProps) {
   const { data } = useVehicleDocuments(vehicleId, { expenseId, pageSize: 100 });
-  const documentIds = (data?.items ?? []).map((d) => d.id);
+  const documents = data?.items ?? [];
   return (
-    <DocumentDetailsModal
-      open={documentIds.length > 0}
-      documentIds={documentIds}
-      onClose={onClose}
-    />
+    <DocumentDetailsModal open={documents.length > 0} documents={documents} onClose={onClose} />
   );
 }
 
