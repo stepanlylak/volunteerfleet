@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -6,16 +7,30 @@ import type { VehicleResponse, VehicleStatus } from '@volunteerfleet/shared';
 import { VehiclesListPage } from './VehiclesListPage';
 
 // Mock the auth store
-vi.mock('../../stores/auth.store', () => ({
-  useAuth: vi.fn(() => ({
-    user: { activeOrgId: 'org-1', userRole: 'coordinator' },
-  })),
-  useOrgRole: vi.fn(() => 'coordinator'),
-}));
+vi.mock('../../stores/auth.store', () => {
+  const user = {
+    activeOrgId: 'org-1',
+    userRole: 'coordinator',
+    orgRole: 'coordinator',
+    memberships: [],
+  };
+  const state = { user, hasSessionHint: true, setAuth: vi.fn(), clear: vi.fn() };
+  return {
+    useAuth: vi.fn((selector?: (s: typeof state) => unknown) =>
+      selector ? selector(state) : state,
+    ),
+    useOrgRole: vi.fn(() => 'coordinator'),
+  };
+});
 
 // Mock the vehicles hook
 vi.mock('../../hooks/useVehicles', () => ({
   useVehicles: vi.fn(),
+}));
+
+// Mock the vehicle form modal to avoid pulling in unrelated hooks
+vi.mock('../../modals/VehicleFormModal', () => ({
+  VehicleFormModal: () => null,
 }));
 
 import { useVehicles } from '../../hooks/useVehicles';
@@ -32,7 +47,7 @@ function createMockVehicle(overrides: Partial<VehicleResponse> = {}): VehicleRes
     vin: 'ABC123',
     startDate: '2024-01-01',
     borderCrossingDate: null,
-    status: 'active' as VehicleStatus,
+    status: 'new' as VehicleStatus,
     description: null,
     isPublic: true,
     publicSummary: null,
@@ -103,7 +118,7 @@ describe('VehiclesListPage cover column', () => {
 
     renderWithProviders(<VehiclesListPage />);
 
-    const img = screen.getByRole('img', { name: 'Toyota Hilux' });
+    const img = screen.getByAltText('Toyota Hilux');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', '/api/v1/public/gallery-items/cover-item-1/download');
   });
@@ -115,16 +130,22 @@ describe('VehiclesListPage cover column', () => {
           createMockVehicle({
             id: 'veh-1',
             identifier: 'WITH-COVER',
+            brand: 'Toyota',
+            model: 'Hilux',
             mainGalleryCover: { itemId: 'cover-1', mimeType: 'image/jpeg' },
           }),
           createMockVehicle({
             id: 'veh-2',
             identifier: 'NO-COVER',
+            brand: 'Ford',
+            model: 'Ranger',
             mainGalleryCover: null,
           }),
           createMockVehicle({
             id: 'veh-3',
             identifier: 'WITH-COVER-2',
+            brand: 'Nissan',
+            model: 'Navara',
             mainGalleryCover: { itemId: 'cover-2', mimeType: 'image/png' },
           }),
         ],
@@ -137,8 +158,8 @@ describe('VehiclesListPage cover column', () => {
 
     renderWithProviders(<VehiclesListPage />);
 
-    // Should have 2 images and 1 placeholder
-    expect(screen.getAllByRole('img')).toHaveLength(2);
+    // Should have 2 cover images and 1 placeholder
+    expect(screen.getAllByAltText(/Toyota Hilux|Nissan Navara/)).toHaveLength(2);
     expect(screen.getByText('Немає фото')).toBeInTheDocument();
   });
 });

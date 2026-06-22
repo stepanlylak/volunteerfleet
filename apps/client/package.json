@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "test": "echo 'Tests require pnpm install in apps/client to install vitest and testing-library dependencies'"
+    "test": "vitest run"
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.1",
