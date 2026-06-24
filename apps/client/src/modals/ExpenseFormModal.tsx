@@ -284,6 +284,7 @@ export function ExpenseFormModal({
 
     void queryClient.invalidateQueries({ queryKey: ['expenses'] });
     void queryClient.invalidateQueries({ queryKey: ['documents', 'vehicle', targetVehicleId] });
+    void queryClient.invalidateQueries({ queryKey: ['financial-entries'] });
   };
 
   const isPending = createExpense.isPending || updateExpense.isPending || deleteDocument.isPending;
