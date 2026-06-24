@@ -85,13 +85,6 @@ export class VehicleTransitionService {
         await this.assertGroupHasDocuments(tx, groupId, vehicleId, organizationId);
       }
 
-      // Special rule: paid -> arrived
-      if (expectedCurrentStatus === 'paid' && targetStatus === 'arrived') {
-        if (!lastHistory?.isLocalPurchase) {
-          throw new BadRequestException('Can only transition paid -> arrived for local purchases');
-        }
-      }
-
       // Special rule: returned -> transferred (new signed act required)
       if (expectedCurrentStatus === 'returned' && targetStatus === 'transferred') {
         const prevTransfer = await tx.query.vehicleStatusHistory.findFirst({

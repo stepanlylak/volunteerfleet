@@ -99,7 +99,8 @@ export function StatusTransitionModal({
 
   const allowedTargets = ALLOWED_TRANSITIONS[vehicle.status] ?? [];
   // For a local purchase (flag set on the `paid` entry) the vehicle never crosses
-  // customs, so its customs-related document slots are irrelevant and hidden.
+  // customs, so its customs-related document slots are irrelevant and hidden. The
+  // transition flow itself is the same as for imports.
   const isLocalPurchase = Boolean(lastHistoryEntry?.isLocalPurchase);
   const docSlots = (targetStatus ? (TRANSITION_DOC_SLOTS[targetStatus] ?? []) : []).filter(
     (slot) => !(isLocalPurchase && CUSTOMS_DOC_SLOT_KEYS.includes(slot.fieldKey)),

@@ -315,6 +315,9 @@ export function VehicleCardPage() {
     }
   };
 
+  const isLocalPurchase = (history?.items ?? []).some(
+    (h) => h.newStatus === 'paid' && h.isLocalPurchase,
+  );
   const allowedNextStatuses = !vehicle.deletedAt ? (ALLOWED_TRANSITIONS[vehicle.status] ?? []) : [];
 
   const headerActions = (
@@ -1081,9 +1084,7 @@ export function VehicleCardPage() {
           open={Boolean(historyEditEntry)}
           vehicleId={vehicle.id}
           entry={historyEditEntry}
-          isLocalPurchase={(history?.items ?? []).some(
-            (h) => h.newStatus === 'paid' && h.isLocalPurchase,
-          )}
+          isLocalPurchase={isLocalPurchase}
           onClose={() => setHistoryEditEntry(undefined)}
         />
       )}

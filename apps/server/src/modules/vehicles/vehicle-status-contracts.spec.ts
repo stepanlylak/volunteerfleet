@@ -11,7 +11,7 @@ describe('vehicle status transition contracts', () => {
   it('matches the allowed transition matrix', () => {
     const expected: Record<VehicleStatus, VehicleStatus[]> = {
       new: ['paid', 'lost'],
-      paid: ['in_transit', 'arrived', 'lost'],
+      paid: ['in_transit', 'lost'],
       in_transit: ['arrived', 'lost'],
       arrived: ['in_repair', 'ready', 'lost'],
       in_repair: ['ready', 'lost'],

@@ -48,7 +48,7 @@ export const VEHICLE_STATUS_DASHBOARD_GROUP: Record<VehicleStatus, 'in_work' | '
 
 export const ALLOWED_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
   new: ['paid', 'lost'],
-  paid: ['in_transit', 'arrived', 'lost'],
+  paid: ['in_transit', 'lost'],
   in_transit: ['arrived', 'lost'],
   arrived: ['in_repair', 'ready', 'lost'],
   in_repair: ['ready', 'lost'],
