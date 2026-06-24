@@ -62,6 +62,30 @@ export function isValidTransition(from: VehicleStatus, to: VehicleStatus): boole
   return ALLOWED_TRANSITIONS[from].includes(to);
 }
 
+// Document-group slots carried by a status-history entry. Single source of truth
+// for their human labels — reused by the transition/edit modals, the timeline and
+// the "missing document" alerts so a rename happens in exactly one place.
+export const VEHICLE_DOCUMENT_GROUP_SLOTS = [
+  'registrationGroupId',
+  'stampedRegistrationGroupId',
+  'customsDeclarationGroupId',
+  'stampedCustomsDeclarationGroupId',
+  'transferActDraftGroupId',
+  'transferActSignedGroupId',
+  'returnActGroupId',
+] as const;
+export type VehicleDocumentGroupSlot = (typeof VEHICLE_DOCUMENT_GROUP_SLOTS)[number];
+
+export const VEHICLE_DOCUMENT_GROUP_LABELS: Record<VehicleDocumentGroupSlot, string> = {
+  registrationGroupId: 'Техпаспорт',
+  stampedRegistrationGroupId: 'Техпаспорт (з відміткою про перетин кордону)',
+  customsDeclarationGroupId: 'Митна декларація',
+  stampedCustomsDeclarationGroupId: 'Митна декларація (з відміткою про перетин кордону)',
+  transferActDraftGroupId: 'Акт приймання-передачі',
+  transferActSignedGroupId: 'Акт приймання-передачі (підписаний)',
+  returnActGroupId: 'Акт повернення',
+};
+
 export const vehicleStatusSchema = z.enum(VEHICLE_STATUSES);
 
 const baseTransitionSchema = z
@@ -80,14 +104,16 @@ export const transitionToPaidSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('paid'),
     isLocalPurchase: z.boolean().default(false),
-    registrationGroupId: documentGroupRefField('Техпаспорт без печатки митниці'),
+    registrationGroupId: documentGroupRefField(VEHICLE_DOCUMENT_GROUP_LABELS.registrationGroupId),
   })
   .strict();
 
 export const transitionToInTransitSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('in_transit'),
-    customsDeclarationGroupId: documentGroupRefField('Митна декларація'),
+    customsDeclarationGroupId: documentGroupRefField(
+      VEHICLE_DOCUMENT_GROUP_LABELS.customsDeclarationGroupId,
+    ),
   })
   .strict();
 
@@ -99,8 +125,12 @@ export const transitionToArrivedSchema = baseTransitionSchema
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional()
       .nullable(),
-    stampedRegistrationGroupId: documentGroupRefField('Техпаспорт з печаткою митниці'),
-    stampedCustomsDeclarationGroupId: documentGroupRefField('Скан митної декларації з печатками'),
+    stampedRegistrationGroupId: documentGroupRefField(
+      VEHICLE_DOCUMENT_GROUP_LABELS.stampedRegistrationGroupId,
+    ),
+    stampedCustomsDeclarationGroupId: documentGroupRefField(
+      VEHICLE_DOCUMENT_GROUP_LABELS.stampedCustomsDeclarationGroupId,
+    ),
   })
   .strict();
 
@@ -113,14 +143,18 @@ export const transitionToInRepairSchema = baseTransitionSchema
 export const transitionToReadySchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('ready'),
-    transferActDraftGroupId: documentGroupRefField('Акт приймання-передачі (чернетка)'),
+    transferActDraftGroupId: documentGroupRefField(
+      VEHICLE_DOCUMENT_GROUP_LABELS.transferActDraftGroupId,
+    ),
   })
   .strict();
 
 export const transitionToTransferredSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('transferred'),
-    transferActSignedGroupId: documentGroupRefField('Підписаний акт приймання-передачі'),
+    transferActSignedGroupId: documentGroupRefField(
+      VEHICLE_DOCUMENT_GROUP_LABELS.transferActSignedGroupId,
+    ),
     isRegisteredAtServiceCenter: z.boolean().default(false),
   })
   .strict();
@@ -128,7 +162,7 @@ export const transitionToTransferredSchema = baseTransitionSchema
 export const transitionToReturnedSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('returned'),
-    returnActGroupId: documentGroupRefField('Акт повернення'),
+    returnActGroupId: documentGroupRefField(VEHICLE_DOCUMENT_GROUP_LABELS.returnActGroupId),
   })
   .strict();
 
@@ -174,15 +208,20 @@ export const VEHICLE_ALERT_TYPES = [
 ] as const;
 export type VehicleAlertType = (typeof VEHICLE_ALERT_TYPES)[number];
 
+const missingDocMessage = (slot: VehicleDocumentGroupSlot) =>
+  `Відсутній документ: «${VEHICLE_DOCUMENT_GROUP_LABELS[slot]}»`;
+
 export const VEHICLE_ALERT_CONFIG: Record<VehicleAlertType, { message: string }> = {
-  missing_registration_doc: { message: 'Відсутній техпаспорт без печатки митниці' },
-  missing_stamped_registration_doc: { message: 'Відсутній техпаспорт з печаткою митниці' },
-  missing_customs_declaration: { message: 'Відсутня митна декларація' },
-  missing_stamped_customs_declaration: { message: 'Відсутній скан митної декларації з печатками' },
-  missing_transfer_act_draft: { message: 'Відсутній чернетковий акт приймання-передачі' },
-  missing_transfer_act_signed: { message: 'Відсутній підписаний акт приймання-передачі' },
+  missing_registration_doc: { message: missingDocMessage('registrationGroupId') },
+  missing_stamped_registration_doc: { message: missingDocMessage('stampedRegistrationGroupId') },
+  missing_customs_declaration: { message: missingDocMessage('customsDeclarationGroupId') },
+  missing_stamped_customs_declaration: {
+    message: missingDocMessage('stampedCustomsDeclarationGroupId'),
+  },
+  missing_transfer_act_draft: { message: missingDocMessage('transferActDraftGroupId') },
+  missing_transfer_act_signed: { message: missingDocMessage('transferActSignedGroupId') },
   not_registered_at_service_center: { message: 'Авто не зареєстроване в сервісному центрі' },
-  missing_return_act: { message: 'Відсутній акт повернення' },
+  missing_return_act: { message: missingDocMessage('returnActGroupId') },
 };
 
 export const vehicleAlertSchema = z.object({

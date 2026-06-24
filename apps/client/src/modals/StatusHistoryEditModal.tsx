@@ -2,7 +2,7 @@ import { Button, Card, DatePicker, Form, Input, Modal, Space, Switch, message } 
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import type { DocumentResponse, VehicleStatus, VehicleStatusHistory } from '@volunteerfleet/shared';
-import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
+import { VEHICLE_DOCUMENT_GROUP_LABELS, VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
 import {
   type FileAttachmentExistingItem,
   type FileAttachmentNewFile,
@@ -43,7 +43,7 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
       return [
         {
           fieldKey: 'registrationGroupId',
-          label: 'Техпаспорт без печатки митниці',
+          label: VEHICLE_DOCUMENT_GROUP_LABELS.registrationGroupId,
           currentGroupId: entry.registrationGroupId ?? null,
         },
       ];
@@ -51,7 +51,7 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
       return [
         {
           fieldKey: 'customsDeclarationGroupId',
-          label: 'Митна декларація',
+          label: VEHICLE_DOCUMENT_GROUP_LABELS.customsDeclarationGroupId,
           currentGroupId: entry.customsDeclarationGroupId ?? null,
         },
       ];
@@ -59,12 +59,12 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
       return [
         {
           fieldKey: 'stampedRegistrationGroupId',
-          label: 'Техпаспорт з печаткою митниці',
+          label: VEHICLE_DOCUMENT_GROUP_LABELS.stampedRegistrationGroupId,
           currentGroupId: entry.stampedRegistrationGroupId ?? null,
         },
         {
           fieldKey: 'stampedCustomsDeclarationGroupId',
-          label: 'Скан митної декларації з печатками',
+          label: VEHICLE_DOCUMENT_GROUP_LABELS.stampedCustomsDeclarationGroupId,
           currentGroupId: entry.stampedCustomsDeclarationGroupId ?? null,
         },
       ];
@@ -72,7 +72,7 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
       return [
         {
           fieldKey: 'transferActDraftGroupId',
-          label: 'Акт приймання-передачі (чернетка)',
+          label: VEHICLE_DOCUMENT_GROUP_LABELS.transferActDraftGroupId,
           currentGroupId: entry.transferActDraftGroupId ?? null,
         },
       ];
@@ -80,7 +80,7 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
       return [
         {
           fieldKey: 'transferActSignedGroupId',
-          label: 'Підписаний акт приймання-передачі',
+          label: VEHICLE_DOCUMENT_GROUP_LABELS.transferActSignedGroupId,
           currentGroupId: entry.transferActSignedGroupId ?? null,
         },
       ];
@@ -88,7 +88,7 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
       return [
         {
           fieldKey: 'returnActGroupId',
-          label: 'Акт повернення',
+          label: VEHICLE_DOCUMENT_GROUP_LABELS.returnActGroupId,
           currentGroupId: entry.returnActGroupId ?? null,
         },
       ];

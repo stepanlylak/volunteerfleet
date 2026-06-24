@@ -2,7 +2,11 @@ import { Button, Card, DatePicker, Form, Input, Modal, Select, Space, Switch, me
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import type { VehicleResponse, VehicleStatus, VehicleStatusHistory } from '@volunteerfleet/shared';
-import { ALLOWED_TRANSITIONS, VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
+import {
+  ALLOWED_TRANSITIONS,
+  VEHICLE_DOCUMENT_GROUP_LABELS,
+  VEHICLE_STATUS_CONFIG,
+} from '@volunteerfleet/shared';
 import {
   type FileAttachmentNewFile,
   type FileAttachmentNewLink,
@@ -36,17 +40,46 @@ interface DocSlot {
 }
 
 const TRANSITION_DOC_SLOTS: Partial<Record<VehicleStatus, DocSlot[]>> = {
-  paid: [{ fieldKey: 'registrationGroupId', label: 'Техпаспорт без печатки митниці' }],
-  in_transit: [{ fieldKey: 'customsDeclarationGroupId', label: 'Митна декларація' }],
+  paid: [
+    {
+      fieldKey: 'registrationGroupId',
+      label: VEHICLE_DOCUMENT_GROUP_LABELS.registrationGroupId,
+    },
+  ],
+  in_transit: [
+    {
+      fieldKey: 'customsDeclarationGroupId',
+      label: VEHICLE_DOCUMENT_GROUP_LABELS.customsDeclarationGroupId,
+    },
+  ],
   arrived: [
-    { fieldKey: 'stampedRegistrationGroupId', label: 'Техпаспорт з печаткою митниці' },
-    { fieldKey: 'stampedCustomsDeclarationGroupId', label: 'Скан митної декларації з печатками' },
+    {
+      fieldKey: 'stampedRegistrationGroupId',
+      label: VEHICLE_DOCUMENT_GROUP_LABELS.stampedRegistrationGroupId,
+    },
+    {
+      fieldKey: 'stampedCustomsDeclarationGroupId',
+      label: VEHICLE_DOCUMENT_GROUP_LABELS.stampedCustomsDeclarationGroupId,
+    },
   ],
-  ready: [{ fieldKey: 'transferActDraftGroupId', label: 'Акт приймання-передачі (чернетка)' }],
+  ready: [
+    {
+      fieldKey: 'transferActDraftGroupId',
+      label: VEHICLE_DOCUMENT_GROUP_LABELS.transferActDraftGroupId,
+    },
+  ],
   transferred: [
-    { fieldKey: 'transferActSignedGroupId', label: 'Підписаний акт приймання-передачі' },
+    {
+      fieldKey: 'transferActSignedGroupId',
+      label: VEHICLE_DOCUMENT_GROUP_LABELS.transferActSignedGroupId,
+    },
   ],
-  returned: [{ fieldKey: 'returnActGroupId', label: 'Акт повернення' }],
+  returned: [
+    {
+      fieldKey: 'returnActGroupId',
+      label: VEHICLE_DOCUMENT_GROUP_LABELS.returnActGroupId,
+    },
+  ],
 };
 
 // Customs-related document slots, irrelevant for local purchases (no border crossing).

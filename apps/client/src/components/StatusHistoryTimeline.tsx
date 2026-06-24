@@ -11,6 +11,7 @@ import { Alert, Button, Popconfirm, Tooltip } from 'antd';
 import type { CSSProperties } from 'react';
 import dayjs from 'dayjs';
 import {
+  VEHICLE_DOCUMENT_GROUP_LABELS,
   VEHICLE_STATUS_CONFIG,
   type VehicleAlert,
   type VehicleStatusHistory,
@@ -52,13 +53,25 @@ function relativeFromNow(iso: string): string {
 }
 
 const DOC_SLOTS: { key: keyof VehicleStatusHistory; label: string }[] = [
-  { key: 'registrationGroupId', label: 'Техпаспорт без печатки' },
-  { key: 'stampedRegistrationGroupId', label: 'Техпаспорт з печаткою' },
-  { key: 'customsDeclarationGroupId', label: 'Митна декларація' },
-  { key: 'stampedCustomsDeclarationGroupId', label: 'Митна декларація з печатками' },
-  { key: 'transferActDraftGroupId', label: 'Акт (чернетка)' },
-  { key: 'transferActSignedGroupId', label: 'Підписаний акт' },
-  { key: 'returnActGroupId', label: 'Акт повернення' },
+  { key: 'registrationGroupId', label: VEHICLE_DOCUMENT_GROUP_LABELS.registrationGroupId },
+  {
+    key: 'stampedRegistrationGroupId',
+    label: VEHICLE_DOCUMENT_GROUP_LABELS.stampedRegistrationGroupId,
+  },
+  {
+    key: 'customsDeclarationGroupId',
+    label: VEHICLE_DOCUMENT_GROUP_LABELS.customsDeclarationGroupId,
+  },
+  {
+    key: 'stampedCustomsDeclarationGroupId',
+    label: VEHICLE_DOCUMENT_GROUP_LABELS.stampedCustomsDeclarationGroupId,
+  },
+  { key: 'transferActDraftGroupId', label: VEHICLE_DOCUMENT_GROUP_LABELS.transferActDraftGroupId },
+  {
+    key: 'transferActSignedGroupId',
+    label: VEHICLE_DOCUMENT_GROUP_LABELS.transferActSignedGroupId,
+  },
+  { key: 'returnActGroupId', label: VEHICLE_DOCUMENT_GROUP_LABELS.returnActGroupId },
 ];
 
 interface StatusHistoryTimelineProps {
