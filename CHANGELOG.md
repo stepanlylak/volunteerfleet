@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2026-06-25
+
+### Highlights
+
+- Added a unified document preview modal with row-click opening, image lightbox support, and embedded PDF
+  viewing.
+- Redesigned the vehicle status history timeline and refined status transitions.
+- Unified the vehicle status flow across local and non-local purchase scenarios, with document group labels
+  now coming from a single source of truth.
+- Moved `borderCrossingDate` into vehicle status history so border crossing data follows the status workflow.
+
+### Fixes
+
+- Fixed CSP, Google Fonts loading, PDF iframe rendering, and expense document cache invalidation.
+- Fixed financial entry invalidation after expense document synchronization.
+- Prevented document detachment while editing vehicles and corrected the local-purchase flag source.
+
 ## [3.0.0] - 2026-06-16
 
 ### Highlights
