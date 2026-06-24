@@ -1065,6 +1065,7 @@ export function VehicleCardPage() {
         open={transitionOpen}
         vehicle={vehicle}
         lastHistoryEntry={history?.items[0]}
+        isLocalPurchase={isLocalPurchase}
         onClose={() => setTransitionOpen(false)}
         onPaidTransition={() => {
           Modal.confirm({

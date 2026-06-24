@@ -248,11 +248,15 @@ export function StatusHistoryEditModal({
           state.newFiles.length > 0 ||
           state.newLinks.length > 0 ||
           selectedDocIds(state.existingIds).length > 0;
-        // Slot emptied (last document removed, nothing added): detach the group so
-        // the entry no longer references an empty one — the backend rejects empty
-        // groups, and detaching lets the "missing document" alert surface.
-        groupIds[slot.fieldKey] =
-          remainingExisting === 0 && !hasNewContent ? null : await buildSlotGroup(slot, state);
+        // Detach the group only when the user actually removed the slot's documents
+        // and added nothing back, so the entry no longer references an empty group
+        // (the backend rejects those) and the "missing document" alert can surface.
+        // The `removedIds` guard is essential: without it a slow or incomplete
+        // `allDocs` read (still loading, or the group beyond `pageSize`) would make
+        // an untouched slot look empty and silently drop its group on a plain save.
+        const userEmptiedSlot =
+          state.removedIds.length > 0 && remainingExisting === 0 && !hasNewContent;
+        groupIds[slot.fieldKey] = userEmptiedSlot ? null : await buildSlotGroup(slot, state);
       }
 
       const base = {
@@ -328,6 +332,9 @@ export function StatusHistoryEditModal({
   };
 
   const isPending = updateHistory.isPending || submitting;
+  // Block saving until the current documents of group-bound slots have loaded, so a
+  // save can never run against a partial existing-docs read (see the detach guard).
+  const waitingForExistingDocs = allDocsLoading && docSlots.some((slot) => slot.currentGroupId);
 
   const statusConfig = VEHICLE_STATUS_CONFIG[status];
 
@@ -444,7 +451,12 @@ export function StatusHistoryEditModal({
         <Form.Item style={{ marginBottom: 0 }}>
           <Space style={{ justifyContent: 'flex-end', width: '100%' }}>
             <Button onClick={onClose}>Скасувати</Button>
-            <Button type="primary" htmlType="submit" loading={isPending}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={isPending}
+              disabled={waitingForExistingDocs}
+            >
               Зберегти
             </Button>
           </Space>
