@@ -283,6 +283,7 @@ export function ExpenseFormModal({
     }
 
     void queryClient.invalidateQueries({ queryKey: ['expenses'] });
+    void queryClient.invalidateQueries({ queryKey: ['documents', 'vehicle', targetVehicleId] });
   };
 
   const isPending = createExpense.isPending || updateExpense.isPending || deleteDocument.isPending;
