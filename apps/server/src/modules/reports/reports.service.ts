@@ -316,7 +316,6 @@ export class ReportsService {
       year: row.year,
       vin: row.vin,
       startDate: row.startDate,
-      borderCrossingDate: row.borderCrossingDate,
       status: row.status,
       description: row.description,
       isPublic: row.isPublic,
@@ -345,6 +344,7 @@ export class ReportsService {
       note: row.note,
       changedAt: row.changedAt.toISOString(),
       transitionDate: row.transitionDate,
+      borderCrossingDate: row.borderCrossingDate,
       isLocalPurchase: row.isLocalPurchase,
 
       isRegisteredAtServiceCenter: row.isRegisteredAtServiceCenter,

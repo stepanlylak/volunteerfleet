@@ -2,6 +2,7 @@ import {
   CalendarOutlined,
   ClockCircleOutlined,
   EditOutlined,
+  FlagOutlined,
   RollbackOutlined,
   ShopOutlined,
   UserOutlined,
@@ -227,6 +228,14 @@ export function StatusHistoryTimeline({
                     <UserOutlined />
                     {item.changedBy.fullName}
                   </span>
+                  {item.newStatus === 'arrived' && item.borderCrossingDate && (
+                    <Tooltip title="Дата перетину кордону">
+                      <span className="vf-sh__meta-item">
+                        <FlagOutlined />
+                        {dayjs(item.borderCrossingDate).format('DD.MM.YYYY')}
+                      </span>
+                    </Tooltip>
+                  )}
                 </div>
 
                 {item.note && (

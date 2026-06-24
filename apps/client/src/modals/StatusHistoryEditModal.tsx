@@ -181,7 +181,7 @@ export function StatusHistoryEditModal({
       transitionDate: dayjs(entry.transitionDate),
       note: entry.note ?? undefined,
       isLocalPurchase: entry.isLocalPurchase ?? false,
-      borderCrossingDate: null,
+      borderCrossingDate: entry.borderCrossingDate ? dayjs(entry.borderCrossingDate) : null,
       isRegisteredAtServiceCenter: entry.isRegisteredAtServiceCenter ?? false,
     });
   }, [open, entry, form, status]);
