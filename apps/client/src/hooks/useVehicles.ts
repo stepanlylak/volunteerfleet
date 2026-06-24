@@ -55,7 +55,13 @@ export function useUpdateStatusHistory(vehicleId: string | undefined) {
       payload: VehicleStatusHistoryEditRequest;
     }) => vehiclesApi.patchStatusHistory(vehicleId!, historyId, payload),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['vehicles', vehicleId, 'status-history'] });
+      // Editing an entry can attach/remove documents, which recomputes alerts.
+      // Alerts live on the vehicle detail query, so it must be invalidated too —
+      // not just the status-history list.
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      void queryClient.invalidateQueries({ queryKey: ['documents', 'vehicle', vehicleId] });
+      void queryClient.invalidateQueries({ queryKey: ['document-groups'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     },
   });
 }

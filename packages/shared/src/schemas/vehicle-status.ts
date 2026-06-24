@@ -135,7 +135,6 @@ export const transitionToReturnedSchema = baseTransitionSchema
 export const transitionToLostSchema = baseTransitionSchema
   .extend({
     targetStatus: z.literal('lost'),
-    lostReason: z.string().min(1).max(2000),
   })
   .strict();
 

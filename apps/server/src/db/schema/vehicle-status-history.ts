@@ -39,7 +39,6 @@ export const vehicleStatusHistory = pgTable(
     isLocalPurchase: boolean('is_local_purchase'),
 
     isRegisteredAtServiceCenter: boolean('is_registered_at_service_center'),
-    lostReason: text('lost_reason'),
 
     registrationGroupId: uuid('registration_group_id').references(() => documentGroups.id, {
       onDelete: 'restrict',

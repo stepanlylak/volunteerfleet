@@ -141,8 +141,6 @@ export class VehicleTransitionService {
         historyValues.isRegisteredAtServiceCenter = dto.isRegisteredAtServiceCenter ?? false;
       } else if (dto.targetStatus === 'returned') {
         historyValues.returnActGroupId = dto.returnActGroupId || null;
-      } else if (dto.targetStatus === 'lost') {
-        historyValues.lostReason = dto.lostReason;
       }
 
       // Compare-and-swap update vehicle status (also updating borderCrossingDate if arrived)
@@ -340,9 +338,6 @@ export class VehicleTransitionService {
         updateValues.returnActGroupId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
             .returnActGroupId || null;
-      } else if (dto.targetStatus === 'lost') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        updateValues.lostReason = (dto as any).lostReason;
       }
 
       await tx

@@ -341,7 +341,6 @@ export class VehiclesService {
       transitionDate: r.transitionDate,
       isLocalPurchase: r.isLocalPurchase,
       isRegisteredAtServiceCenter: r.isRegisteredAtServiceCenter,
-      lostReason: r.lostReason,
       registrationGroupId: r.registrationGroupId,
       stampedRegistrationGroupId: r.stampedRegistrationGroupId,
       customsDeclarationGroupId: r.customsDeclarationGroupId,

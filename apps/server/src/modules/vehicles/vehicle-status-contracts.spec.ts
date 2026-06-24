@@ -90,7 +90,6 @@ describe('vehicle status transition contracts', () => {
       expectedCurrentStatus: 'returned',
       targetStatus: 'lost',
       transitionDate: '2026-06-16',
-      lostReason: 'Пошкоджено без можливості відновлення',
     },
   ])('accepts the $targetStatus transition payload', (payload) => {
     expect(vehicleTransitionRequestSchema.safeParse(payload).success).toBe(true);
@@ -108,11 +107,12 @@ describe('vehicle status transition contracts', () => {
     expect(result.success).toBe(false);
   });
 
-  it('requires lostReason for the lost transition', () => {
+  it('rejects the removed lostReason field on the lost transition', () => {
     const result = vehicleTransitionRequestSchema.safeParse({
       expectedCurrentStatus: 'ready',
       targetStatus: 'lost',
       transitionDate: '2026-06-09',
+      lostReason: 'Причина більше не приймається',
     });
 
     expect(result.success).toBe(false);

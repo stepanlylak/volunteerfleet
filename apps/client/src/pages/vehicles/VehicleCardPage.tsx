@@ -13,7 +13,6 @@ import {
   RollbackOutlined,
 } from '@ant-design/icons';
 import {
-  Alert,
   Badge,
   Button,
   Col,
@@ -33,7 +32,6 @@ import {
   Table,
   Tabs,
   Tag,
-  Timeline,
   Tooltip,
   Typography,
   message,
@@ -81,13 +79,13 @@ import { vehicleGalleriesApi } from '../../api/vehicle-galleries.api';
 import { useDeleteExpense } from '../../hooks/useExpenses';
 import { useDeleteDonation } from '../../hooks/useDonations';
 import { useFinancialEntries } from '../../hooks/useFinancialEntries';
-import { ALLOWED_TRANSITIONS, VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
+import { ALLOWED_TRANSITIONS } from '@volunteerfleet/shared';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
 import { donationsApi } from '../../api/donations.api';
 import { documentsApi } from '../../api/documents.api';
 import { documentGroupsApi } from '../../api/documentGroups.api';
 import { expensesApi } from '../../api/expenses.api';
-import { StatusHistoryGroupLinks } from '../../components/files/StatusHistoryGroupLinks';
+import { StatusHistoryTimeline } from '../../components/StatusHistoryTimeline';
 import { GroupEditModal } from '../../modals/GroupEditModal';
 
 import { formatCurrency, formatDate } from '../../utils/format';
@@ -304,6 +302,17 @@ export function VehicleCardPage() {
 
     await updateVehicle.mutateAsync({ id: vehicle.id, payload: parsed.data });
     message.success('Нотатки оновлено');
+  };
+
+  const handleRollbackStatus = async (entry: VehicleStatusHistory) => {
+    try {
+      await rollbackLastStatus.mutateAsync(entry.id);
+      message.success('Останній статус відкочено');
+    } catch {
+      message.error(
+        'Не вдалося відкотити статус. Можливо, зʼявився новіший перехід — оновіть сторінку.',
+      );
+    }
   };
 
   const allowedNextStatuses = !vehicle.deletedAt ? (ALLOWED_TRANSITIONS[vehicle.status] ?? []) : [];
@@ -997,128 +1006,14 @@ export function VehicleCardPage() {
               (history?.items ?? []).length === 0 ? (
                 <Empty description="Історія поки порожня" />
               ) : (
-                <Timeline
-                  items={(history?.items ?? []).map((item, index) => {
-                    const cfg = VEHICLE_STATUS_CONFIG[item.newStatus];
-                    const itemAlerts = vehicle.alerts.filter(
-                      (a) => a.vehicleStatusHistoryId === item.id,
-                    );
-                    const docGroups = [
-                      {
-                        label: 'Техпаспорт без печатки',
-                        groupId: item.registrationGroupId ?? null,
-                      },
-                      {
-                        label: 'Техпаспорт з печаткою',
-                        groupId: item.stampedRegistrationGroupId ?? null,
-                      },
-                      {
-                        label: 'Митна декларація',
-                        groupId: item.customsDeclarationGroupId ?? null,
-                      },
-                      {
-                        label: 'Митна декларація з печатками',
-                        groupId: item.stampedCustomsDeclarationGroupId ?? null,
-                      },
-                      { label: 'Акт (чернетка)', groupId: item.transferActDraftGroupId ?? null },
-                      { label: 'Підписаний акт', groupId: item.transferActSignedGroupId ?? null },
-                      { label: 'Акт повернення', groupId: item.returnActGroupId ?? null },
-                    ].filter((d): d is { label: string; groupId: string } => d.groupId !== null);
-                    return {
-                      color: cfg?.color ?? 'blue',
-                      children: (
-                        <Space direction="vertical" size={2}>
-                          <Space wrap size="small">
-                            <Tag>
-                              {item.oldStatus
-                                ? VEHICLE_STATUS_CONFIG[item.oldStatus]?.label
-                                : 'Старт'}
-                            </Tag>
-                            <Typography.Text>→</Typography.Text>
-                            <VehicleStatusTag status={item.newStatus} />
-                          </Space>
-                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            {dayjs(item.transitionDate).format('DD.MM.YYYY')} (перехід) ·{' '}
-                            {dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')} ·{' '}
-                            {item.changedBy.fullName}
-                          </Typography.Text>
-                          {item.lostReason && (
-                            <Typography.Text style={{ fontSize: 12 }}>
-                              Причина: {item.lostReason}
-                            </Typography.Text>
-                          )}
-                          {item.note && (
-                            <Typography.Text style={{ fontSize: 12 }}>
-                              Примітка: {item.note}
-                            </Typography.Text>
-                          )}
-                          {docGroups.length > 0 && (
-                            <Space wrap size="small">
-                              {docGroups.map((d) => (
-                                <StatusHistoryGroupLinks
-                                  key={d.groupId}
-                                  label={d.label}
-                                  groupId={d.groupId}
-                                />
-                              ))}
-                            </Space>
-                          )}
-                          {canMutate && (
-                            <Space wrap size="small">
-                              <Button
-                                size="small"
-                                icon={<EditOutlined />}
-                                onClick={() => setHistoryEditEntry(item)}
-                              >
-                                Редагувати
-                              </Button>
-                              {orgRole === 'coordinator' &&
-                                !vehicle.deletedAt &&
-                                index === 0 &&
-                                item.oldStatus && (
-                                  <Popconfirm
-                                    title="Відкотити останній статус?"
-                                    description="Авто повернеться до попереднього статусу, а цей запис історії буде видалено."
-                                    okText="Відкотити"
-                                    cancelText="Скасувати"
-                                    onConfirm={async () => {
-                                      try {
-                                        await rollbackLastStatus.mutateAsync(item.id);
-                                        message.success('Останній статус відкочено');
-                                      } catch {
-                                        message.error(
-                                          'Не вдалося відкотити статус. Можливо, зʼявився новіший перехід — оновіть сторінку.',
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    <Button size="small" danger icon={<RollbackOutlined />}>
-                                      Відкотити
-                                    </Button>
-                                  </Popconfirm>
-                                )}
-                            </Space>
-                          )}
-                          {itemAlerts.length > 0 && (
-                            <Space
-                              direction="vertical"
-                              size="small"
-                              style={{ marginTop: 8, width: '100%' }}
-                            >
-                              {itemAlerts.map((alert) => (
-                                <Alert
-                                  key={alert.type}
-                                  type="warning"
-                                  message={alert.message}
-                                  showIcon
-                                />
-                              ))}
-                            </Space>
-                          )}
-                        </Space>
-                      ),
-                    };
-                  })}
+                <StatusHistoryTimeline
+                  items={history?.items ?? []}
+                  alerts={vehicle.alerts}
+                  canMutate={canMutate}
+                  canRollback={orgRole === 'coordinator' && !vehicle.deletedAt}
+                  rollbackPending={rollbackLastStatus.isPending}
+                  onEdit={setHistoryEditEntry}
+                  onRollback={(entry) => void handleRollbackStatus(entry)}
                 />
               ),
           },
@@ -1196,6 +1091,9 @@ export function VehicleCardPage() {
           open={Boolean(historyEditEntry)}
           vehicleId={vehicle.id}
           entry={historyEditEntry}
+          isLocalPurchase={(history?.items ?? []).some(
+            (h) => h.newStatus === 'paid' && h.isLocalPurchase,
+          )}
           onClose={() => setHistoryEditEntry(undefined)}
         />
       )}

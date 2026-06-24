@@ -153,7 +153,7 @@ describeIfDb('vehicle_alerts_view', () => {
   it('lost vehicle has no alerts (terminal status is in no alert set)', async () => {
     await withRollback(async (tx, ctx) => {
       const vehicleId = await insertVehicle(tx, ctx, 'lost');
-      await insertHistory(tx, ctx, vehicleId, { newStatus: 'lost', lostReason: 'destroyed' });
+      await insertHistory(tx, ctx, vehicleId, { newStatus: 'lost' });
       expect(await alertTypes(tx, vehicleId)).toEqual([]);
     });
   });
@@ -376,7 +376,7 @@ describeIfDb('vehicle_alerts_view', () => {
   it('getAlertsForVehicles query shape works across multiple vehicles', async () => {
     await withRollback(async (tx, ctx) => {
       const lostId = await insertVehicle(tx, ctx, 'lost');
-      await insertHistory(tx, ctx, lostId, { newStatus: 'lost', lostReason: 'x' });
+      await insertHistory(tx, ctx, lostId, { newStatus: 'lost' });
       const paidId = await insertVehicle(tx, ctx, 'paid');
       await insertHistory(tx, ctx, paidId, { newStatus: 'paid', isLocalPurchase: true });
 
