@@ -59,7 +59,6 @@ export const vehicleResponseSchema = z.object({
   year: z.number().int().nullable(),
   vin: z.string().nullable(),
   startDate: z.string(),
-  borderCrossingDate: z.string().nullable(),
   status: vehicleStatusSchema,
   description: z.string().nullable(),
   isPublic: z.boolean(),
@@ -106,6 +105,8 @@ export const vehicleStatusHistorySchema = z.object({
   note: z.string().nullable(),
   changedAt: z.string(),
   transitionDate: z.string(),
+
+  borderCrossingDate: z.string().nullable(),
 
   isLocalPurchase: z.boolean().nullable(),
 

@@ -131,6 +131,7 @@ export class VehicleTransitionService {
       } else if (dto.targetStatus === 'in_transit') {
         historyValues.customsDeclarationGroupId = dto.customsDeclarationGroupId || null;
       } else if (dto.targetStatus === 'arrived') {
+        historyValues.borderCrossingDate = dto.borderCrossingDate || null;
         historyValues.stampedRegistrationGroupId = dto.stampedRegistrationGroupId || null;
         historyValues.stampedCustomsDeclarationGroupId =
           dto.stampedCustomsDeclarationGroupId || null;
@@ -143,16 +144,12 @@ export class VehicleTransitionService {
         historyValues.returnActGroupId = dto.returnActGroupId || null;
       }
 
-      // Compare-and-swap update vehicle status (also updating borderCrossingDate if arrived)
+      // Compare-and-swap update vehicle status
       const updatePayload: Partial<typeof vehicles.$inferInsert> = {
         status: targetStatus,
         updatedBy: userId,
         updatedAt: new Date(),
       };
-
-      if (dto.targetStatus === 'arrived' && dto.borderCrossingDate) {
-        updatePayload.borderCrossingDate = dto.borderCrossingDate;
-      }
 
       const updatedVehicles = await tx
         .update(vehicles)
@@ -317,6 +314,9 @@ export class VehicleTransitionService {
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
             .customsDeclarationGroupId || null;
       } else if (dto.targetStatus === 'arrived') {
+        updateValues.borderCrossingDate =
+          (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+            .borderCrossingDate || null;
         updateValues.stampedRegistrationGroupId =
           (dto as any) /* eslint-disable-line @typescript-eslint/no-explicit-any */
             .stampedRegistrationGroupId || null;

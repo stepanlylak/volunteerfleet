@@ -46,7 +46,6 @@ function createMockVehicle(overrides: Partial<VehicleResponse> = {}): VehicleRes
     year: 2020,
     vin: 'ABC123',
     startDate: '2024-01-01',
-    borderCrossingDate: null,
     status: 'new' as VehicleStatus,
     description: null,
     isPublic: true,

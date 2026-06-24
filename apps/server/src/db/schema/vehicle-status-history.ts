@@ -36,6 +36,8 @@ export const vehicleStatusHistory = pgTable(
     changedAt: timestamp('changed_at', { withTimezone: true }).notNull().defaultNow(),
     transitionDate: date('transition_date').notNull().defaultNow(),
 
+    borderCrossingDate: date('border_crossing_date'),
+
     isLocalPurchase: boolean('is_local_purchase'),
 
     isRegisteredAtServiceCenter: boolean('is_registered_at_service_center'),

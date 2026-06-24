@@ -500,16 +500,6 @@ export function VehicleCardPage() {
               </Col>
               <Col xs={24} sm={12}>
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  ДАТА ПЕРЕТИНУ КОРДОНУ
-                </Typography.Text>
-                <div>
-                  <Typography.Text strong>
-                    {vehicle.borderCrossingDate ? formatDate(vehicle.borderCrossingDate) : '—'}
-                  </Typography.Text>
-                </div>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   ДОДАНО
                 </Typography.Text>
                 <div>

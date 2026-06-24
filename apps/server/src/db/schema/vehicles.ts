@@ -30,7 +30,6 @@ export const vehicles = pgTable(
     model: varchar('model', { length: 128 }).notNull(),
     year: smallint('year'),
     vin: varchar('vin', { length: 64 }),
-    borderCrossingDate: date('border_crossing_date'),
     startDate: date('start_date').notNull(),
     status: vehicleStatusEnum('status').notNull().default('new'),
     description: text('description'),
