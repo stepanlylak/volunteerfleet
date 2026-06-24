@@ -1,0 +1,1 @@
+ALTER TABLE "vehicle_status_history" DROP COLUMN IF EXISTS "lost_reason";

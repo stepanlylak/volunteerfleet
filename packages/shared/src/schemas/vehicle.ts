@@ -110,7 +110,6 @@ export const vehicleStatusHistorySchema = z.object({
   isLocalPurchase: z.boolean().nullable(),
 
   isRegisteredAtServiceCenter: z.boolean().nullable(),
-  lostReason: z.string().nullable(),
 
   registrationGroupId: uuidSchema.nullable(),
   stampedRegistrationGroupId: uuidSchema.nullable(),

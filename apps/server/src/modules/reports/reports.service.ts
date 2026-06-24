@@ -348,7 +348,6 @@ export class ReportsService {
       isLocalPurchase: row.isLocalPurchase,
 
       isRegisteredAtServiceCenter: row.isRegisteredAtServiceCenter,
-      lostReason: row.lostReason,
       registrationGroupId: row.registrationGroupId,
       stampedRegistrationGroupId: row.stampedRegistrationGroupId,
       customsDeclarationGroupId: row.customsDeclarationGroupId,

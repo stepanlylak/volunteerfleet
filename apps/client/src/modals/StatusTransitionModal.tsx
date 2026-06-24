@@ -49,6 +49,13 @@ const TRANSITION_DOC_SLOTS: Partial<Record<VehicleStatus, DocSlot[]>> = {
   returned: [{ fieldKey: 'returnActGroupId', label: 'Акт повернення' }],
 };
 
+// Customs-related document slots, irrelevant for local purchases (no border crossing).
+const CUSTOMS_DOC_SLOT_KEYS = [
+  'stampedRegistrationGroupId',
+  'customsDeclarationGroupId',
+  'stampedCustomsDeclarationGroupId',
+];
+
 interface SlotState {
   newFiles: FileAttachmentNewFile[];
   newLinks: FileAttachmentNewLink[];
@@ -67,8 +74,6 @@ interface FormValues {
   // in_repair
   // transferred
   isRegisteredAtServiceCenter?: boolean;
-  // lost
-  lostReason?: string;
 }
 
 interface StatusTransitionModalProps {
@@ -93,7 +98,12 @@ export function StatusTransitionModal({
   const isDateManuallyChangedRef = useRef(false);
 
   const allowedTargets = ALLOWED_TRANSITIONS[vehicle.status] ?? [];
-  const docSlots = targetStatus ? (TRANSITION_DOC_SLOTS[targetStatus] ?? []) : [];
+  // For a local purchase (flag set on the `paid` entry) the vehicle never crosses
+  // customs, so its customs-related document slots are irrelevant and hidden.
+  const isLocalPurchase = Boolean(lastHistoryEntry?.isLocalPurchase);
+  const docSlots = (targetStatus ? (TRANSITION_DOC_SLOTS[targetStatus] ?? []) : []).filter(
+    (slot) => !(isLocalPurchase && CUSTOMS_DOC_SLOT_KEYS.includes(slot.fieldKey)),
+  );
 
   const defaultTransitionDate =
     lastHistoryEntry?.transitionDate ?? vehicle.startDate ?? dayjs().format('YYYY-MM-DD');
@@ -221,7 +231,7 @@ export function StatusTransitionModal({
           payload = { ...base, returnActGroupId: groupIds['returnActGroupId'] ?? null };
           break;
         case 'lost':
-          payload = { ...base, lostReason: values.lostReason ?? '' };
+          payload = { ...base };
           break;
         default:
           message.error('Невідомий статус');
@@ -294,7 +304,7 @@ export function StatusTransitionModal({
           </Form.Item>
         )}
 
-        {targetStatus === 'arrived' && (
+        {targetStatus === 'arrived' && !isLocalPurchase && (
           <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
             <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
           </Form.Item>
@@ -307,16 +317,6 @@ export function StatusTransitionModal({
             valuePropName="checked"
           >
             <Switch />
-          </Form.Item>
-        )}
-
-        {targetStatus === 'lost' && (
-          <Form.Item
-            name="lostReason"
-            label="Причина втрати"
-            rules={[{ required: true, message: 'Вкажіть причину' }]}
-          >
-            <Input.TextArea rows={3} maxLength={2000} showCount />
           </Form.Item>
         )}
 

@@ -1,9 +1,10 @@
 import { Button, Card, DatePicker, Form, Input, Modal, Space, Switch, message } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
-import type { VehicleStatus, VehicleStatusHistory } from '@volunteerfleet/shared';
+import type { DocumentResponse, VehicleStatus, VehicleStatusHistory } from '@volunteerfleet/shared';
 import { VEHICLE_STATUS_CONFIG } from '@volunteerfleet/shared';
 import {
+  type FileAttachmentExistingItem,
   type FileAttachmentNewFile,
   type FileAttachmentNewLink,
   FileAttachmentField,
@@ -96,11 +97,19 @@ function getSlotsForStatus(status: VehicleStatus, entry: VehicleStatusHistory): 
   }
 }
 
+// Customs-related document slots, irrelevant for local purchases (no border crossing).
+const CUSTOMS_DOC_SLOT_KEYS = [
+  'stampedRegistrationGroupId',
+  'customsDeclarationGroupId',
+  'stampedCustomsDeclarationGroupId',
+];
+
 interface SlotState {
   newFiles: FileAttachmentNewFile[];
   newLinks: FileAttachmentNewLink[];
   existingIds: string[];
   currentGroupId: string | null;
+  removedIds: string[];
   groupName?: string;
 }
 
@@ -110,13 +119,15 @@ interface FormValues {
   isLocalPurchase?: boolean;
   borderCrossingDate?: dayjs.Dayjs | null;
   isRegisteredAtServiceCenter?: boolean;
-  lostReason?: string;
 }
 
 interface StatusHistoryEditModalProps {
   open: boolean;
   vehicleId: string;
   entry: VehicleStatusHistory;
+  // Local purchase is decided on the `paid` entry; passed down so customs slots
+  // can be hidden when editing the related `arrived`/`in_transit` entries.
+  isLocalPurchase?: boolean;
   onClose: () => void;
 }
 
@@ -124,11 +135,14 @@ export function StatusHistoryEditModal({
   open,
   vehicleId,
   entry,
+  isLocalPurchase = false,
   onClose,
 }: StatusHistoryEditModalProps) {
   const [form] = Form.useForm<FormValues>();
   const status = entry.newStatus;
-  const docSlots = getSlotsForStatus(status, entry);
+  const docSlots = getSlotsForStatus(status, entry).filter(
+    (slot) => !(isLocalPurchase && CUSTOMS_DOC_SLOT_KEYS.includes(slot.fieldKey)),
+  );
 
   const [slotStates, setSlotStates] = useState<Record<string, SlotState>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -140,6 +154,15 @@ export function StatusHistoryEditModal({
   });
   const vehicleDocs = vehicleDocsData?.items ?? [];
   const picker = buildDocumentPickerItems(vehicleDocs, documentsApi.getDownloadUrl);
+  // Full document list (status-bound included) so each slot's already-attached
+  // files can be shown and removed — the picker query excludes them.
+  const { data: allDocsData, isLoading: allDocsLoading } = useVehicleDocuments(
+    open ? vehicleId : undefined,
+    { pageSize: 100 },
+  );
+  const allDocs = allDocsData?.items ?? [];
+  const slotExistingItems = (groupId: string | null): FileAttachmentExistingItem[] =>
+    groupId ? allDocs.filter((d) => d.groupId === groupId).map(toAttachmentItem) : [];
 
   useEffect(() => {
     if (!open) return;
@@ -150,6 +173,7 @@ export function StatusHistoryEditModal({
         newLinks: [],
         existingIds: [],
         currentGroupId: slot.currentGroupId,
+        removedIds: [],
       };
     }
     setSlotStates(initial);
@@ -159,12 +183,17 @@ export function StatusHistoryEditModal({
       isLocalPurchase: entry.isLocalPurchase ?? false,
       borderCrossingDate: null,
       isRegisteredAtServiceCenter: entry.isRegisteredAtServiceCenter ?? false,
-      lostReason: entry.lostReason ?? undefined,
     });
   }, [open, entry, form, status]);
 
   const getSlotState = (key: string): SlotState =>
-    slotStates[key] ?? { newFiles: [], newLinks: [], existingIds: [], currentGroupId: null };
+    slotStates[key] ?? {
+      newFiles: [],
+      newLinks: [],
+      existingIds: [],
+      currentGroupId: null,
+      removedIds: [],
+    };
 
   const setSlotField = (key: string, patch: Partial<SlotState>) => {
     setSlotStates((prev) => {
@@ -173,6 +202,7 @@ export function StatusHistoryEditModal({
         newLinks: [],
         existingIds: [],
         currentGroupId: null,
+        removedIds: [],
       };
       return { ...prev, [key]: { ...current, ...patch } };
     });
@@ -200,7 +230,29 @@ export function StatusHistoryEditModal({
     try {
       const groupIds: Record<string, string | null> = {};
       for (const slot of docSlots) {
-        groupIds[slot.fieldKey] = await buildSlotGroup(slot, getSlotState(slot.fieldKey));
+        const state = getSlotState(slot.fieldKey);
+        for (const docId of state.removedIds) {
+          try {
+            await documentsApi.remove(docId);
+          } catch (err) {
+            // A 404 means the document is already gone (e.g. stale list, retried
+            // save) — the desired end state is reached, so keep going.
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status !== 404) throw err;
+          }
+        }
+        const remainingExisting = slotExistingItems(state.currentGroupId).filter(
+          (item) => !state.removedIds.includes(item.id),
+        ).length;
+        const hasNewContent =
+          state.newFiles.length > 0 ||
+          state.newLinks.length > 0 ||
+          selectedDocIds(state.existingIds).length > 0;
+        // Slot emptied (last document removed, nothing added): detach the group so
+        // the entry no longer references an empty one — the backend rejects empty
+        // groups, and detaching lets the "missing document" alert surface.
+        groupIds[slot.fieldKey] =
+          remainingExisting === 0 && !hasNewContent ? null : await buildSlotGroup(slot, state);
       }
 
       const base = {
@@ -254,7 +306,7 @@ export function StatusHistoryEditModal({
           payload = { ...base, returnActGroupId: groupIds['returnActGroupId'] ?? null };
           break;
         case 'lost':
-          payload = { ...base, lostReason: values.lostReason ?? '' };
+          payload = { ...base };
           break;
         default:
           message.error('Невідомий статус');
@@ -303,7 +355,7 @@ export function StatusHistoryEditModal({
           </Form.Item>
         )}
 
-        {status === 'arrived' && (
+        {status === 'arrived' && !isLocalPurchase && (
           <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
             <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
           </Form.Item>
@@ -316,16 +368,6 @@ export function StatusHistoryEditModal({
             valuePropName="checked"
           >
             <Switch />
-          </Form.Item>
-        )}
-
-        {status === 'lost' && (
-          <Form.Item
-            name="lostReason"
-            label="Причина втрати"
-            rules={[{ required: true, message: 'Вкажіть причину' }]}
-          >
-            <Input.TextArea rows={3} maxLength={2000} showCount />
           </Form.Item>
         )}
 
@@ -342,6 +384,12 @@ export function StatusHistoryEditModal({
                 allowLinks
                 acceptedMimeTypes={ALLOWED_MIME_TYPES}
                 maxSizeBytes={MAX_SIZE_BYTES}
+                loading={state.currentGroupId ? allDocsLoading : false}
+                existingItems={slotExistingItems(state.currentGroupId)}
+                removedExistingIds={state.removedIds}
+                onRemovedExistingIdsChange={(ids) =>
+                  setSlotField(slot.fieldKey, { removedIds: ids })
+                }
                 newFiles={state.newFiles}
                 onNewFilesChange={(files) => {
                   setSlotStates((prev) => {
@@ -350,6 +398,7 @@ export function StatusHistoryEditModal({
                       newLinks: [],
                       existingIds: [],
                       currentGroupId: null,
+                      removedIds: [],
                     };
                     return {
                       ...prev,
@@ -403,4 +452,23 @@ export function StatusHistoryEditModal({
       </Form>
     </Modal>
   );
+}
+
+function toAttachmentItem(document: DocumentResponse): FileAttachmentExistingItem {
+  return {
+    id: document.id,
+    name: document.name,
+    kind: document.kind,
+    mimeType: document.mimeType,
+    sizeBytes: document.sizeBytes,
+    url: document.url,
+    previewUrl:
+      document.kind === 'upload' && document.mimeType?.startsWith('image/')
+        ? documentsApi.getDownloadUrl(document.id, document.updatedAt)
+        : undefined,
+    downloadUrl:
+      document.kind === 'upload'
+        ? documentsApi.getDownloadUrl(document.id, document.updatedAt)
+        : undefined,
+  };
 }
