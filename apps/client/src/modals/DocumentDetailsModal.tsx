@@ -96,7 +96,6 @@ function DocumentContent({ doc, isFullscreen }: { doc: DocumentResponse; isFulls
       <div>
         <iframe
           src={downloadUrl}
-          sandbox="allow-scripts allow-same-origin"
           title={doc.name}
           style={{ width: '100%', height: contentHeight, border: 'none' }}
         />
