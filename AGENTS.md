@@ -29,6 +29,7 @@ Orientation file for AI agents working on this project. Keep it short — add de
 - Base branch: **`main`**.
 - Feature branches: `feat/<short-name>`, `fix/<short-name>`, `chore/<short-name>`, etc. (Conventional Commits style).
 - Always `git fetch origin` before creating a new branch.
+- Before preparing a release, read `docs/deployment.md` and follow its release workflow.
 - Agents do **not** push to `main` directly — open a PR.
 
 ## Conventions
