@@ -23,6 +23,7 @@ const VEHICLE_SORT_WHITELIST = [
   'brand',
   'model',
   'year',
+  'startDate',
   'createdAt',
   'updatedAt',
 ] as const;
