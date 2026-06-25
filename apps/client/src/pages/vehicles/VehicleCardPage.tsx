@@ -503,6 +503,16 @@ export function VehicleCardPage() {
               </Col>
               <Col xs={24} sm={12}>
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  ПОЧАТКОВА ДАТА
+                </Typography.Text>
+                <div>
+                  <Typography.Text strong>
+                    {dayjs(vehicle.startDate).format('DD.MM.YYYY')}
+                  </Typography.Text>
+                </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   ДОДАНО
                 </Typography.Text>
                 <div>

@@ -39,7 +39,7 @@ export function VehiclesListPage() {
   const [search, setSearch] = useState('');
   const [statuses, setStatuses] = useState<VehicleStatus[]>([]);
   const [hasAlerts, setHasAlerts] = useState<boolean | undefined>();
-  const [sort, setSort] = useState('createdAt:desc');
+  const [sort, setSort] = useState('startDate:desc');
   const [modalOpen, setModalOpen] = useState(false);
   const orgRole = useOrgRole();
   const user = useAuth((s) => s.user);
@@ -134,10 +134,10 @@ export function VehiclesListPage() {
         ),
       },
       {
-        title: 'Створено',
-        dataIndex: 'createdAt',
+        title: 'Початкова дата',
+        dataIndex: 'startDate',
         sorter: true,
-        render: (value: string) => dayjs(value).format('DD.MM.YYYY HH:mm'),
+        render: (value: string) => dayjs(value).format('DD.MM.YYYY'),
       },
     ],
     [],
