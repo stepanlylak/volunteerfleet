@@ -125,7 +125,11 @@ export class VehicleGalleriesService {
         : undefined;
       const coverItem = explicitItem ?? items[0]!;
 
-      result.set(gallery.vehicleId, { itemId: coverItem.id, mimeType: coverItem.mimeType });
+      result.set(gallery.vehicleId, {
+        galleryId: gallery.id,
+        itemId: coverItem.id,
+        mimeType: coverItem.mimeType,
+      });
     }
 
     return result;

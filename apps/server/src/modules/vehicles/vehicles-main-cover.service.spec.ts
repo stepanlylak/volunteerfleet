@@ -157,7 +157,13 @@ describeIfDb('VehiclesService main gallery cover (GAL-7)', () => {
       await insertItem(tx, ctx, ctx.mainGalleryId, 1, 'image/png');
 
       const response = await ctx.vehiclesService.findById(ctx.vehicleId, ctx.orgId);
-      expect(response.mainGalleryCover).toEqual({ itemId: first.id, mimeType: 'image/jpeg' });
+      expect(response.mainGalleryCover).toEqual(
+        expect.objectContaining({
+          galleryId: ctx.mainGalleryId,
+          itemId: first.id,
+          mimeType: 'image/jpeg',
+        }),
+      );
     });
   });
 
@@ -172,7 +178,13 @@ describeIfDb('VehiclesService main gallery cover (GAL-7)', () => {
         .where(eq(vehicleGalleries.id, ctx.mainGalleryId));
 
       const response = await ctx.vehiclesService.findById(ctx.vehicleId, ctx.orgId);
-      expect(response.mainGalleryCover).toEqual({ itemId: second.id, mimeType: 'image/png' });
+      expect(response.mainGalleryCover).toEqual(
+        expect.objectContaining({
+          galleryId: ctx.mainGalleryId,
+          itemId: second.id,
+          mimeType: 'image/png',
+        }),
+      );
     });
   });
 
@@ -193,7 +205,13 @@ describeIfDb('VehiclesService main gallery cover (GAL-7)', () => {
         .where(eq(vehicleGalleryItems.id, second.id));
 
       const response = await ctx.vehiclesService.findById(ctx.vehicleId, ctx.orgId);
-      expect(response.mainGalleryCover).toEqual({ itemId: first.id, mimeType: 'image/jpeg' });
+      expect(response.mainGalleryCover).toEqual(
+        expect.objectContaining({
+          galleryId: ctx.mainGalleryId,
+          itemId: first.id,
+          mimeType: 'image/jpeg',
+        }),
+      );
     });
   });
 
@@ -215,7 +233,13 @@ describeIfDb('VehiclesService main gallery cover (GAL-7)', () => {
       );
       const listItem = list.items.find((v) => v.id === ctx.vehicleId)!;
 
-      expect(detail.mainGalleryCover).toEqual({ itemId: second.id, mimeType: 'image/webp' });
+      expect(detail.mainGalleryCover).toEqual(
+        expect.objectContaining({
+          galleryId: ctx.mainGalleryId,
+          itemId: second.id,
+          mimeType: 'image/webp',
+        }),
+      );
       expect(listItem.mainGalleryCover).toEqual(detail.mainGalleryCover);
     });
   });
@@ -249,8 +273,20 @@ describeIfDb('VehiclesService main gallery cover (GAL-7)', () => {
       const v1 = list.items.find((v) => v.id === ctx.vehicleId)!;
       const v2 = list.items.find((v) => v.id === vehicle2.id)!;
 
-      expect(v1.mainGalleryCover).toEqual({ itemId: item1.id, mimeType: 'image/jpeg' });
-      expect(v2.mainGalleryCover).toEqual({ itemId: item2.id, mimeType: 'image/png' });
+      expect(v1.mainGalleryCover).toEqual(
+        expect.objectContaining({
+          galleryId: ctx.mainGalleryId,
+          itemId: item1.id,
+          mimeType: 'image/jpeg',
+        }),
+      );
+      expect(v2.mainGalleryCover).toEqual(
+        expect.objectContaining({
+          galleryId: mainGalleryId2,
+          itemId: item2.id,
+          mimeType: 'image/png',
+        }),
+      );
     });
   });
 

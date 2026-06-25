@@ -65,7 +65,11 @@ export function VehiclesListPage() {
               width={80}
               height={60}
               style={{ objectFit: 'cover', borderRadius: 4 }}
-              src={vehiclesApi.getMainCoverUrl(vehicle.mainGalleryCover.itemId)}
+              src={vehiclesApi.getMainCoverUrl(
+                vehicle.id,
+                vehicle.mainGalleryCover.galleryId,
+                vehicle.mainGalleryCover.itemId,
+              )}
               alt={`${vehicle.brand} ${vehicle.model}`}
               preview={false}
               placeholder

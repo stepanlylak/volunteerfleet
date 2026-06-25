@@ -150,6 +150,7 @@ export type VehicleGalleryListResponse = z.infer<typeof vehicleGalleryListRespon
 
 export const vehicleMainGalleryCoverSchema = z
   .object({
+    galleryId: uuidSchema,
     itemId: uuidSchema,
     mimeType: z.string(),
   })

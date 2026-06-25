@@ -66,8 +66,8 @@ export const vehiclesApi = {
     });
   },
 
-  getMainCoverUrl(itemId: string): string {
+  getMainCoverUrl(vehicleId: string, galleryId: string, itemId: string): string {
     const base = import.meta.env.VITE_API_URL || '/api/v1';
-    return `${base}/public/gallery-items/${itemId}/download`;
+    return `${base}/vehicles/${vehicleId}/galleries/${galleryId}/items/${itemId}/download`;
   },
 };
