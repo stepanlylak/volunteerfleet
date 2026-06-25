@@ -131,6 +131,7 @@ export function StatusTransitionModal({
   const [slotStates, setSlotStates] = useState<Record<string, SlotState>>({});
   const [submitting, setSubmitting] = useState(false);
   const isDateManuallyChangedRef = useRef(false);
+  const isBorderDateManuallyChangedRef = useRef(false);
 
   const allowedTargets = ALLOWED_TRANSITIONS[vehicle.status] ?? [];
   // `isLocalPurchase` is derived by the caller from the `paid` history entry (the
@@ -162,6 +163,7 @@ export function StatusTransitionModal({
     setTargetStatus(undefined);
     setSlotStates({});
     isDateManuallyChangedRef.current = false;
+    isBorderDateManuallyChangedRef.current = false;
     form.resetFields();
     form.setFieldsValue({
       transitionDate: dayjs(defaultTransitionDate),
@@ -314,6 +316,9 @@ export function StatusTransitionModal({
             onChange={(v: VehicleStatus) => {
               setTargetStatus(v);
               setSlotStates({});
+              if (v === 'arrived' && !isBorderDateManuallyChangedRef.current) {
+                form.setFieldValue('borderCrossingDate', form.getFieldValue('transitionDate'));
+              }
             }}
           />
         </Form.Item>
@@ -329,6 +334,9 @@ export function StatusTransitionModal({
             onChange={(date) => {
               if (date) {
                 isDateManuallyChangedRef.current = true;
+                if (targetStatus === 'arrived' && !isBorderDateManuallyChangedRef.current) {
+                  form.setFieldValue('borderCrossingDate', date);
+                }
               }
             }}
           />
@@ -342,7 +350,13 @@ export function StatusTransitionModal({
 
         {targetStatus === 'arrived' && !isLocalPurchase && (
           <Form.Item name="borderCrossingDate" label="Дата перетину кордону">
-            <DatePicker style={{ width: '100%' }} format="DD.MM.YYYY" />
+            <DatePicker
+              style={{ width: '100%' }}
+              format="DD.MM.YYYY"
+              onChange={(date) => {
+                if (date) isBorderDateManuallyChangedRef.current = true;
+              }}
+            />
           </Form.Item>
         )}
 
