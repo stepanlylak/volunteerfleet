@@ -12,6 +12,7 @@ import type {
   VehicleUpdate,
   VehicleUserInfo,
 } from '@volunteerfleet/shared';
+import { VEHICLE_STATUS_CONFIG, VEHICLE_STATUSES } from '@volunteerfleet/shared';
 import { DB } from '../../db/db.module.js';
 import type { Database } from '../../db/client.js';
 import { vehicleAlertsView, vehicles, vehicleStatusHistory } from '../../db/schema/index.js';
@@ -23,11 +24,18 @@ const VEHICLE_SORT_WHITELIST = [
   'brand',
   'model',
   'year',
+  'status',
   'startDate',
   'createdAt',
   'updatedAt',
 ] as const;
 type VehicleSortField = (typeof VEHICLE_SORT_WHITELIST)[number];
+
+// Prebuilt SQL CASE expression mapping status enum values to their sort order.
+const STATUS_SORT_ORDER_SQL = sql`CASE ${vehicles.status} ${sql.join(
+  VEHICLE_STATUSES.map((s) => sql`WHEN ${s} THEN ${VEHICLE_STATUS_CONFIG[s].sortOrder}`),
+  sql` `,
+)} END`;
 
 interface SortItem {
   field: VehicleSortField;
@@ -99,11 +107,14 @@ export class VehiclesService {
 
     // Parse and validate sort
     const sortItems = this.parseSort(sort);
-    const orderBy: SQL<unknown>[] = sortItems.map((s) =>
-      s.dir === 'asc' ? asc(vehicles[s.field]) : desc(vehicles[s.field]),
-    );
+    const orderBy: SQL<unknown>[] = sortItems.map((s) => {
+      if (s.field === 'status') {
+        return s.dir === 'asc' ? asc(STATUS_SORT_ORDER_SQL) : desc(STATUS_SORT_ORDER_SQL);
+      }
+      return s.dir === 'asc' ? asc(vehicles[s.field]) : desc(vehicles[s.field]);
+    });
     if (orderBy.length === 0) {
-      orderBy.push(desc(vehicles.createdAt));
+      orderBy.push(desc(vehicles.startDate));
     }
 
     // Fetch items with relations

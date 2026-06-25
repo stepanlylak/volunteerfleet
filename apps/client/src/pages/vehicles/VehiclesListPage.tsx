@@ -122,6 +122,7 @@ export function VehiclesListPage() {
       {
         title: 'Статус',
         dataIndex: 'status',
+        sorter: true,
         render: (status: VehicleStatus, vehicle: VehicleResponse) => (
           <Space size="small">
             <VehicleStatusTag status={status} />
