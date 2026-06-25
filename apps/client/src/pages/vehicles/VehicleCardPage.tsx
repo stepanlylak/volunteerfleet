@@ -908,29 +908,26 @@ export function VehicleCardPage() {
                                     setGroupEditOpen(true);
                                   }}
                                 />
-                                <Popconfirm
-                                  title="Видалити цей документ (групу файлів)?"
-                                  okText="Так"
-                                  cancelText="Ні"
-                                  onConfirm={async () => {
-                                    try {
-                                      await documentGroupsApi.remove(r.groupId);
-                                      void queryClient.invalidateQueries({
-                                        queryKey: ['documents', 'vehicle', vehicle.id],
-                                      });
-                                      void message.success('Документ видалено');
-                                    } catch {
-                                      void message.error('Не вдалося видалити групу');
-                                    }
-                                  }}
-                                >
-                                  <Button
-                                    size="small"
-                                    danger
-                                    icon={<DeleteOutlined />}
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                </Popconfirm>
+                                <span onClick={(e) => e.stopPropagation()}>
+                                  <Popconfirm
+                                    title="Видалити цей документ (групу файлів)?"
+                                    okText="Так"
+                                    cancelText="Ні"
+                                    onConfirm={async () => {
+                                      try {
+                                        await documentGroupsApi.remove(r.groupId);
+                                        void queryClient.invalidateQueries({
+                                          queryKey: ['documents', 'vehicle', vehicle.id],
+                                        });
+                                        void message.success('Документ видалено');
+                                      } catch {
+                                        void message.error('Не вдалося видалити групу');
+                                      }
+                                    }}
+                                  >
+                                    <Button size="small" danger icon={<DeleteOutlined />} />
+                                  </Popconfirm>
+                                </span>
                               </Flex>
                             );
                           }
@@ -968,22 +965,19 @@ export function VehicleCardPage() {
                                       }}
                                     />
                                   )}
-                                  <Popconfirm
-                                    title="Видалити документ?"
-                                    okText="Так"
-                                    cancelText="Ні"
-                                    onConfirm={async () => {
-                                      await deleteDocument.mutateAsync(r.id);
-                                      void message.success('Документ видалено');
-                                    }}
-                                  >
-                                    <Button
-                                      size="small"
-                                      danger
-                                      icon={<DeleteOutlined />}
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                  </Popconfirm>
+                                  <span onClick={(e) => e.stopPropagation()}>
+                                    <Popconfirm
+                                      title="Видалити документ?"
+                                      okText="Так"
+                                      cancelText="Ні"
+                                      onConfirm={async () => {
+                                        await deleteDocument.mutateAsync(r.id);
+                                        void message.success('Документ видалено');
+                                      }}
+                                    >
+                                      <Button size="small" danger icon={<DeleteOutlined />} />
+                                    </Popconfirm>
+                                  </span>
                                 </>
                               )}
                             </Flex>
