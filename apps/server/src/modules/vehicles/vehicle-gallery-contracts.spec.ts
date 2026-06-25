@@ -120,7 +120,10 @@ describe('vehicle gallery contracts', () => {
     it('exposes nullable mainGalleryCover on the vehicle response contract', () => {
       const shape = vehicleResponseSchema.shape.mainGalleryCover;
       expect(shape.safeParse(null).success).toBe(true);
-      expect(shape.safeParse({ itemId: uuid(1), mimeType: 'image/jpeg' }).success).toBe(true);
+      expect(
+        shape.safeParse({ galleryId: uuid(2), itemId: uuid(1), mimeType: 'image/jpeg' }).success,
+      ).toBe(true);
+      expect(shape.safeParse({ itemId: uuid(1), mimeType: 'image/jpeg' }).success).toBe(false);
       expect(vehicleMainGalleryCoverSchema.safeParse({ itemId: uuid(1) }).success).toBe(false);
     });
   });
