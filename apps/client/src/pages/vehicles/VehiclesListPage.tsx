@@ -32,6 +32,15 @@ import { useVehicles } from '../../hooks/useVehicles';
 import { useAuth, useOrgRole } from '../../stores/auth.store';
 import { vehiclesApi } from '../../api/vehicles.api';
 
+type MonthGroupRow = { __type: 'monthGroup'; monthKey: string; label: string };
+type TableRow = VehicleResponse | MonthGroupRow;
+
+function isMonthGroup(row: TableRow): row is MonthGroupRow {
+  return '__type' in row && row.__type === 'monthGroup';
+}
+
+const GROUP_COLS = 6; // total number of table columns
+
 export function VehiclesListPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
@@ -40,27 +49,61 @@ export function VehiclesListPage() {
   const [statuses, setStatuses] = useState<VehicleStatus[]>([]);
   const [hasAlerts, setHasAlerts] = useState<boolean | undefined>();
   const [sort, setSort] = useState('startDate:desc');
+  const [groupByMonth, setGroupByMonth] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const orgRole = useOrgRole();
   const user = useAuth((s) => s.user);
   const canMutate = orgRole !== null && orgRole !== 'viewer';
+
   const { data, isFetching } = useVehicles({
-    page,
-    pageSize,
+    page: groupByMonth ? 1 : page,
+    pageSize: groupByMonth ? 100 : pageSize,
     search: search || undefined,
     statuses: statuses.length > 0 ? statuses : undefined,
     hasAlerts,
-    sort,
+    sort: groupByMonth ? 'startDate:desc' : sort,
   });
 
-  const columns = useMemo<ColumnsType<VehicleResponse>>(
+  // Build flat list with month-group header rows inserted between groups.
+  const groupedRows = useMemo<TableRow[]>(() => {
+    if (!groupByMonth) return data?.items ?? [];
+    const items = data?.items ?? [];
+    const result: TableRow[] = [];
+    let lastMonthKey = '';
+    for (const vehicle of items) {
+      const monthKey = dayjs(vehicle.startDate).format('YYYY-MM');
+      if (monthKey !== lastMonthKey) {
+        lastMonthKey = monthKey;
+        result.push({
+          __type: 'monthGroup',
+          monthKey,
+          label: dayjs(vehicle.startDate).format('MMMM YYYY'),
+        });
+      }
+      result.push(vehicle);
+    }
+    return result;
+  }, [groupByMonth, data?.items]);
+
+  const columns = useMemo<ColumnsType<TableRow>>(
     () => [
       {
         title: 'Обкладинка',
         key: 'cover',
         width: 100,
-        render: (_, vehicle) =>
-          vehicle.mainGalleryCover ? (
+        render: (_, row) => {
+          if (isMonthGroup(row)) {
+            return {
+              children: (
+                <Typography.Text strong style={{ fontSize: 13, color: '#595959' }}>
+                  {row.label}
+                </Typography.Text>
+              ),
+              props: { colSpan: GROUP_COLS },
+            };
+          }
+          const vehicle = row as VehicleResponse;
+          return vehicle.mainGalleryCover ? (
             <Image
               width={80}
               height={60}
@@ -90,65 +133,81 @@ export function VehiclesListPage() {
             >
               Немає фото
             </div>
-          ),
+          );
+        },
       },
       {
         title: 'Ідентифікатор',
         dataIndex: 'identifier',
-        sorter: true,
+        sorter: !groupByMonth,
+        render: (value: string | undefined, row) =>
+          isMonthGroup(row) ? { children: null, props: { colSpan: 0 } } : (value ?? ''),
       },
       {
         title: 'Марка і модель',
         key: 'model',
-        sorter: true,
-        render: (_, vehicle) => (
-          <Space direction="vertical" size={0}>
-            <Typography.Text strong>
-              {vehicle.brand} {vehicle.model}
-            </Typography.Text>
-            {vehicle.vin ? (
-              <Typography.Text type="secondary">VIN: {vehicle.vin}</Typography.Text>
-            ) : null}
-          </Space>
-        ),
+        sorter: !groupByMonth,
+        render: (_, row) => {
+          if (isMonthGroup(row)) return { children: null, props: { colSpan: 0 } };
+          const vehicle = row as VehicleResponse;
+          return (
+            <Space direction="vertical" size={0}>
+              <Typography.Text strong>
+                {vehicle.brand} {vehicle.model}
+              </Typography.Text>
+              {vehicle.vin ? (
+                <Typography.Text type="secondary">VIN: {vehicle.vin}</Typography.Text>
+              ) : null}
+            </Space>
+          );
+        },
       },
       {
         title: 'Рік',
         dataIndex: 'year',
-        sorter: true,
+        sorter: !groupByMonth,
         width: 100,
-        render: (year: number | null) => year ?? '—',
+        render: (value: number | null | undefined, row) =>
+          isMonthGroup(row) ? { children: null, props: { colSpan: 0 } } : (value ?? '—'),
       },
       {
         title: 'Статус',
         dataIndex: 'status',
-        sorter: true,
-        render: (status: VehicleStatus, vehicle: VehicleResponse) => (
-          <Space size="small">
-            <VehicleStatusTag status={status} />
-            {vehicle.alerts.length > 0 && (
-              <Tooltip title={vehicle.alerts.map((a) => a.message).join('; ')}>
-                <Badge count={vehicle.alerts.length} color="#faad14" />
-              </Tooltip>
-            )}
-          </Space>
-        ),
+        sorter: !groupByMonth,
+        render: (_: VehicleStatus | undefined, row) => {
+          if (isMonthGroup(row)) return { children: null, props: { colSpan: 0 } };
+          const vehicle = row as VehicleResponse;
+          return (
+            <Space size="small">
+              <VehicleStatusTag status={vehicle.status} />
+              {vehicle.alerts.length > 0 && (
+                <Tooltip title={vehicle.alerts.map((a) => a.message).join('; ')}>
+                  <Badge count={vehicle.alerts.length} color="#faad14" />
+                </Tooltip>
+              )}
+            </Space>
+          );
+        },
       },
       {
         title: 'Початкова дата',
         dataIndex: 'startDate',
-        sorter: true,
-        render: (value: string) => dayjs(value).format('DD.MM.YYYY'),
+        sorter: !groupByMonth,
+        render: (value: string | undefined, row) =>
+          isMonthGroup(row)
+            ? { children: null, props: { colSpan: 0 } }
+            : dayjs(value).format('DD.MM.YYYY'),
       },
     ],
-    [],
+    [groupByMonth],
   );
 
   const handleTableChange = (
     pagination: TablePaginationConfig,
     _: Record<string, FilterValue | null>,
-    sorter: SorterResult<VehicleResponse> | SorterResult<VehicleResponse>[],
+    sorter: SorterResult<TableRow> | SorterResult<TableRow>[],
   ) => {
+    if (groupByMonth) return;
     setPage(pagination.current ?? 1);
     setPageSize(pagination.pageSize ?? 20);
     const singleSorter = Array.isArray(sorter) ? sorter[0] : sorter;
@@ -207,6 +266,16 @@ export function VehiclesListPage() {
             />
             <Typography.Text>З алертами</Typography.Text>
           </Space>
+          <Space size="small">
+            <Switch
+              checked={groupByMonth}
+              onChange={(checked) => {
+                setGroupByMonth(checked);
+                setPage(1);
+              }}
+            />
+            <Typography.Text>По місяцях</Typography.Text>
+          </Space>
         </div>
         <div className="status-filter">
           <Typography.Text type="secondary" className="status-filter__label">
@@ -247,22 +316,32 @@ export function VehiclesListPage() {
           )}
         </div>
       </div>
-      <Table
-        rowKey="id"
+      <Table<TableRow>
+        rowKey={(row) => (isMonthGroup(row) ? `__month__${row.monthKey}` : row.id)}
         loading={isFetching}
         columns={columns}
-        dataSource={data?.items ?? []}
-        pagination={{
-          current: data?.page ?? page,
-          pageSize: data?.pageSize ?? pageSize,
-          total: data?.total ?? 0,
-          showSizeChanger: true,
-        }}
+        dataSource={groupedRows}
+        pagination={
+          groupByMonth
+            ? false
+            : {
+                current: data?.page ?? page,
+                pageSize: data?.pageSize ?? pageSize,
+                total: data?.total ?? 0,
+                showSizeChanger: true,
+              }
+        }
         onChange={handleTableChange}
-        onRow={(vehicle) => ({
-          onClick: () => navigate(`/vehicles/${vehicle.id}`),
-          style: { cursor: 'pointer' },
-        })}
+        onRow={(row) => {
+          if (isMonthGroup(row)) {
+            return { style: { backgroundColor: '#fafafa', cursor: 'default' } };
+          }
+          return {
+            onClick: () => navigate(`/vehicles/${(row as VehicleResponse).id}`),
+            style: { cursor: 'pointer' },
+          };
+        }}
+        rowClassName={(row) => (isMonthGroup(row) ? 'vehicle-month-group-row' : '')}
       />
       {canMutate && <VehicleFormModal open={modalOpen} onClose={() => setModalOpen(false)} />}
     </Space>
