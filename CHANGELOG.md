@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.1] - 2026-06-26
+
+### Highlights
+
+- Improved the vehicle list with start-date sorting, status lifecycle sorting, and optional month grouping.
+- Switched vehicle list thumbnails to the authenticated gallery download endpoint.
+
+### Fixes
+
+- Prevented local-purchase arrivals from saving a hidden border crossing date.
+- Prevented document delete confirmations from opening the row preview.
+- Updated vehicle list cover tests for the gallery-aware cover contract.
+
 ## [3.1.0] - 2026-06-25
 
 ### Highlights
