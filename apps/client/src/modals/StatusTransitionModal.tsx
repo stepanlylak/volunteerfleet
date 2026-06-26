@@ -242,9 +242,10 @@ export function StatusTransitionModal({
         case 'arrived':
           payload = {
             ...base,
-            borderCrossingDate: values.borderCrossingDate
-              ? values.borderCrossingDate.format('YYYY-MM-DD')
-              : null,
+            borderCrossingDate:
+              !isLocalPurchase && values.borderCrossingDate
+                ? values.borderCrossingDate.format('YYYY-MM-DD')
+                : null,
             stampedRegistrationGroupId: groupIds['stampedRegistrationGroupId'] ?? null,
             stampedCustomsDeclarationGroupId: groupIds['stampedCustomsDeclarationGroupId'] ?? null,
           };
@@ -316,8 +317,10 @@ export function StatusTransitionModal({
             onChange={(v: VehicleStatus) => {
               setTargetStatus(v);
               setSlotStates({});
-              if (v === 'arrived' && !isBorderDateManuallyChangedRef.current) {
+              if (v === 'arrived' && !isLocalPurchase && !isBorderDateManuallyChangedRef.current) {
                 form.setFieldValue('borderCrossingDate', form.getFieldValue('transitionDate'));
+              } else if (v === 'arrived' && isLocalPurchase) {
+                form.setFieldValue('borderCrossingDate', null);
               }
             }}
           />
@@ -334,7 +337,11 @@ export function StatusTransitionModal({
             onChange={(date) => {
               if (date) {
                 isDateManuallyChangedRef.current = true;
-                if (targetStatus === 'arrived' && !isBorderDateManuallyChangedRef.current) {
+                if (
+                  targetStatus === 'arrived' &&
+                  !isLocalPurchase &&
+                  !isBorderDateManuallyChangedRef.current
+                ) {
                   form.setFieldValue('borderCrossingDate', date);
                 }
               }
