@@ -105,7 +105,11 @@ describe('VehiclesListPage cover column', () => {
       data: {
         items: [
           createMockVehicle({
-            mainGalleryCover: { itemId: 'cover-item-1', mimeType: 'image/jpeg' },
+            mainGalleryCover: {
+              galleryId: 'gallery-1',
+              itemId: 'cover-item-1',
+              mimeType: 'image/jpeg',
+            },
           }),
         ],
         total: 1,
@@ -119,7 +123,10 @@ describe('VehiclesListPage cover column', () => {
 
     const img = screen.getByAltText('Toyota Hilux');
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', '/api/v1/public/gallery-items/cover-item-1/download');
+    expect(img).toHaveAttribute(
+      'src',
+      '/api/v1/vehicles/veh-1/galleries/gallery-1/items/cover-item-1/download',
+    );
   });
 
   it('does not break when multiple vehicles with mixed cover states', () => {
@@ -131,7 +138,7 @@ describe('VehiclesListPage cover column', () => {
             identifier: 'WITH-COVER',
             brand: 'Toyota',
             model: 'Hilux',
-            mainGalleryCover: { itemId: 'cover-1', mimeType: 'image/jpeg' },
+            mainGalleryCover: { galleryId: 'gallery-1', itemId: 'cover-1', mimeType: 'image/jpeg' },
           }),
           createMockVehicle({
             id: 'veh-2',
@@ -145,7 +152,7 @@ describe('VehiclesListPage cover column', () => {
             identifier: 'WITH-COVER-2',
             brand: 'Nissan',
             model: 'Navara',
-            mainGalleryCover: { itemId: 'cover-2', mimeType: 'image/png' },
+            mainGalleryCover: { galleryId: 'gallery-3', itemId: 'cover-2', mimeType: 'image/png' },
           }),
         ],
         total: 3,
